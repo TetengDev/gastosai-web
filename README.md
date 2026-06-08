@@ -1,73 +1,106 @@
-# React + TypeScript + Vite
+# GastosAI — Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React 19 + TypeScript SPA for the GastosAI expense tracker.
 
-Currently, two official plugins are available:
+Built with Vite, Tailwind CSS v4, Recharts, and React Router v7.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+---
 
-## React Compiler
+## Prerequisites
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Node.js LTS ([nodejs.org](https://nodejs.org))
+- Backend API running on http://localhost:8080 (see [backend/README.md](../backend/README.md))
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Environment setup
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+Create `frontend/.env.local`:
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```env
+VITE_API_URL=http://localhost:8080
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+For production, set this to your deployed backend URL (e.g. your Koyeb HTTPS URL).
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+---
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Running
+
+```powershell
+# Install dependencies (first time only)
+npm install
+
+# Start dev server
+npm run dev
 ```
+
+App available at **http://localhost:5173**
+
+To capture logs:
+
+```powershell
+npm run dev > logs\frontend.log 2>&1
+```
+
+---
+
+## Build
+
+```powershell
+npm run build    # outputs to dist/
+npm run preview  # preview the production build locally
+npm run lint     # ESLint check
+```
+
+---
+
+## Pages
+
+| Route | Page | Description |
+|---|---|---|
+| `/` | Dashboard | Spending donut chart by category + 10 most recent expenses |
+| `/expenses` | Expenses | Full expense table — add, edit, delete |
+| `/ask` | Ask AI | Natural-language query interface |
+
+---
+
+## Project structure
+
+```
+src/
+├── api/
+│   ├── client.ts       Axios instance (reads VITE_API_URL, attaches JWT if present)
+│   ├── types.ts        Shared TypeScript interfaces (Expense, Category, reports)
+│   ├── expenses.ts     Expense + report endpoint functions
+│   ├── categories.ts   Category endpoint functions
+│   └── ai.ts           AI query endpoint function
+├── components/
+│   ├── Navbar.tsx      Top navigation with active-link highlighting
+│   └── ExpenseModal.tsx Add/edit expense form (modal)
+├── hooks/
+│   └── useExpenses.ts  Load, add, update, remove with local state
+├── lib/
+│   └── formatters.ts   formatCurrency (₱) and formatDate helpers
+└── pages/
+    ├── Dashboard.tsx
+    ├── Expenses.tsx
+    └── Ask.tsx
+```
+
+---
+
+## Key dependencies
+
+| Package | Purpose |
+|---|---|
+| `react-router-dom` v7 | Client-side routing |
+| `axios` | HTTP client |
+| `recharts` v3 | Charts (donut chart on Dashboard) |
+| `tailwindcss` v4 | Utility-first styling |
+
+---
+
+## Logs
+
+Dev server output can be redirected to `logs/` (git-ignored). The `logs/` directory is created automatically on first redirect.

@@ -1,0 +1,50 @@
+import { useCallback, useEffect, useState } from "react";
+import {
+  createExpense,
+  deleteExpense,
+  getExpenses,
+  updateExpense,
+} from "../api/expenses";
+import type { Expense, ExpenseRequest } from "../api/types";
+
+export function useExpenses() {
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getExpenses();
+      setExpenses(data);
+    } catch {
+      setError("Failed to load expenses");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const add = async (req: ExpenseRequest): Promise<Expense> => {
+    const created = await createExpense(req);
+    setExpenses((prev) => [created, ...prev]);
+    return created;
+  };
+
+  const update = async (id: number, req: ExpenseRequest): Promise<Expense> => {
+    const updated = await updateExpense(id, req);
+    setExpenses((prev) => prev.map((e) => (e.id === id ? updated : e)));
+    return updated;
+  };
+
+  const remove = async (id: number): Promise<void> => {
+    await deleteExpense(id);
+    setExpenses((prev) => prev.filter((e) => e.id !== id));
+  };
+
+  return { expenses, loading, error, refresh: load, add, update, remove };
+}
