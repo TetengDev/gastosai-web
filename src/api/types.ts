@@ -8,7 +8,7 @@ export interface Expense {
 
 export interface ExpenseRequest {
   amount: number;
-  category: string;
+  category?: string;
   date?: string;
   note?: string;
 }

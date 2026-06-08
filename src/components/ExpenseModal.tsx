@@ -12,7 +12,7 @@ export default function ExpenseModal({ expense, onSave, onClose }: Props) {
   const today = new Date().toISOString().split("T")[0];
   const [form, setForm] = useState<ExpenseRequest>({
     amount: expense?.amount ?? (0 as unknown as number),
-    category: expense?.category ?? "",
+    category: expense?.category ?? "Uncategorized",
     date: expense?.date ?? today,
     note: expense?.note ?? "",
   });
@@ -72,23 +72,22 @@ export default function ExpenseModal({ expense, onSave, onClose }: Props) {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Category
             </label>
-            <input
-              type="text"
-              list="category-list"
-              required
-              maxLength={50}
+            <select
               value={form.category}
               onChange={(e) =>
                 setForm((f) => ({ ...f, category: e.target.value }))
               }
-              placeholder="e.g. Food, Transport..."
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-            <datalist id="category-list">
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+            >
+              {categories.length === 0 && (
+                <option value="Uncategorized">Uncategorized</option>
+              )}
               {categories.map((c) => (
-                <option key={c.id} value={c.name} />
+                <option key={c.id} value={c.name}>
+                  {c.name}
+                </option>
               ))}
-            </datalist>
+            </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
