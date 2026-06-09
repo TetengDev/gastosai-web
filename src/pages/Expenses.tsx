@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import ExpenseModal from "../components/ExpenseModal";
+import { importExpensesCsv, type ImportResult } from "../api/expenses";
 import type { Expense } from "../api/types";
 import { useExpenses } from "../hooks/useExpenses";
+import { useFeatures } from "../hooks/useFeatures";
 import { formatCurrency, formatDate, getCategoryColor } from "../lib/formatters";
 
 function PencilIcon() {
@@ -21,13 +23,34 @@ function TrashIcon() {
 }
 
 export default function Expenses() {
-  const { expenses, loading, error, add, update, remove, removeAll } = useExpenses();
+  const features = useFeatures();
+  const { expenses, loading, error, add, update, remove, removeAll, refresh } = useExpenses();
   const [editing, setEditing] = useState<Expense | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
   const [deletingAll, setDeletingAll] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<ImportResult | null>(null);
+  const csvInputRef = useRef<HTMLInputElement>(null);
+
+  const handleCsvChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    setImporting(true);
+    setImportResult(null);
+    try {
+      const result = await importExpensesCsv(file);
+      setImportResult(result);
+      if (result.imported > 0) await refresh();
+    } catch {
+      setImportResult({ imported: 0, skipped: 0, errors: ["Import failed. Check the file format."] });
+    } finally {
+      setImporting(false);
+    }
+  };
 
   if (loading)
     return (
@@ -64,6 +87,24 @@ export default function Expenses() {
               Delete All
             </button>
           )}
+          {features?.csvImport && (
+            <>
+              <input
+                ref={csvInputRef}
+                type="file"
+                accept=".csv,text/csv"
+                className="hidden"
+                onChange={handleCsvChange}
+              />
+              <button
+                onClick={() => csvInputRef.current?.click()}
+                disabled={importing}
+                className="px-4 py-2.5 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 rounded-xl text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 transition-all disabled:opacity-50"
+              >
+                {importing ? "Importing…" : "Import CSV"}
+              </button>
+            </>
+          )}
           <button
             onClick={() => setShowAdd(true)}
             className="px-4 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-xl text-sm font-semibold hover:from-violet-700 hover:to-indigo-700 transition-all shadow-md shadow-indigo-500/25 hover:shadow-lg hover:shadow-indigo-500/30 hover:-translate-y-0.5 active:translate-y-0"
@@ -72,6 +113,37 @@ export default function Expenses() {
           </button>
         </div>
       </div>
+
+      {importResult && (
+        <div
+          className={`flex items-start gap-3 px-4 py-3 rounded-xl border text-sm ${
+            importResult.errors.length > 0
+              ? "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200"
+              : "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200"
+          }`}
+        >
+          <div className="flex-1">
+            <p className="font-medium">
+              {importResult.imported} expense{importResult.imported !== 1 ? "s" : ""} imported
+              {importResult.skipped > 0 && `, ${importResult.skipped} skipped`}
+            </p>
+            {importResult.errors.length > 0 && (
+              <ul className="mt-1 text-xs space-y-0.5 opacity-80">
+                {importResult.errors.slice(0, 3).map((e, i) => <li key={i}>{e}</li>)}
+                {importResult.errors.length > 3 && (
+                  <li>…and {importResult.errors.length - 3} more</li>
+                )}
+              </ul>
+            )}
+          </div>
+          <button
+            onClick={() => setImportResult(null)}
+            className="opacity-60 hover:opacity-100 transition-opacity text-base leading-none"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
         {expenses.length === 0 ? (
