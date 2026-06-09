@@ -20,6 +20,9 @@ export default function Navbar() {
         <NavLink to="/expenses" className={linkClass}>
           Expenses
         </NavLink>
+        <NavLink to="/categories" className={linkClass}>
+          Categories
+        </NavLink>
         <NavLink to="/ask" className={linkClass}>
           Ask AI
         </NavLink>
