@@ -1,6 +1,12 @@
 import api from "./client";
 import type { CategoryReport, Expense, ExpenseRequest, MonthlyReport } from "./types";
 
+export interface ImportResult {
+  imported: number;
+  skipped: number;
+  errors: string[];
+}
+
 export const getExpenses = () =>
   api.get<Expense[]>("/expenses").then((r) => r.data);
 
@@ -15,6 +21,16 @@ export const deleteExpense = (id: number) =>
 
 export const deleteAllExpenses = () =>
   api.delete("/expenses");
+
+export const importExpensesCsv = (file: File) => {
+  const form = new FormData();
+  form.append("file", file);
+  return api
+    .post<ImportResult>("/expenses/import", form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    })
+    .then((r) => r.data);
+};
 
 export const getMonthlyReport = () =>
   api.get<MonthlyReport[]>("/expenses/report/monthly").then((r) => r.data);
