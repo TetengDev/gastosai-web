@@ -30,6 +30,11 @@ export default function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
+        <footer className="max-w-5xl mx-auto px-4 pb-6 flex justify-end">
+          <span className="text-xs text-gray-300 dark:text-gray-700 select-none">
+            v{__APP_VERSION__}
+          </span>
+        </footer>
         <ChatWidget />
       </div>
     </BrowserRouter>
