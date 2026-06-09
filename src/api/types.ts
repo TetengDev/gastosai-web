@@ -3,18 +3,22 @@ export interface Expense {
   amount: number;
   category: string;
   date: string;
-  note?: string;
+  description: string;
 }
 
 export interface ExpenseRequest {
   amount: number;
   category?: string;
   date?: string;
-  note?: string;
+  description: string;
 }
 
 export interface Category {
   id: number;
+  name: string;
+}
+
+export interface CategoryRequest {
   name: string;
 }
 

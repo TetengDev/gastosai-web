@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { getCategories } from "../api/categories";
 import type { Category, Expense, ExpenseRequest } from "../api/types";
+import { toDateTimeLocal } from "../lib/formatters";
 
 interface Props {
   expense?: Expense;
@@ -9,12 +10,12 @@ interface Props {
 }
 
 export default function ExpenseModal({ expense, onSave, onClose }: Props) {
-  const today = new Date().toISOString().split("T")[0];
+  const now = new Date().toISOString().slice(0, 16);
   const [form, setForm] = useState<ExpenseRequest>({
     amount: expense?.amount ?? (0 as unknown as number),
     category: expense?.category ?? "Uncategorized",
-    date: expense?.date ?? today,
-    note: expense?.note ?? "",
+    date: expense?.date ? toDateTimeLocal(expense.date) : now,
+    description: expense?.description ?? "",
   });
   const [categories, setCategories] = useState<Category[]>([]);
   const [saving, setSaving] = useState(false);
@@ -91,10 +92,10 @@ export default function ExpenseModal({ expense, onSave, onClose }: Props) {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Date
+              Date & Time
             </label>
             <input
-              type="date"
+              type="datetime-local"
               value={form.date ?? ""}
               onChange={(e) =>
                 setForm((f) => ({ ...f, date: e.target.value }))
@@ -104,13 +105,14 @@ export default function ExpenseModal({ expense, onSave, onClose }: Props) {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Note (optional)
+              Description
             </label>
             <input
               type="text"
-              value={form.note ?? ""}
+              required
+              value={form.description}
               onChange={(e) =>
-                setForm((f) => ({ ...f, note: e.target.value }))
+                setForm((f) => ({ ...f, description: e.target.value }))
               }
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
