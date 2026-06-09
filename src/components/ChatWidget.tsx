@@ -9,6 +9,76 @@ interface Message {
   timestamp: Date;
 }
 
+interface ModeTheme {
+  headerGradient: string;
+  avatarGradient: string;
+  userBubble: string;
+  activePill: string;
+  inactivePill: string;
+  sendBtn: string;
+  fabGradient: string;
+  fabShadow: string;
+  chip: string;
+  inputRing: string;
+  accentText: string;
+  msgBg: string;
+  typingDot: string;
+}
+
+const MODE_THEMES: Record<ChatMode, ModeTheme> = {
+  plain: {
+    headerGradient: "from-violet-600 to-indigo-700",
+    avatarGradient: "from-violet-600 to-indigo-600",
+    userBubble: "from-violet-600 to-indigo-600",
+    activePill: "bg-white/25 text-white shadow-sm",
+    inactivePill: "text-white/70 hover:text-white hover:bg-white/15",
+    sendBtn: "from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700",
+    fabGradient: "from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700",
+    fabShadow: "shadow-indigo-500/40 hover:shadow-indigo-500/50",
+    chip: "bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100",
+    inputRing: "focus:ring-indigo-500",
+    accentText: "text-indigo-700",
+    msgBg: "bg-gray-50/30",
+    typingDot: "bg-indigo-400",
+  },
+  professional: {
+    headerGradient: "from-slate-700 to-slate-900",
+    avatarGradient: "from-slate-500 to-slate-700",
+    userBubble: "from-slate-600 to-slate-800",
+    activePill: "bg-white/20 text-white shadow-sm",
+    inactivePill: "text-white/60 hover:text-white hover:bg-white/15",
+    sendBtn: "from-slate-600 to-slate-800 hover:from-slate-700 hover:to-slate-900",
+    fabGradient: "from-slate-700 to-slate-900 hover:from-slate-800 hover:to-gray-950",
+    fabShadow: "shadow-slate-700/50 hover:shadow-slate-800/60",
+    chip: "bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200",
+    inputRing: "focus:ring-slate-500",
+    accentText: "text-slate-800",
+    msgBg: "bg-slate-50/40",
+    typingDot: "bg-slate-400",
+  },
+  genz: {
+    headerGradient: "from-pink-500 via-fuchsia-500 to-purple-600",
+    avatarGradient: "from-pink-500 to-fuchsia-600",
+    userBubble: "from-pink-500 to-fuchsia-500",
+    activePill: "bg-white/25 text-white shadow-sm",
+    inactivePill: "text-white/70 hover:text-white hover:bg-white/15",
+    sendBtn: "from-pink-500 to-fuchsia-500 hover:from-pink-600 hover:to-fuchsia-600",
+    fabGradient: "from-pink-500 to-fuchsia-600 hover:from-pink-600 hover:to-fuchsia-700",
+    fabShadow: "shadow-pink-500/40 hover:shadow-pink-500/50",
+    chip: "bg-pink-50 text-pink-700 border border-pink-200 hover:bg-pink-100",
+    inputRing: "focus:ring-pink-500",
+    accentText: "text-fuchsia-700",
+    msgBg: "bg-pink-50/20",
+    typingDot: "bg-pink-400",
+  },
+};
+
+const MODES: { value: ChatMode; label: string; emoji: string }[] = [
+  { value: "plain", label: "Plain", emoji: "📋" },
+  { value: "professional", label: "Pro", emoji: "💼" },
+  { value: "genz", label: "Gen Z", emoji: "✨" },
+];
+
 const SUGGESTED_PROMPTS = [
   "What did I spend most on?",
   "Total expenses this month",
@@ -18,7 +88,8 @@ const SUGGESTED_PROMPTS = [
 
 const WELCOME_MESSAGE: Message = {
   role: "assistant",
-  content: "Hi! I'm GastosAI. Ask me anything about your expenses in plain language.",
+  content:
+    "Hi! I'm GastosAI. Ask me anything about your expenses in plain language.",
   timestamp: new Date(),
 };
 
@@ -60,13 +131,13 @@ function formatField(key: string, value: unknown): string {
   return String(value);
 }
 
-function renderAnswer(answer: unknown): ReactNode {
+function renderAnswer(answer: unknown, accentText: string): ReactNode {
   if (answer === null || answer === undefined)
     return <span>No results found.</span>;
   if (typeof answer === "string") return <span>{answer}</span>;
   if (typeof answer === "number")
     return (
-      <span className="font-semibold text-indigo-700">
+      <span className={`font-semibold ${accentText}`}>
         {formatCurrency(answer)}
       </span>
     );
@@ -88,21 +159,21 @@ function renderAnswer(answer: unknown): ReactNode {
           {rows.map((row, i) => (
             <div
               key={i}
-              className="bg-gray-50 rounded-xl px-3 py-2.5 border border-gray-100"
+              className="bg-gray-50 dark:bg-gray-700/50 rounded-xl px-3 py-2.5 border border-gray-100 dark:border-gray-700"
             >
               <div className="flex justify-between items-start gap-2">
-                <span className="text-sm text-gray-800 font-medium leading-snug flex-1">
+                <span className="text-sm text-gray-800 dark:text-gray-200 font-medium leading-snug flex-1">
                   {String(row.description ?? "—")}
                 </span>
                 {row.amount != null && (
-                  <span className="text-sm font-semibold text-indigo-600 whitespace-nowrap shrink-0">
+                  <span className={`text-sm font-semibold whitespace-nowrap shrink-0 ${accentText}`}>
                     {formatCurrency(Number(row.amount))}
                   </span>
                 )}
               </div>
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1.5">
                 {row.category != null && (
-                  <span className="text-xs text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">
+                  <span className={`text-xs px-2 py-0.5 rounded-full border ${accentText} bg-opacity-10`}>
                     {String(row.category)}
                   </span>
                 )}
@@ -118,7 +189,6 @@ function renderAnswer(answer: unknown): ReactNode {
       );
     }
 
-    // Aggregated / summary data: label on left, metric on right
     const firstRow = rows[0];
     const labelKeys = keys.filter(
       (k) => !isCurrencyKey(k) && typeof firstRow[k] !== "number"
@@ -137,8 +207,8 @@ function renderAnswer(answer: unknown): ReactNode {
                 key={k}
                 className={
                   ki === orderedKeys.length - 1
-                    ? "font-semibold text-indigo-700 text-sm whitespace-nowrap"
-                    : "text-sm text-gray-700 truncate"
+                    ? `font-semibold text-sm whitespace-nowrap ${accentText}`
+                    : "text-sm text-gray-700 dark:text-gray-300 truncate"
                 }
               >
                 {formatField(k, row[k])}
@@ -159,8 +229,8 @@ function renderAnswer(answer: unknown): ReactNode {
       <div className="space-y-1.5 mt-1 w-full">
         {keys.map((k) => (
           <div key={k} className="flex justify-between gap-2">
-            <span className="text-xs text-gray-500">{humanLabel(k)}</span>
-            <span className="text-sm font-medium">{formatField(k, row[k])}</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">{humanLabel(k)}</span>
+            <span className="text-sm font-medium dark:text-gray-200">{formatField(k, row[k])}</span>
           </div>
         ))}
       </div>
@@ -170,19 +240,19 @@ function renderAnswer(answer: unknown): ReactNode {
   return <span>{String(answer)}</span>;
 }
 
-function TypingDots() {
+function TypingDots({ dotClass }: { dotClass: string }) {
   return (
     <div className="flex gap-1 items-center py-0.5">
-      <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
-      <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]" />
-      <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
+      <span className={`w-2 h-2 rounded-full animate-bounce [animation-delay:-0.3s] ${dotClass}`} />
+      <span className={`w-2 h-2 rounded-full animate-bounce [animation-delay:-0.15s] ${dotClass}`} />
+      <span className={`w-2 h-2 rounded-full animate-bounce ${dotClass}`} />
     </div>
   );
 }
 
-function BotAvatar() {
+function BotAvatar({ gradient }: { gradient: string }) {
   return (
-    <div className="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 select-none">
+    <div className={`w-7 h-7 rounded-full bg-gradient-to-br flex items-center justify-center text-white text-xs font-bold flex-shrink-0 select-none ${gradient}`}>
       G
     </div>
   );
@@ -204,12 +274,6 @@ function CollapseIcon() {
   );
 }
 
-const MODES: { value: ChatMode; label: string }[] = [
-  { value: "plain", label: "Plain" },
-  { value: "professional", label: "Professional" },
-  { value: "genz", label: "Gen Z" },
-];
-
 export default function ChatWidget() {
   const [open, setOpen] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
@@ -220,6 +284,8 @@ export default function ChatWidget() {
   const [error, setError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const theme = MODE_THEMES[mode];
 
   useEffect(() => {
     if (open) {
@@ -271,80 +337,83 @@ export default function ChatWidget() {
 
   return (
     <>
-      {/* Chat panel — independently positioned so content never affects its size */}
       {open && (
         <div
           className={
             fullscreen
-              ? "fixed inset-4 z-50 bg-white rounded-2xl border border-gray-200 shadow-2xl flex flex-col overflow-hidden"
-              : "fixed bottom-24 right-6 z-50 w-96 h-[32rem] bg-white rounded-2xl border border-gray-200 shadow-2xl flex flex-col overflow-hidden"
+              ? "fixed inset-4 z-50 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+              : "fixed bottom-24 right-6 z-50 w-96 h-[32rem] bg-white dark:bg-gray-900 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
           }
         >
-          {/* Header */}
-          <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
-            <div className="flex items-center gap-2.5">
-              <BotAvatar />
-              <div>
-                <h2 className="font-semibold text-gray-900 text-sm leading-tight">
-                  GastosAI
-                </h2>
-                <p className="text-xs text-gray-400">Your expense assistant</p>
+          {/* Header — themed gradient */}
+          <div
+            className={`bg-gradient-to-r ${theme.headerGradient} px-4 py-3 flex flex-col gap-2 flex-shrink-0`}
+          >
+            {/* Title row */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <BotAvatar gradient={theme.avatarGradient} />
+                <div>
+                  <h2 className="font-semibold text-white text-sm leading-tight">
+                    GastosAI
+                  </h2>
+                  <p className="text-xs text-white/60">Your expense assistant</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1">
+                {messages.length > 1 && (
+                  <button
+                    onClick={clearConversation}
+                    className="text-xs text-white/70 hover:text-white px-2.5 py-1.5 rounded-lg hover:bg-white/15 transition-colors"
+                  >
+                    Clear
+                  </button>
+                )}
+                <button
+                  onClick={() => setFullscreen((f) => !f)}
+                  aria-label={fullscreen ? "Exit fullscreen" : "Fullscreen"}
+                  className="p-1.5 text-white/70 hover:text-white hover:bg-white/15 rounded-lg transition-colors"
+                >
+                  {fullscreen ? <CollapseIcon /> : <ExpandIcon />}
+                </button>
+                <button
+                  onClick={() => setOpen(false)}
+                  aria-label="Close chat"
+                  className="p-1.5 text-white/70 hover:text-white hover:bg-white/15 rounded-lg transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
             </div>
-            <div className="flex items-center gap-1">
-              {messages.length > 1 && (
-                <button
-                  onClick={clearConversation}
-                  className="text-xs text-gray-400 hover:text-gray-600 px-2.5 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
-                >
-                  Clear
-                </button>
-              )}
-              <button
-                onClick={() => setFullscreen((f) => !f)}
-                aria-label={fullscreen ? "Exit fullscreen" : "Fullscreen"}
-                className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                {fullscreen ? <CollapseIcon /> : <ExpandIcon />}
-              </button>
-              <button
-                onClick={() => setOpen(false)}
-                aria-label="Close chat"
-                className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-          </div>
 
-          {/* Mode toggle */}
-          <div className="px-3 py-1.5 border-b border-gray-100 bg-gray-50 flex items-center gap-1 flex-shrink-0">
-            <span className="text-[10px] text-gray-400 mr-1 uppercase tracking-wide">Mode</span>
-            {MODES.map(({ value, label }) => (
-              <button
-                key={value}
-                onClick={() => setMode(value)}
-                className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-                  mode === value
-                    ? "bg-indigo-600 text-white"
-                    : "text-gray-500 hover:text-gray-700 hover:bg-gray-200"
-                }`}
-              >
-                {label}
-              </button>
-            ))}
+            {/* Mode toggle — inside header */}
+            <div className="flex items-center gap-1">
+              {MODES.map(({ value, label, emoji }) => (
+                <button
+                  key={value}
+                  onClick={() => setMode(value)}
+                  className={`px-2.5 py-1 rounded-full text-xs font-medium transition-all duration-200 ${
+                    mode === value ? theme.activePill : theme.inactivePill
+                  }`}
+                >
+                  {emoji} {label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto min-h-0 p-3 space-y-3 bg-gray-50/30">
+          <div className={`flex-1 overflow-y-auto min-h-0 p-3 space-y-3 transition-colors duration-300 ${theme.msgBg}`}>
             {messages.map((m, i) => (
               <div
                 key={i}
                 className={`flex gap-2 ${m.role === "user" ? "justify-end" : "justify-start"}`}
               >
-                {m.role === "assistant" && <BotAvatar />}
+                {m.role === "assistant" && (
+                  <BotAvatar gradient={theme.avatarGradient} />
+                )}
                 <div
                   className={`flex flex-col gap-0.5 min-w-0 ${
                     m.role === "user"
@@ -353,16 +422,16 @@ export default function ChatWidget() {
                   }`}
                 >
                   <div
-                    className={`rounded-2xl px-3.5 py-2 text-sm leading-relaxed overflow-hidden ${
+                    className={`rounded-2xl px-3.5 py-2 text-sm leading-relaxed overflow-hidden transition-colors duration-300 ${
                       m.role === "user"
-                        ? "bg-indigo-600 text-white rounded-br-sm"
-                        : "bg-white text-gray-800 rounded-bl-sm border border-gray-200 shadow-sm w-full"
+                        ? `bg-gradient-to-br ${theme.userBubble} text-white rounded-br-sm`
+                        : "bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 rounded-bl-sm border border-gray-100 dark:border-gray-700 shadow-sm w-full"
                     }`}
                   >
                     {m.role === "user" ? (
                       <span>{m.content as string}</span>
                     ) : (
-                      renderAnswer(m.content)
+                      renderAnswer(m.content, theme.accentText)
                     )}
                   </div>
                   <span className="text-[10px] text-gray-400 px-1">
@@ -377,9 +446,9 @@ export default function ChatWidget() {
 
             {loading && (
               <div className="flex gap-2 justify-start">
-                <BotAvatar />
-                <div className="bg-white border border-gray-200 shadow-sm rounded-2xl rounded-bl-sm px-3.5 py-2.5">
-                  <TypingDots />
+                <BotAvatar gradient={theme.avatarGradient} />
+                <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm rounded-2xl rounded-bl-sm px-3.5 py-2.5">
+                  <TypingDots dotClass={theme.typingDot} />
                 </div>
               </div>
             )}
@@ -394,7 +463,7 @@ export default function ChatWidget() {
                     <button
                       key={p}
                       onClick={() => void sendMessage(p)}
-                      className="px-2.5 py-1 text-xs bg-indigo-50 text-indigo-700 rounded-full border border-indigo-200 hover:bg-indigo-100 transition-colors"
+                      className={`px-2.5 py-1 text-xs rounded-full transition-colors ${theme.chip}`}
                     >
                       {p}
                     </button>
@@ -407,7 +476,7 @@ export default function ChatWidget() {
           </div>
 
           {/* Input */}
-          <div className="border-t border-gray-200 px-3 py-3 flex-shrink-0 bg-white">
+          <div className="border-t border-gray-100 dark:border-gray-800 px-3 py-3 flex-shrink-0 bg-white dark:bg-gray-900">
             {error && <p className="text-red-500 text-xs mb-2">{error}</p>}
             <form onSubmit={handleSubmit} className="flex gap-2 items-center">
               <input
@@ -416,13 +485,13 @@ export default function ChatWidget() {
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
                 placeholder="Ask about your expenses..."
-                className="flex-1 border border-gray-300 rounded-full px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className={`flex-1 border border-gray-200 dark:border-gray-700 rounded-full px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:border-transparent transition-all bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 ${theme.inputRing}`}
               />
               <button
                 type="submit"
                 disabled={loading || !question.trim()}
                 aria-label="Send"
-                className="w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center hover:bg-indigo-700 disabled:opacity-40 transition-colors flex-shrink-0"
+                className={`w-8 h-8 bg-gradient-to-br text-white rounded-full flex items-center justify-center disabled:opacity-40 transition-all flex-shrink-0 ${theme.sendBtn}`}
               >
                 <svg
                   className="w-3.5 h-3.5 translate-x-px"
@@ -443,12 +512,12 @@ export default function ChatWidget() {
         </div>
       )}
 
-      {/* Toggle button — always fixed at bottom-right, independent of panel */}
+      {/* Toggle FAB — themed */}
       <div className="fixed bottom-6 right-6 z-50">
         <button
           onClick={() => setOpen((o) => !o)}
           aria-label={open ? "Close chat" : "Open chat"}
-          className="w-14 h-14 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95"
+          className={`w-14 h-14 bg-gradient-to-br text-white rounded-full shadow-lg flex items-center justify-center transition-all duration-300 hover:scale-105 hover:shadow-xl active:scale-95 ${theme.fabGradient} ${theme.fabShadow}`}
         >
           {open ? (
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
