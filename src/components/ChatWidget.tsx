@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import { askQuery, askWithAttachment, type ChatMode } from "../api/ai";
+import { importExpensesCsv } from "../api/expenses";
 import { useFeatures } from "../hooks/useFeatures";
 import { formatCurrency, formatDate } from "../lib/formatters";
 
@@ -316,15 +317,24 @@ export default function ChatWidget() {
     setPendingFileUrl(URL.createObjectURL(file));
   };
 
+  const isCsvFile = (f: File): f is File =>
+    f.name.endsWith(".csv") || f.type === "text/csv";
+
+  const isImageFile = (f: File): boolean =>
+    f.type.startsWith("image/");
+
   const sendMessage = async (q: string, file?: File) => {
     const trimmed = q.trim();
     if (!trimmed && !file || loading) return;
     const attachmentUrl = file ? URL.createObjectURL(file) : undefined;
+    const defaultLabel = file
+      ? isCsvFile(file) ? "Import CSV" : isImageFile(file) ? "Analyze this image" : `Attach ${file.name}`
+      : "";
     setMessages((prev) => [
       ...prev,
       {
         role: "user",
-        content: trimmed || "Analyze this image",
+        content: trimmed || defaultLabel,
         timestamp: new Date(),
         attachmentUrl,
         attachmentName: file?.name,
@@ -335,13 +345,31 @@ export default function ChatWidget() {
     setLoading(true);
     setError(null);
     try {
-      const res = file
-        ? await askWithAttachment(trimmed, file)
-        : await askQuery(trimmed, mode);
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: res.answer, timestamp: new Date() },
-      ]);
+      if (file && isCsvFile(file)) {
+        const result = await importExpensesCsv(file);
+        const summary = `Imported ${result.imported} expense${result.imported !== 1 ? "s" : ""}${result.skipped > 0 ? `, skipped ${result.skipped}` : ""}${result.errors.length > 0 ? `\n\nErrors:\n${result.errors.join("\n")}` : ""}.`;
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: summary, timestamp: new Date() },
+        ]);
+      } else if (!file || isImageFile(file)) {
+        const res = file
+          ? await askWithAttachment(trimmed, file)
+          : await askQuery(trimmed, mode);
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: res.answer, timestamp: new Date() },
+        ]);
+      } else {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: `Unsupported file type "${file.type || file.name.split(".").pop() ?? "unknown"}". Please attach an image for analysis or a CSV file for import.`,
+            timestamp: new Date(),
+          },
+        ]);
+      }
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data
@@ -548,15 +576,15 @@ export default function ChatWidget() {
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept="image/*"
+                    accept="image/*,.csv,.xlsx,.xls,.json,.pdf"
                     className="hidden"
                     onChange={handleFileChange}
                   />
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    aria-label="Attach image"
-                    title="Attach image"
+                    aria-label="Attach file"
+                    title="Attach image or CSV"
                     className={`w-8 h-8 flex items-center justify-center rounded-full flex-shrink-0 transition-colors ${
                       pendingFile
                         ? `${theme.accentText} bg-indigo-50 dark:bg-indigo-900/20`
