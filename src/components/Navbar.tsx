@@ -1,4 +1,5 @@
 import { NavLink } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 interface Props {
   isDark: boolean;
@@ -21,7 +22,17 @@ function MoonIcon() {
   );
 }
 
+function LogoutIcon() {
+  return (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+    </svg>
+  );
+}
+
 export default function Navbar({ isDark, onToggleDark }: Props) {
+  const { user, logout } = useAuth();
+
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     `px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
       isActive
@@ -49,7 +60,12 @@ export default function Navbar({ isDark, onToggleDark }: Props) {
         <NavLink to="/categories" className={linkClass}>
           Categories
         </NavLink>
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-1">
+          {user && (
+            <span className="hidden sm:block text-xs text-white/60 mr-2 max-w-[140px] truncate">
+              {user.name}
+            </span>
+          )}
           <button
             onClick={onToggleDark}
             aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
@@ -58,6 +74,16 @@ export default function Navbar({ isDark, onToggleDark }: Props) {
           >
             {isDark ? <SunIcon /> : <MoonIcon />}
           </button>
+          {user && (
+            <button
+              onClick={logout}
+              aria-label="Sign out"
+              title="Sign out"
+              className="p-2 rounded-full text-white/70 hover:text-white hover:bg-white/15 transition-colors cursor-pointer"
+            >
+              <LogoutIcon />
+            </button>
+          )}
         </div>
       </div>
     </nav>
