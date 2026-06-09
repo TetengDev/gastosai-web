@@ -159,10 +159,10 @@ function renderAnswer(answer: unknown, accentText: string): ReactNode {
           {rows.map((row, i) => (
             <div
               key={i}
-              className="bg-gray-50 rounded-xl px-3 py-2.5 border border-gray-100"
+              className="bg-gray-50 dark:bg-gray-700/50 rounded-xl px-3 py-2.5 border border-gray-100 dark:border-gray-700"
             >
               <div className="flex justify-between items-start gap-2">
-                <span className="text-sm text-gray-800 font-medium leading-snug flex-1">
+                <span className="text-sm text-gray-800 dark:text-gray-200 font-medium leading-snug flex-1">
                   {String(row.description ?? "—")}
                 </span>
                 {row.amount != null && (
@@ -208,7 +208,7 @@ function renderAnswer(answer: unknown, accentText: string): ReactNode {
                 className={
                   ki === orderedKeys.length - 1
                     ? `font-semibold text-sm whitespace-nowrap ${accentText}`
-                    : "text-sm text-gray-700 truncate"
+                    : "text-sm text-gray-700 dark:text-gray-300 truncate"
                 }
               >
                 {formatField(k, row[k])}
@@ -229,8 +229,8 @@ function renderAnswer(answer: unknown, accentText: string): ReactNode {
       <div className="space-y-1.5 mt-1 w-full">
         {keys.map((k) => (
           <div key={k} className="flex justify-between gap-2">
-            <span className="text-xs text-gray-500">{humanLabel(k)}</span>
-            <span className="text-sm font-medium">{formatField(k, row[k])}</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">{humanLabel(k)}</span>
+            <span className="text-sm font-medium dark:text-gray-200">{formatField(k, row[k])}</span>
           </div>
         ))}
       </div>
@@ -341,8 +341,8 @@ export default function ChatWidget() {
         <div
           className={
             fullscreen
-              ? "fixed inset-4 z-50 bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden"
-              : "fixed bottom-24 right-6 z-50 w-96 h-[32rem] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+              ? "fixed inset-4 z-50 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+              : "fixed bottom-24 right-6 z-50 w-96 h-[32rem] bg-white dark:bg-gray-900 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
           }
         >
           {/* Header — themed gradient */}
@@ -425,7 +425,7 @@ export default function ChatWidget() {
                     className={`rounded-2xl px-3.5 py-2 text-sm leading-relaxed overflow-hidden transition-colors duration-300 ${
                       m.role === "user"
                         ? `bg-gradient-to-br ${theme.userBubble} text-white rounded-br-sm`
-                        : "bg-white text-gray-800 rounded-bl-sm border border-gray-100 shadow-sm w-full"
+                        : "bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 rounded-bl-sm border border-gray-100 dark:border-gray-700 shadow-sm w-full"
                     }`}
                   >
                     {m.role === "user" ? (
@@ -447,7 +447,7 @@ export default function ChatWidget() {
             {loading && (
               <div className="flex gap-2 justify-start">
                 <BotAvatar gradient={theme.avatarGradient} />
-                <div className="bg-white border border-gray-100 shadow-sm rounded-2xl rounded-bl-sm px-3.5 py-2.5">
+                <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm rounded-2xl rounded-bl-sm px-3.5 py-2.5">
                   <TypingDots dotClass={theme.typingDot} />
                 </div>
               </div>
@@ -476,7 +476,7 @@ export default function ChatWidget() {
           </div>
 
           {/* Input */}
-          <div className="border-t border-gray-100 px-3 py-3 flex-shrink-0 bg-white">
+          <div className="border-t border-gray-100 dark:border-gray-800 px-3 py-3 flex-shrink-0 bg-white dark:bg-gray-900">
             {error && <p className="text-red-500 text-xs mb-2">{error}</p>}
             <form onSubmit={handleSubmit} className="flex gap-2 items-center">
               <input
@@ -485,7 +485,7 @@ export default function ChatWidget() {
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
                 placeholder="Ask about your expenses..."
-                className={`flex-1 border border-gray-200 rounded-full px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:border-transparent transition-all ${theme.inputRing}`}
+                className={`flex-1 border border-gray-200 dark:border-gray-700 rounded-full px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:border-transparent transition-all bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 ${theme.inputRing}`}
               />
               <button
                 type="submit"

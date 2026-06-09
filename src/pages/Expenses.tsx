@@ -31,10 +31,10 @@ export default function Expenses() {
     return (
       <div className="space-y-5 animate-pulse">
         <div className="flex justify-between items-center">
-          <div className="h-8 w-32 bg-gray-200 rounded-lg" />
-          <div className="h-10 w-36 bg-indigo-100 rounded-xl" />
+          <div className="h-8 w-32 bg-gray-200 dark:bg-gray-800 rounded-lg" />
+          <div className="h-10 w-36 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl" />
         </div>
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm h-64" />
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm h-64" />
       </div>
     );
   if (error)
@@ -44,9 +44,11 @@ export default function Expenses() {
     <div className="space-y-5">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Expenses</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+            Expenses
+          </h1>
           {expenses.length > 0 && (
-            <p className="text-sm text-gray-400 mt-0.5">
+            <p className="text-sm text-gray-400 dark:text-gray-500 mt-0.5">
               {expenses.length} total entries
             </p>
           )}
@@ -59,12 +61,14 @@ export default function Expenses() {
         </button>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
         {expenses.length === 0 ? (
           <div className="p-16 text-center">
             <p className="text-4xl mb-3">🧾</p>
-            <p className="text-gray-700 font-semibold text-lg">No expenses yet</p>
-            <p className="text-gray-400 text-sm mt-1 mb-5">
+            <p className="text-gray-700 dark:text-gray-300 font-semibold text-lg">
+              No expenses yet
+            </p>
+            <p className="text-gray-400 dark:text-gray-500 text-sm mt-1 mb-5">
               Track your first expense and see your spending patterns
             </p>
             <button
@@ -78,49 +82,47 @@ export default function Expenses() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-gray-50/80 border-b border-gray-100">
-                  <th className="px-5 py-3.5 text-left font-semibold text-gray-400 text-xs uppercase tracking-wide">
+                <tr className="bg-gray-50/80 dark:bg-gray-800/60 border-b border-gray-100 dark:border-gray-800">
+                  <th className="px-5 py-3.5 text-left font-semibold text-gray-400 dark:text-gray-500 text-xs uppercase tracking-wide">
                     Date & Time
                   </th>
-                  <th className="px-5 py-3.5 text-left font-semibold text-gray-400 text-xs uppercase tracking-wide">
+                  <th className="px-5 py-3.5 text-left font-semibold text-gray-400 dark:text-gray-500 text-xs uppercase tracking-wide">
                     Category
                   </th>
-                  <th className="px-5 py-3.5 text-left font-semibold text-gray-400 text-xs uppercase tracking-wide">
+                  <th className="px-5 py-3.5 text-left font-semibold text-gray-400 dark:text-gray-500 text-xs uppercase tracking-wide">
                     Description
                   </th>
-                  <th className="px-5 py-3.5 text-right font-semibold text-gray-400 text-xs uppercase tracking-wide">
+                  <th className="px-5 py-3.5 text-right font-semibold text-gray-400 dark:text-gray-500 text-xs uppercase tracking-wide">
                     Amount
                   </th>
                   <th className="px-5 py-3.5 w-16" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
                 {expenses.map((e) => {
                   const color = getCategoryColor(e.category ?? "");
                   return (
                     <tr
                       key={e.id}
-                      className="hover:bg-gray-50/60 transition-colors group"
+                      className="hover:bg-gray-50/60 dark:hover:bg-gray-800/40 transition-colors group"
                     >
-                      <td className="px-5 py-3.5 text-gray-500 whitespace-nowrap text-xs">
+                      <td className="px-5 py-3.5 text-gray-500 dark:text-gray-400 whitespace-nowrap text-xs">
                         {formatDate(e.date)}
                       </td>
                       <td className="px-5 py-3.5">
                         <span
                           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${color.bg} ${color.text}`}
                         >
-                          <span
-                            className={`w-1.5 h-1.5 rounded-full ${color.dot}`}
-                          />
+                          <span className={`w-1.5 h-1.5 rounded-full ${color.dot}`} />
                           {e.category}
                         </span>
                       </td>
-                      <td className="px-5 py-3.5 text-gray-700 max-w-xs truncate">
+                      <td className="px-5 py-3.5 text-gray-700 dark:text-gray-300 max-w-xs truncate">
                         {e.description || (
-                          <span className="text-gray-300">—</span>
+                          <span className="text-gray-300 dark:text-gray-600">—</span>
                         )}
                       </td>
-                      <td className="px-5 py-3.5 text-right font-semibold text-gray-900 whitespace-nowrap">
+                      <td className="px-5 py-3.5 text-right font-semibold text-gray-900 dark:text-gray-100 whitespace-nowrap">
                         {formatCurrency(e.amount)}
                       </td>
                       <td className="px-5 py-3.5">
@@ -128,14 +130,14 @@ export default function Expenses() {
                           <button
                             onClick={() => setEditing(e)}
                             title="Edit"
-                            className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                            className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
                           >
                             <PencilIcon />
                           </button>
                           <button
                             onClick={() => setConfirmDelete(e.id)}
                             title="Delete"
-                            className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                            className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                           >
                             <TrashIcon />
                           </button>
@@ -152,20 +154,20 @@ export default function Expenses() {
 
       {confirmDelete !== null && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-6 shadow-2xl max-w-sm w-full mx-4">
-            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-2xl max-w-sm w-full mx-4 border border-gray-100 dark:border-gray-800">
+            <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500">
               <TrashIcon />
             </div>
-            <h3 className="font-bold text-gray-900 text-center mb-1">
+            <h3 className="font-bold text-gray-900 dark:text-gray-100 text-center mb-1">
               Delete expense?
             </h3>
-            <p className="text-gray-500 text-sm mb-6 text-center">
+            <p className="text-gray-500 dark:text-gray-400 text-sm mb-6 text-center">
               This action cannot be undone.
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setConfirmDelete(null)}
-                className="flex-1 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-100 rounded-xl transition-colors font-medium"
+                className="flex-1 px-4 py-2.5 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors font-medium"
               >
                 Cancel
               </button>

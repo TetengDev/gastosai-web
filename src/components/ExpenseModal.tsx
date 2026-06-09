@@ -44,20 +44,21 @@ export default function ExpenseModal({ expense, onSave, onClose }: Props) {
   };
 
   const inputClass =
-    "w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-shadow bg-gray-50/50";
-  const labelClass = "block text-sm font-medium text-gray-700 mb-1.5";
+    "w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-shadow bg-gray-50/50 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500";
+  const labelClass =
+    "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5";
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl p-6 shadow-2xl max-w-md w-full mx-4">
-        <h3 className="font-bold text-gray-900 mb-5 text-lg">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-2xl max-w-md w-full mx-4 border border-gray-100 dark:border-gray-800">
+        <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-5 text-lg">
           {expense ? "Edit Expense" : "New Expense"}
         </h3>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className={labelClass}>Amount</label>
             <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-medium select-none">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 text-sm font-medium select-none">
                 ₱
               </span>
               <input
@@ -126,7 +127,7 @@ export default function ExpenseModal({ expense, onSave, onClose }: Props) {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-100 rounded-xl transition-colors font-medium"
+              className="flex-1 px-4 py-2.5 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors font-medium"
             >
               Cancel
             </button>

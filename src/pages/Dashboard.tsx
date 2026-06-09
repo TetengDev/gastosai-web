@@ -41,12 +41,12 @@ export default function Dashboard() {
   if (loading)
     return (
       <div className="space-y-6 animate-pulse">
-        <div className="h-44 bg-gradient-to-r from-violet-200 to-indigo-200 rounded-2xl" />
+        <div className="h-44 bg-gradient-to-r from-violet-200 to-indigo-200 dark:from-violet-900 dark:to-indigo-900 rounded-2xl" />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="h-72 bg-gray-100 rounded-2xl" />
-          <div className="h-72 bg-gray-100 rounded-2xl" />
+          <div className="h-72 bg-gray-100 dark:bg-gray-800 rounded-2xl" />
+          <div className="h-72 bg-gray-100 dark:bg-gray-800 rounded-2xl" />
         </div>
-        <div className="h-64 bg-gray-100 rounded-2xl" />
+        <div className="h-64 bg-gray-100 dark:bg-gray-800 rounded-2xl" />
       </div>
     );
   if (error)
@@ -76,8 +76,8 @@ export default function Dashboard() {
       {/* Chart + breakdown */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {chartData.length > 0 ? (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6">
+            <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-4">
               By Category
             </p>
             <ResponsiveContainer width="100%" height={220}>
@@ -116,18 +116,18 @@ export default function Dashboard() {
             </ResponsiveContainer>
           </div>
         ) : (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex items-center justify-center text-gray-400 text-sm">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 flex items-center justify-center text-gray-400 dark:text-gray-500 text-sm">
             No category data yet.
           </div>
         )}
 
         {/* Category breakdown with progress bars */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6">
+          <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-4">
             Category Breakdown
           </p>
           {categoryData.length === 0 ? (
-            <div className="flex items-center justify-center h-32 text-gray-400 text-sm">
+            <div className="flex items-center justify-center h-32 text-gray-400 dark:text-gray-500 text-sm">
               No categories yet.
             </div>
           ) : (
@@ -143,15 +143,15 @@ export default function Dashboard() {
                         <span
                           className={`w-2 h-2 rounded-full flex-shrink-0 ${color.dot}`}
                         />
-                        <span className="text-sm font-medium text-gray-700">
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                           {c.category}
                         </span>
                       </div>
-                      <span className="text-sm font-semibold text-gray-900">
+                      <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                         {formatCurrency(Number(c.total))}
                       </span>
                     </div>
-                    <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                       <div
                         className="h-full rounded-full transition-all duration-700"
                         style={{
@@ -169,29 +169,33 @@ export default function Dashboard() {
       </div>
 
       {/* Recent expenses */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="font-semibold text-gray-900">Recent Expenses</h2>
-          <span className="text-xs text-gray-400">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
+        <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+          <h2 className="font-semibold text-gray-900 dark:text-gray-100">
+            Recent Expenses
+          </h2>
+          <span className="text-xs text-gray-400 dark:text-gray-500">
             {recentExpenses.length} most recent
           </span>
         </div>
         {recentExpenses.length === 0 ? (
           <div className="p-12 text-center">
             <p className="text-4xl mb-3">💸</p>
-            <p className="text-gray-600 font-semibold">No expenses yet</p>
-            <p className="text-gray-400 text-sm mt-1">
+            <p className="text-gray-600 dark:text-gray-400 font-semibold">
+              No expenses yet
+            </p>
+            <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">
               Add an expense to see it here
             </p>
           </div>
         ) : (
-          <ul className="divide-y divide-gray-50">
+          <ul className="divide-y divide-gray-50 dark:divide-gray-800">
             {recentExpenses.map((e) => {
               const color = getCategoryColor(e.category ?? "");
               return (
                 <li
                   key={e.id}
-                  className="px-6 py-3.5 flex justify-between items-center hover:bg-gray-50/50 transition-colors"
+                  className="px-6 py-3.5 flex justify-between items-center hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <span
@@ -204,17 +208,17 @@ export default function Dashboard() {
                         {e.category}
                       </span>
                       {e.description && (
-                        <p className="text-sm text-gray-600 mt-0.5 truncate">
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5 truncate">
                           {e.description}
                         </p>
                       )}
                     </div>
                   </div>
                   <div className="text-right flex-shrink-0 ml-3">
-                    <div className="font-semibold text-gray-900">
+                    <div className="font-semibold text-gray-900 dark:text-gray-100">
                       {formatCurrency(e.amount)}
                     </div>
-                    <div className="text-xs text-gray-400">
+                    <div className="text-xs text-gray-400 dark:text-gray-500">
                       {formatDate(e.date)}
                     </div>
                   </div>

@@ -118,12 +118,12 @@ export default function Categories() {
     return (
       <div className="space-y-5 animate-pulse">
         <div className="flex justify-between items-center">
-          <div className="h-8 w-36 bg-gray-200 rounded-lg" />
-          <div className="h-10 w-36 bg-indigo-100 rounded-xl" />
+          <div className="h-8 w-36 bg-gray-200 dark:bg-gray-800 rounded-lg" />
+          <div className="h-10 w-36 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl" />
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="h-24 bg-gray-100 rounded-2xl" />
+            <div key={i} className="h-24 bg-gray-100 dark:bg-gray-800 rounded-2xl" />
           ))}
         </div>
       </div>
@@ -135,9 +135,11 @@ export default function Categories() {
     <div className="space-y-5">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Categories</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+            Categories
+          </h1>
           {categories.length > 0 && (
-            <p className="text-sm text-gray-400 mt-0.5">
+            <p className="text-sm text-gray-400 dark:text-gray-500 mt-0.5">
               {categories.length} categories
             </p>
           )}
@@ -151,10 +153,12 @@ export default function Categories() {
       </div>
 
       {categories.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-16 text-center">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-16 text-center">
           <p className="text-4xl mb-3">🏷️</p>
-          <p className="text-gray-700 font-semibold text-lg">No categories yet</p>
-          <p className="text-gray-400 text-sm mt-1 mb-5">
+          <p className="text-gray-700 dark:text-gray-300 font-semibold text-lg">
+            No categories yet
+          </p>
+          <p className="text-gray-400 dark:text-gray-500 text-sm mt-1 mb-5">
             Organize your expenses by creating categories
           </p>
           <button
@@ -171,15 +175,11 @@ export default function Categories() {
             return (
               <div
                 key={cat.id}
-                className={`group relative rounded-2xl p-5 transition-all hover:shadow-md hover:-translate-y-0.5 cursor-default ${color.bg}`}
+                className={`group relative rounded-2xl p-5 transition-all hover:shadow-md hover:-translate-y-0.5 cursor-default ${color.bg} dark:opacity-90`}
               >
                 <div className="mb-3">
-                  <span
-                    className={`w-8 h-8 rounded-xl flex items-center justify-center ${color.dot} opacity-30`}
-                  />
-                  <span
-                    className={`w-4 h-4 rounded-full ${color.dot} -mt-6 ml-2 block`}
-                  />
+                  <span className={`w-8 h-8 rounded-xl flex items-center justify-center ${color.dot} opacity-30`} />
+                  <span className={`w-4 h-4 rounded-full ${color.dot} -mt-6 ml-2 block`} />
                 </div>
                 <p className={`font-semibold text-sm leading-snug ${color.text}`}>
                   {cat.name}
@@ -188,14 +188,14 @@ export default function Categories() {
                   <button
                     onClick={() => openEdit(cat)}
                     title="Edit"
-                    className="p-1.5 bg-white/70 hover:bg-white rounded-lg text-gray-500 hover:text-indigo-600 transition-colors"
+                    className="p-1.5 bg-white/70 hover:bg-white dark:bg-gray-900/70 dark:hover:bg-gray-900 rounded-lg text-gray-500 hover:text-indigo-600 transition-colors"
                   >
                     <PencilIcon />
                   </button>
                   <button
                     onClick={() => setConfirmDelete(cat)}
                     title="Delete"
-                    className="p-1.5 bg-white/70 hover:bg-white rounded-lg text-gray-500 hover:text-red-500 transition-colors"
+                    className="p-1.5 bg-white/70 hover:bg-white dark:bg-gray-900/70 dark:hover:bg-gray-900 rounded-lg text-gray-500 hover:text-red-500 transition-colors"
                   >
                     <TrashIcon />
                   </button>
@@ -208,13 +208,13 @@ export default function Categories() {
 
       {modalOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-6 shadow-2xl max-w-sm w-full mx-4">
-            <h3 className="font-bold text-gray-900 mb-5 text-lg">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-2xl max-w-sm w-full mx-4 border border-gray-100 dark:border-gray-800">
+            <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-5 text-lg">
               {editing ? "Edit Category" : "New Category"}
             </h3>
             <form onSubmit={handleSave} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                   Category Name
                 </label>
                 <input
@@ -225,7 +225,7 @@ export default function Categories() {
                   autoFocus
                   onChange={(e) => setNameInput(e.target.value)}
                   placeholder="e.g. Food, Transport, Utilities"
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-shadow bg-gray-50/50"
+                  className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-shadow bg-gray-50/50 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
                 />
               </div>
               {modalError && (
@@ -235,7 +235,7 @@ export default function Categories() {
                 <button
                   type="button"
                   onClick={closeModal}
-                  className="flex-1 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-100 rounded-xl transition-colors font-medium"
+                  className="flex-1 px-4 py-2.5 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors font-medium"
                 >
                   Cancel
                 </button>
@@ -254,18 +254,20 @@ export default function Categories() {
 
       {confirmDelete && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-6 shadow-2xl max-w-sm w-full mx-4">
-            <h3 className="font-bold text-gray-900 mb-2">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-2xl max-w-sm w-full mx-4 border border-gray-100 dark:border-gray-800">
+            <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2">
               Delete "{confirmDelete.name}"?
             </h3>
-            <p className="text-gray-500 text-sm mb-6">
+            <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">
               Expenses in this category will be moved to{" "}
-              <span className="font-medium text-gray-700">Uncategorized</span>.
+              <span className="font-medium text-gray-700 dark:text-gray-300">
+                Uncategorized
+              </span>.
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setConfirmDelete(null)}
-                className="flex-1 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-100 rounded-xl transition-colors font-medium"
+                className="flex-1 px-4 py-2.5 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors font-medium"
               >
                 Cancel
               </button>
