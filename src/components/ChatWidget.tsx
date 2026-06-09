@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
-import { askQuery } from "../api/ai";
+import { askQuery, type ChatMode } from "../api/ai";
 import { formatCurrency, formatDate } from "../lib/formatters";
 
 interface Message {
@@ -204,9 +204,16 @@ function CollapseIcon() {
   );
 }
 
+const MODES: { value: ChatMode; label: string }[] = [
+  { value: "plain", label: "Plain" },
+  { value: "professional", label: "Professional" },
+  { value: "genz", label: "Gen Z" },
+];
+
 export default function ChatWidget() {
   const [open, setOpen] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
+  const [mode, setMode] = useState<ChatMode>("plain");
   const [question, setQuestion] = useState("");
   const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGE]);
   const [loading, setLoading] = useState(false);
@@ -232,7 +239,7 @@ export default function ChatWidget() {
     setLoading(true);
     setError(null);
     try {
-      const res = await askQuery(trimmed);
+      const res = await askQuery(trimmed, mode);
       setMessages((prev) => [
         ...prev,
         { role: "assistant", content: res.answer, timestamp: new Date() },
@@ -310,6 +317,24 @@ export default function ChatWidget() {
                 </svg>
               </button>
             </div>
+          </div>
+
+          {/* Mode toggle */}
+          <div className="px-3 py-1.5 border-b border-gray-100 bg-gray-50 flex items-center gap-1 flex-shrink-0">
+            <span className="text-[10px] text-gray-400 mr-1 uppercase tracking-wide">Mode</span>
+            {MODES.map(({ value, label }) => (
+              <button
+                key={value}
+                onClick={() => setMode(value)}
+                className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                  mode === value
+                    ? "bg-indigo-600 text-white"
+                    : "text-gray-500 hover:text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
           </div>
 
           {/* Messages */}
