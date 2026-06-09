@@ -365,7 +365,7 @@ export default function ChatWidget() {
           ...prev,
           {
             role: "assistant",
-            content: `Unsupported file type "${file.type || file.name.split(".").pop() ?? "unknown"}". Please attach an image for analysis or a CSV file for import.`,
+            content: `Unsupported file type "${(file.type || file.name.split(".").pop()) ?? "unknown"}". Please attach an image for analysis or a CSV file for import.`,
             timestamp: new Date(),
           },
         ]);
