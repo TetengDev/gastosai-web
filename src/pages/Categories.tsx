@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   createCategory,
+  deleteAllCategories,
   deleteCategory,
   getCategories,
   updateCategory,
@@ -37,6 +38,8 @@ export default function Categories() {
 
   const [confirmDelete, setConfirmDelete] = useState<Category | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
+  const [deletingAll, setDeletingAll] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -144,12 +147,22 @@ export default function Categories() {
             </p>
           )}
         </div>
-        <button
-          onClick={openAdd}
-          className="px-4 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-xl text-sm font-semibold hover:from-violet-700 hover:to-indigo-700 transition-all shadow-md shadow-indigo-500/25 hover:shadow-lg hover:shadow-indigo-500/30 hover:-translate-y-0.5 active:translate-y-0"
-        >
-          + Add Category
-        </button>
+        <div className="flex items-center gap-2">
+          {categories.filter((c) => c.name !== "Uncategorized").length > 0 && (
+            <button
+              onClick={() => setConfirmDeleteAll(true)}
+              className="px-4 py-2.5 border border-red-200 dark:border-red-800 text-red-500 dark:text-red-400 rounded-xl text-sm font-semibold hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
+            >
+              Delete All
+            </button>
+          )}
+          <button
+            onClick={openAdd}
+            className="px-4 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-xl text-sm font-semibold hover:from-violet-700 hover:to-indigo-700 transition-all shadow-md shadow-indigo-500/25 hover:shadow-lg hover:shadow-indigo-500/30 hover:-translate-y-0.5 active:translate-y-0"
+          >
+            + Add Category
+          </button>
+        </div>
       </div>
 
       {categories.length === 0 ? (
@@ -172,6 +185,7 @@ export default function Categories() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {categories.map((cat) => {
             const color = getCategoryColor(cat.name);
+            const isDefault = cat.name === "Uncategorized";
             return (
               <div
                 key={cat.id}
@@ -184,22 +198,29 @@ export default function Categories() {
                 <p className={`font-semibold text-sm leading-snug ${color.text}`}>
                   {cat.name}
                 </p>
-                <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button
-                    onClick={() => openEdit(cat)}
-                    title="Edit"
-                    className="p-1.5 bg-white/70 hover:bg-white dark:bg-gray-900/70 dark:hover:bg-gray-900 rounded-lg text-gray-500 hover:text-indigo-600 transition-colors"
-                  >
-                    <PencilIcon />
-                  </button>
-                  <button
-                    onClick={() => setConfirmDelete(cat)}
-                    title="Delete"
-                    className="p-1.5 bg-white/70 hover:bg-white dark:bg-gray-900/70 dark:hover:bg-gray-900 rounded-lg text-gray-500 hover:text-red-500 transition-colors"
-                  >
-                    <TrashIcon />
-                  </button>
-                </div>
+                {isDefault && (
+                  <span className="mt-1.5 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-white/60 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 border border-white/80 dark:border-gray-700">
+                    Default
+                  </span>
+                )}
+                {!isDefault && (
+                  <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => openEdit(cat)}
+                      title="Edit"
+                      className="p-1.5 bg-white/70 hover:bg-white dark:bg-gray-900/70 dark:hover:bg-gray-900 rounded-lg text-gray-500 hover:text-indigo-600 transition-colors"
+                    >
+                      <PencilIcon />
+                    </button>
+                    <button
+                      onClick={() => setConfirmDelete(cat)}
+                      title="Delete"
+                      className="p-1.5 bg-white/70 hover:bg-white dark:bg-gray-900/70 dark:hover:bg-gray-900 rounded-lg text-gray-500 hover:text-red-500 transition-colors"
+                    >
+                      <TrashIcon />
+                    </button>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -277,6 +298,48 @@ export default function Categories() {
                 className="flex-1 px-4 py-2.5 text-sm bg-red-600 text-white rounded-xl hover:bg-red-700 disabled:opacity-50 font-semibold transition-colors"
               >
                 {deleting ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmDeleteAll && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-2xl max-w-sm w-full mx-4 border border-gray-100 dark:border-gray-800">
+            <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500">
+              <TrashIcon />
+            </div>
+            <h3 className="font-bold text-gray-900 dark:text-gray-100 text-center mb-1">
+              Delete all categories?
+            </h3>
+            <p className="text-gray-500 dark:text-gray-400 text-sm mb-6 text-center">
+              All categories except{" "}
+              <span className="font-medium text-gray-700 dark:text-gray-300">Uncategorized</span>{" "}
+              will be removed. Expenses will be moved to Uncategorized. This cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmDeleteAll(false)}
+                className="flex-1 px-4 py-2.5 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                disabled={deletingAll}
+                onClick={async () => {
+                  setDeletingAll(true);
+                  try {
+                    await deleteAllCategories();
+                    setCategories((prev) => prev.filter((c) => c.name === "Uncategorized"));
+                  } finally {
+                    setConfirmDeleteAll(false);
+                    setDeletingAll(false);
+                  }
+                }}
+                className="flex-1 px-4 py-2.5 text-sm bg-red-600 text-white rounded-xl hover:bg-red-700 disabled:opacity-50 font-semibold transition-colors"
+              >
+                {deletingAll ? "Deleting..." : "Delete All"}
               </button>
             </div>
           </div>

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   createExpense,
+  deleteAllExpenses,
   deleteExpense,
   getExpenses,
   updateExpense,
@@ -46,5 +47,10 @@ export function useExpenses() {
     setExpenses((prev) => prev.filter((e) => e.id !== id));
   };
 
-  return { expenses, loading, error, refresh: load, add, update, remove };
+  const removeAll = async (): Promise<void> => {
+    await deleteAllExpenses();
+    setExpenses([]);
+  };
+
+  return { expenses, loading, error, refresh: load, add, update, remove, removeAll };
 }

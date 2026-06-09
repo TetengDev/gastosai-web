@@ -12,3 +12,6 @@ export const updateCategory = (id: number, data: CategoryRequest) =>
 
 export const deleteCategory = (id: number) =>
   api.delete(`/categories/${id}`);
+
+export const deleteAllCategories = () =>
+  api.delete("/categories");

@@ -13,6 +13,9 @@ export const updateExpense = (id: number, data: ExpenseRequest) =>
 export const deleteExpense = (id: number) =>
   api.delete(`/expenses/${id}`);
 
+export const deleteAllExpenses = () =>
+  api.delete("/expenses");
+
 export const getMonthlyReport = () =>
   api.get<MonthlyReport[]>("/expenses/report/monthly").then((r) => r.data);
 
