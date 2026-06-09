@@ -2,10 +2,13 @@ import { createContext, useContext, useState } from "react";
 import type { ReactNode } from "react";
 import { login as apiLogin, register as apiRegister } from "../api/auth";
 import type { LoginRequest, RegisterRequest } from "../api/auth";
+import { updateProfile as apiUpdateProfile } from "../api/profile";
+import type { UpdateProfileRequest } from "../api/profile";
 
 interface AuthUser {
   email: string;
   name: string;
+  nickname: string | null;
 }
 
 interface AuthContextValue {
@@ -14,6 +17,7 @@ interface AuthContextValue {
   login: (data: LoginRequest) => Promise<void>;
   register: (data: RegisterRequest) => Promise<void>;
   logout: () => void;
+  updateProfile: (data: UpdateProfileRequest) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -33,20 +37,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return null;
   });
 
+  const persistUser = (authUser: AuthUser) => {
+    localStorage.setItem("auth_user", JSON.stringify(authUser));
+    setUser(authUser);
+  };
+
   const login = async (data: LoginRequest) => {
     const res = await apiLogin(data);
     localStorage.setItem("token", res.token);
-    const authUser = { email: res.email, name: res.name };
-    localStorage.setItem("auth_user", JSON.stringify(authUser));
-    setUser(authUser);
+    persistUser({ email: res.email, name: res.name, nickname: res.nickname ?? null });
   };
 
   const register = async (data: RegisterRequest) => {
     const res = await apiRegister(data);
     localStorage.setItem("token", res.token);
-    const authUser = { email: res.email, name: res.name };
-    localStorage.setItem("auth_user", JSON.stringify(authUser));
-    setUser(authUser);
+    persistUser({ email: res.email, name: res.name, nickname: res.nickname ?? null });
   };
 
   const logout = () => {
@@ -55,8 +60,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
+  const updateProfile = async (data: UpdateProfileRequest) => {
+    const res = await apiUpdateProfile(data);
+    if (user) {
+      persistUser({ ...user, name: res.name, nickname: res.nickname ?? null });
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isLoading: false, login, register, logout }}>
+    <AuthContext.Provider value={{ user, isLoading: false, login, register, logout, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );

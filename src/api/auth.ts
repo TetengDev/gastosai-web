@@ -4,6 +4,7 @@ export interface AuthResponse {
   token: string;
   email: string;
   name: string;
+  nickname: string | null;
 }
 
 export interface RegisterRequest {
