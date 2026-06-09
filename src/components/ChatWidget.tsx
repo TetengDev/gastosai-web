@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import { askQuery, askWithAttachment, type ChatMode } from "../api/ai";
 import { importExpensesCsv } from "../api/expenses";
+import { useAuth } from "../context/AuthContext";
 import { useFeatures } from "../hooks/useFeatures";
 import { formatCurrency, formatDate } from "../lib/formatters";
 
@@ -90,12 +91,14 @@ const SUGGESTED_PROMPTS = [
   "How much did I spend last week?",
 ];
 
-const WELCOME_MESSAGE: Message = {
-  role: "assistant",
-  content:
-    "Hi! I'm GastosAI. Ask me anything about your expenses in plain language.",
-  timestamp: new Date(),
-};
+function makeWelcomeMessage(displayName?: string | null): Message {
+  const greeting = displayName ? `Hi, ${displayName}!` : "Hi!";
+  return {
+    role: "assistant",
+    content: `${greeting} I'm GastosAI. Ask me anything about your expenses in plain language.`,
+    timestamp: new Date(),
+  };
+}
 
 const HIDDEN_FIELDS = new Set(["id", "category_id", "categoryid"]);
 const CURRENCY_KEYWORDS = ["amount", "total", "sum", "spent", "cost", "price", "fee"];
@@ -280,11 +283,14 @@ function CollapseIcon() {
 
 export default function ChatWidget() {
   const features = useFeatures();
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [mode, setMode] = useState<ChatMode>("plain");
   const [question, setQuestion] = useState("");
-  const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGE]);
+  const [messages, setMessages] = useState<Message[]>(() => [
+    makeWelcomeMessage(user?.nickname || user?.name),
+  ]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
@@ -317,7 +323,7 @@ export default function ChatWidget() {
     setPendingFileUrl(URL.createObjectURL(file));
   };
 
-  const isCsvFile = (f: File): f is File =>
+  const isCsvFile = (f: File): boolean =>
     f.name.endsWith(".csv") || f.type === "text/csv";
 
   const isImageFile = (f: File): boolean =>
@@ -388,7 +394,7 @@ export default function ChatWidget() {
   };
 
   const clearConversation = () => {
-    setMessages([{ ...WELCOME_MESSAGE, timestamp: new Date() }]);
+    setMessages([makeWelcomeMessage(user?.nickname || user?.name)]);
     setError(null);
     inputRef.current?.focus();
   };

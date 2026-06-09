@@ -9,6 +9,7 @@ import Dashboard from "./pages/Dashboard";
 import Expenses from "./pages/Expenses";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
+import Settings from "./pages/Settings";
 
 function AppShell({ darkMode, onToggleDark }: { darkMode: boolean; onToggleDark: () => void }) {
   const { user } = useAuth();
@@ -28,6 +29,7 @@ function AppShell({ darkMode, onToggleDark }: { darkMode: boolean; onToggleDark:
                     <Route path="/" element={<Dashboard />} />
                     <Route path="/expenses" element={<Expenses />} />
                     <Route path="/categories" element={<Categories />} />
+                    <Route path="/settings" element={<Settings />} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                   </Routes>
                 </main>

@@ -62,9 +62,13 @@ export default function Navbar({ isDark, onToggleDark }: Props) {
         </NavLink>
         <div className="ml-auto flex items-center gap-1">
           {user && (
-            <span className="hidden sm:block text-xs text-white/60 mr-2 max-w-[140px] truncate">
-              {user.name}
-            </span>
+            <NavLink
+              to="/settings"
+              className="hidden sm:block text-xs text-white/60 hover:text-white mr-2 max-w-[140px] truncate transition-colors"
+              title="Profile settings"
+            >
+              {user.nickname || user.name}
+            </NavLink>
           )}
           <button
             onClick={onToggleDark}
