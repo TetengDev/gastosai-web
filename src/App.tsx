@@ -1,6 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import ChatWidget from "./components/ChatWidget";
 import Navbar from "./components/Navbar";
-import Ask from "./pages/Ask";
 import Categories from "./pages/Categories";
 import Dashboard from "./pages/Dashboard";
 import Expenses from "./pages/Expenses";
@@ -15,10 +15,10 @@ export default function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/expenses" element={<Expenses />} />
             <Route path="/categories" element={<Categories />} />
-            <Route path="/ask" element={<Ask />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
+        <ChatWidget />
       </div>
     </BrowserRouter>
   );

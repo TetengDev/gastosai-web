@@ -23,9 +23,6 @@ export default function Navbar() {
         <NavLink to="/categories" className={linkClass}>
           Categories
         </NavLink>
-        <NavLink to="/ask" className={linkClass}>
-          Ask AI
-        </NavLink>
       </div>
     </nav>
   );
