@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import {
   Cell,
-  Legend,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -14,6 +13,29 @@ import {
   formatDate,
   getCategoryColor,
 } from "../lib/formatters";
+
+const MAX_SLICES = 8;
+
+function buildChartData(categoryData: CategoryReport[]) {
+  if (categoryData.length <= MAX_SLICES) {
+    return categoryData.map((c) => ({
+      name: c.category,
+      value: Number(c.total),
+      color: getCategoryColor(c.category).chart,
+    }));
+  }
+  const sorted = [...categoryData].sort((a, b) => Number(b.total) - Number(a.total));
+  const top = sorted.slice(0, MAX_SLICES);
+  const othersTotal = sorted.slice(MAX_SLICES).reduce((s, c) => s + Number(c.total), 0);
+  return [
+    ...top.map((c) => ({
+      name: c.category,
+      value: Number(c.total),
+      color: getCategoryColor(c.category).chart,
+    })),
+    { name: "Others", value: othersTotal, color: "#9ca3af" },
+  ];
+}
 
 export default function Dashboard() {
   const [categoryData, setCategoryData] = useState<CategoryReport[]>([]);
@@ -32,11 +54,7 @@ export default function Dashboard() {
   }, []);
 
   const total = categoryData.reduce((sum, c) => sum + Number(c.total), 0);
-  const chartData = categoryData.map((c) => ({
-    name: c.category,
-    value: Number(c.total),
-    color: getCategoryColor(c.category).chart,
-  }));
+  const chartData = buildChartData(categoryData);
 
   if (loading)
     return (
@@ -73,47 +91,48 @@ export default function Dashboard() {
         <div className="absolute -top-6 -right-6 w-24 h-24 bg-white/5 rounded-full" />
       </div>
 
-      {/* Chart + breakdown */}
+      {/* Chart + breakdown — fixed height so Recent Expenses stays in view */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Donut chart — no built-in Legend; tooltip handles identification */}
         {chartData.length > 0 ? (
-          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 flex flex-col">
             <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-4">
               By Category
             </p>
-            <ResponsiveContainer width="100%" height={220}>
-              <PieChart>
-                <Pie
-                  data={chartData}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={85}
-                  innerRadius={48}
-                  paddingAngle={3}
-                >
-                  {chartData.map((entry, i) => (
-                    <Cell key={i} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  formatter={(v) => formatCurrency(v as number)}
-                  contentStyle={{
-                    borderRadius: "0.75rem",
-                    border: "none",
-                    boxShadow:
-                      "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
-                  }}
-                />
-                <Legend
-                  formatter={(value) => (
-                    <span style={{ fontSize: 12, color: "#6b7280" }}>
-                      {value}
-                    </span>
-                  )}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+            {categoryData.length > MAX_SLICES && (
+              <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">
+                Top {MAX_SLICES} shown · remaining grouped as Others
+              </p>
+            )}
+            <div className="flex-1">
+              <ResponsiveContainer width="100%" height={220}>
+                <PieChart>
+                  <Pie
+                    data={chartData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={90}
+                    innerRadius={52}
+                    paddingAngle={2}
+                  >
+                    {chartData.map((entry, i) => (
+                      <Cell key={i} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(v) => formatCurrency(v as number)}
+                    contentStyle={{
+                      borderRadius: "0.75rem",
+                      border: "none",
+                      boxShadow:
+                        "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         ) : (
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 flex items-center justify-center text-gray-400 dark:text-gray-500 text-sm">
@@ -121,48 +140,56 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Category breakdown with progress bars */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6">
-          <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-4">
-            Category Breakdown
-          </p>
+        {/* Category breakdown — scrollable so it never pushes Recent Expenses off screen */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 flex flex-col">
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest">
+              Category Breakdown
+            </p>
+            {categoryData.length > 0 && (
+              <span className="text-xs text-gray-400 dark:text-gray-500">
+                {categoryData.length} {categoryData.length === 1 ? "category" : "categories"}
+              </span>
+            )}
+          </div>
           {categoryData.length === 0 ? (
-            <div className="flex items-center justify-center h-32 text-gray-400 dark:text-gray-500 text-sm">
+            <div className="flex items-center justify-center flex-1 text-gray-400 dark:text-gray-500 text-sm">
               No categories yet.
             </div>
           ) : (
-            <div className="space-y-4">
-              {categoryData.map((c) => {
-                const color = getCategoryColor(c.category);
-                const pct =
-                  total > 0 ? (Number(c.total) / total) * 100 : 0;
-                return (
-                  <div key={c.category}>
-                    <div className="flex justify-between items-center mb-1.5">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`w-2 h-2 rounded-full flex-shrink-0 ${color.dot}`}
-                        />
-                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                          {c.category}
-                        </span>
+            <div className="overflow-y-auto max-h-[220px] space-y-3 pr-1 scrollbar-thin">
+              {[...categoryData]
+                .sort((a, b) => Number(b.total) - Number(a.total))
+                .map((c) => {
+                  const color = getCategoryColor(c.category);
+                  const pct = total > 0 ? (Number(c.total) / total) * 100 : 0;
+                  return (
+                    <div key={c.category}>
+                      <div className="flex justify-between items-center mb-1.5">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${color.dot}`} />
+                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
+                            {c.category}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                          <span className="text-xs text-gray-400 dark:text-gray-500">
+                            {pct.toFixed(1)}%
+                          </span>
+                          <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                            {formatCurrency(Number(c.total))}
+                          </span>
+                        </div>
                       </div>
-                      <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                        {formatCurrency(Number(c.total))}
-                      </span>
+                      <div className="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all duration-700"
+                          style={{ width: `${pct}%`, backgroundColor: color.chart }}
+                        />
+                      </div>
                     </div>
-                    <div className="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all duration-700"
-                        style={{
-                          width: `${pct}%`,
-                          backgroundColor: color.chart,
-                        }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
             </div>
           )}
         </div>
@@ -198,9 +225,7 @@ export default function Dashboard() {
                   className="px-6 py-3.5 flex justify-between items-center hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors"
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <span
-                      className={`w-2 h-2 rounded-full flex-shrink-0 ${color.dot}`}
-                    />
+                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${color.dot}`} />
                     <div className="min-w-0">
                       <span
                         className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${color.bg} ${color.text}`}
