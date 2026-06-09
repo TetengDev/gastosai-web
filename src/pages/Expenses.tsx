@@ -41,13 +41,13 @@ export default function Expenses() {
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="px-6 py-3 text-left font-medium text-gray-500">
-                    Date
+                    Date & Time
                   </th>
                   <th className="px-6 py-3 text-left font-medium text-gray-500">
                     Category
                   </th>
                   <th className="px-6 py-3 text-left font-medium text-gray-500">
-                    Note
+                    Description
                   </th>
                   <th className="px-6 py-3 text-right font-medium text-gray-500">
                     Amount
@@ -60,19 +60,19 @@ export default function Expenses() {
               <tbody className="divide-y divide-gray-100">
                 {expenses.map((e) => (
                   <tr key={e.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-3 text-gray-500">
+                    <td className="px-6 py-3 text-gray-500 whitespace-nowrap">
                       {formatDate(e.date)}
                     </td>
                     <td className="px-6 py-3 font-medium text-gray-800">
                       {e.category}
                     </td>
-                    <td className="px-6 py-3 text-gray-400">
-                      {e.note || "-"}
+                    <td className="px-6 py-3 text-gray-600">
+                      {e.description}
                     </td>
-                    <td className="px-6 py-3 text-right font-medium text-gray-900">
+                    <td className="px-6 py-3 text-right font-medium text-gray-900 whitespace-nowrap">
                       {formatCurrency(e.amount)}
                     </td>
-                    <td className="px-6 py-3 text-right space-x-3">
+                    <td className="px-6 py-3 text-right space-x-3 whitespace-nowrap">
                       <button
                         onClick={() => setEditing(e)}
                         className="text-indigo-600 hover:underline"

@@ -119,8 +119,8 @@ export default function Dashboard() {
                   <span className="font-medium text-gray-800">
                     {e.category}
                   </span>
-                  {e.note && (
-                    <span className="ml-2 text-sm text-gray-400">{e.note}</span>
+                  {e.description && (
+                    <span className="ml-2 text-sm text-gray-400">{e.description}</span>
                   )}
                 </div>
                 <div className="text-right">

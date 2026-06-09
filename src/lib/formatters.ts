@@ -8,9 +8,16 @@ export const formatCurrency = (amount: number | string): string => {
 
 export const formatDate = (date: string | null | undefined): string => {
   if (!date) return "-";
-  return new Date(date + "T00:00:00").toLocaleDateString("en-PH", {
+  return new Date(date).toLocaleString("en-PH", {
     year: "numeric",
     month: "short",
     day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
+};
+
+export const toDateTimeLocal = (date: string | null | undefined): string => {
+  if (!date) return "";
+  return date.slice(0, 16);
 };
