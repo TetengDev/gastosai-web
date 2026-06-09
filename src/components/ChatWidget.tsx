@@ -1,12 +1,15 @@
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
-import { askQuery, type ChatMode } from "../api/ai";
+import { askQuery, askWithAttachment, type ChatMode } from "../api/ai";
+import { useFeatures } from "../hooks/useFeatures";
 import { formatCurrency, formatDate } from "../lib/formatters";
 
 interface Message {
   role: "user" | "assistant";
   content: unknown;
   timestamp: Date;
+  attachmentUrl?: string;
+  attachmentName?: string;
 }
 
 interface ModeTheme {
@@ -275,6 +278,7 @@ function CollapseIcon() {
 }
 
 export default function ChatWidget() {
+  const features = useFeatures();
   const [open, setOpen] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [mode, setMode] = useState<ChatMode>("plain");
@@ -282,8 +286,11 @@ export default function ChatWidget() {
   const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGE]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [pendingFileUrl, setPendingFileUrl] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const theme = MODE_THEMES[mode];
 
@@ -294,18 +301,43 @@ export default function ChatWidget() {
     }
   }, [messages, loading, open]);
 
-  const sendMessage = async (q: string) => {
+  const clearPendingFile = () => {
+    if (pendingFileUrl) URL.revokeObjectURL(pendingFileUrl);
+    setPendingFile(null);
+    setPendingFileUrl(null);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    clearPendingFile();
+    setPendingFile(file);
+    setPendingFileUrl(URL.createObjectURL(file));
+  };
+
+  const sendMessage = async (q: string, file?: File) => {
     const trimmed = q.trim();
-    if (!trimmed || loading) return;
+    if (!trimmed && !file || loading) return;
+    const attachmentUrl = file ? URL.createObjectURL(file) : undefined;
     setMessages((prev) => [
       ...prev,
-      { role: "user", content: trimmed, timestamp: new Date() },
+      {
+        role: "user",
+        content: trimmed || "Analyze this image",
+        timestamp: new Date(),
+        attachmentUrl,
+        attachmentName: file?.name,
+      },
     ]);
     setQuestion("");
+    clearPendingFile();
     setLoading(true);
     setError(null);
     try {
-      const res = await askQuery(trimmed, mode);
+      const res = file
+        ? await askWithAttachment(trimmed, file)
+        : await askQuery(trimmed, mode);
       setMessages((prev) => [
         ...prev,
         { role: "assistant", content: res.answer, timestamp: new Date() },
@@ -324,7 +356,7 @@ export default function ChatWidget() {
 
   const handleSubmit = (e: { preventDefault(): void }) => {
     e.preventDefault();
-    void sendMessage(question);
+    void sendMessage(question, pendingFile ?? undefined);
   };
 
   const clearConversation = () => {
@@ -429,7 +461,18 @@ export default function ChatWidget() {
                     }`}
                   >
                     {m.role === "user" ? (
-                      <span>{m.content as string}</span>
+                      <div className="space-y-1.5">
+                        {m.attachmentUrl && (
+                          <img
+                            src={m.attachmentUrl}
+                            alt={m.attachmentName ?? "attachment"}
+                            className="max-w-[180px] rounded-lg object-cover"
+                          />
+                        )}
+                        {(m.content as string) !== "Analyze this image" || !m.attachmentUrl ? (
+                          <span>{m.content as string}</span>
+                        ) : null}
+                      </div>
                     ) : (
                       renderAnswer(m.content, theme.accentText)
                     )}
@@ -478,18 +521,65 @@ export default function ChatWidget() {
           {/* Input */}
           <div className="border-t border-gray-100 dark:border-gray-800 px-3 py-3 flex-shrink-0 bg-white dark:bg-gray-900">
             {error && <p className="text-red-500 text-xs mb-2">{error}</p>}
+            {pendingFile && pendingFileUrl && (
+              <div className="flex items-center gap-2 mb-2">
+                <div className="relative inline-block">
+                  <img
+                    src={pendingFileUrl}
+                    alt={pendingFile.name}
+                    className="h-14 w-14 object-cover rounded-lg border border-gray-200 dark:border-gray-700"
+                  />
+                  <button
+                    type="button"
+                    onClick={clearPendingFile}
+                    className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-gray-700 dark:bg-gray-500 text-white rounded-full text-xs flex items-center justify-center leading-none"
+                  >
+                    ×
+                  </button>
+                </div>
+                <span className="text-xs text-gray-400 truncate max-w-[160px]">
+                  {pendingFile.name}
+                </span>
+              </div>
+            )}
             <form onSubmit={handleSubmit} className="flex gap-2 items-center">
+              {features?.chatAttachments && (
+                <>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleFileChange}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    aria-label="Attach image"
+                    title="Attach image"
+                    className={`w-8 h-8 flex items-center justify-center rounded-full flex-shrink-0 transition-colors ${
+                      pendingFile
+                        ? `${theme.accentText} bg-indigo-50 dark:bg-indigo-900/20`
+                        : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                    }`}
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13" />
+                    </svg>
+                  </button>
+                </>
+              )}
               <input
                 ref={inputRef}
                 type="text"
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
-                placeholder="Ask about your expenses..."
+                placeholder={pendingFile ? "Ask about this image…" : "Ask about your expenses…"}
                 className={`flex-1 border border-gray-200 dark:border-gray-700 rounded-full px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:border-transparent transition-all bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 ${theme.inputRing}`}
               />
               <button
                 type="submit"
-                disabled={loading || !question.trim()}
+                disabled={loading || (!question.trim() && !pendingFile)}
                 aria-label="Send"
                 className={`w-8 h-8 bg-gradient-to-br text-white rounded-full flex items-center justify-center disabled:opacity-40 transition-all flex-shrink-0 ${theme.sendBtn}`}
               >
