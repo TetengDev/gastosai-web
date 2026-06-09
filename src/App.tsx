@@ -8,9 +8,9 @@ import Expenses from "./pages/Expenses";
 export default function App() {
   return (
     <BrowserRouter>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-violet-50/30">
         <Navbar />
-        <main className="max-w-5xl mx-auto px-4 py-6">
+        <main className="max-w-5xl mx-auto px-4 py-8">
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/expenses" element={<Expenses />} />
