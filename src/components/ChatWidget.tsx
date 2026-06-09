@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import { askQuery } from "../api/ai";
-import { formatCurrency } from "../lib/formatters";
+import { formatCurrency, formatDate } from "../lib/formatters";
 
 interface Message {
   role: "user" | "assistant";
@@ -22,6 +22,154 @@ const WELCOME_MESSAGE: Message = {
   timestamp: new Date(),
 };
 
+const HIDDEN_FIELDS = new Set(["id", "category_id", "categoryid"]);
+const CURRENCY_KEYWORDS = ["amount", "total", "sum", "spent", "cost", "price", "fee"];
+
+function isCurrencyKey(key: string): boolean {
+  const k = key.toLowerCase();
+  return CURRENCY_KEYWORDS.some((w) => k.includes(w));
+}
+
+function isDateKey(key: string): boolean {
+  const k = key.toLowerCase();
+  return k.includes("date") || k === "created_at" || k === "updated_at";
+}
+
+function humanLabel(key: string): string {
+  const labels: Record<string, string> = {
+    amount: "Amount",
+    description: "Description",
+    category: "Category",
+    date: "Date",
+    total: "Total",
+    month: "Month",
+    name: "Category",
+    count: "Count",
+    note: "Note",
+  };
+  return (
+    labels[key.toLowerCase()] ??
+    key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+  );
+}
+
+function formatField(key: string, value: unknown): string {
+  if (value === null || value === undefined) return "—";
+  if (isCurrencyKey(key)) return formatCurrency(Number(value));
+  if (isDateKey(key)) return formatDate(String(value));
+  return String(value);
+}
+
+function renderAnswer(answer: unknown): ReactNode {
+  if (answer === null || answer === undefined)
+    return <span>No results found.</span>;
+  if (typeof answer === "string") return <span>{answer}</span>;
+  if (typeof answer === "number")
+    return (
+      <span className="font-semibold text-indigo-700">
+        {formatCurrency(answer)}
+      </span>
+    );
+
+  if (Array.isArray(answer)) {
+    if (answer.length === 0) return <span>No results found.</span>;
+    const rows = answer as Record<string, unknown>[];
+    const keys = Object.keys(rows[0]).filter(
+      (k) => !HIDDEN_FIELDS.has(k.toLowerCase())
+    );
+    const isExpenseList = keys.some((k) => k.toLowerCase() === "description");
+
+    if (isExpenseList) {
+      return (
+        <div className="space-y-2 mt-1 w-full">
+          <p className="text-xs text-gray-400">
+            {rows.length} result{rows.length !== 1 ? "s" : ""}
+          </p>
+          {rows.map((row, i) => (
+            <div
+              key={i}
+              className="bg-gray-50 rounded-xl px-3 py-2.5 border border-gray-100"
+            >
+              <div className="flex justify-between items-start gap-2">
+                <span className="text-sm text-gray-800 font-medium leading-snug flex-1">
+                  {String(row.description ?? "—")}
+                </span>
+                {row.amount != null && (
+                  <span className="text-sm font-semibold text-indigo-600 whitespace-nowrap shrink-0">
+                    {formatCurrency(Number(row.amount))}
+                  </span>
+                )}
+              </div>
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1.5">
+                {row.category != null && (
+                  <span className="text-xs text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">
+                    {String(row.category)}
+                  </span>
+                )}
+                {row.date != null && (
+                  <span className="text-xs text-gray-400">
+                    {formatDate(String(row.date))}
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    // Aggregated / summary data: label on left, metric on right
+    const firstRow = rows[0];
+    const labelKeys = keys.filter(
+      (k) => !isCurrencyKey(k) && typeof firstRow[k] !== "number"
+    );
+    const metricKeys = keys.filter(
+      (k) => isCurrencyKey(k) || typeof firstRow[k] === "number"
+    );
+    const orderedKeys = [...labelKeys, ...metricKeys];
+
+    return (
+      <div className="w-full mt-1 divide-y divide-gray-100">
+        {rows.map((row, i) => (
+          <div key={i} className="flex items-center justify-between gap-3 py-2">
+            {orderedKeys.map((k, ki) => (
+              <span
+                key={k}
+                className={
+                  ki === orderedKeys.length - 1
+                    ? "font-semibold text-indigo-700 text-sm whitespace-nowrap"
+                    : "text-sm text-gray-700 truncate"
+                }
+              >
+                {formatField(k, row[k])}
+              </span>
+            ))}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (typeof answer === "object" && answer !== null) {
+    const row = answer as Record<string, unknown>;
+    const keys = Object.keys(row).filter(
+      (k) => !HIDDEN_FIELDS.has(k.toLowerCase())
+    );
+    return (
+      <div className="space-y-1.5 mt-1 w-full">
+        {keys.map((k) => (
+          <div key={k} className="flex justify-between gap-2">
+            <span className="text-xs text-gray-500">{humanLabel(k)}</span>
+            <span className="text-sm font-medium">{formatField(k, row[k])}</span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return <span>{String(answer)}</span>;
+}
+
 function TypingDots() {
   return (
     <div className="flex gap-1 items-center py-0.5">
@@ -40,50 +188,25 @@ function BotAvatar() {
   );
 }
 
-function renderAnswer(answer: unknown): ReactNode {
-  if (answer === null || answer === undefined)
-    return <span>No results found.</span>;
-  if (typeof answer === "string") return <span>{answer}</span>;
-  if (typeof answer === "number") return <span>{formatCurrency(answer)}</span>;
-  if (Array.isArray(answer)) {
-    if (answer.length === 0) return <span>No results found.</span>;
-    const keys = Object.keys(answer[0] as object);
-    return (
-      <div className="overflow-x-auto mt-1">
-        <table className="text-xs w-full border border-gray-200 rounded-lg overflow-hidden">
-          <thead className="bg-gray-50">
-            <tr>
-              {keys.map((k) => (
-                <th key={k} className="px-2 py-1.5 text-left text-gray-500 font-medium">
-                  {k}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {(answer as Record<string, unknown>[]).map((row, i) => (
-              <tr key={i}>
-                {keys.map((k) => (
-                  <td key={k} className="px-2 py-1.5 text-gray-700">
-                    {String(row[k] ?? "-")}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    );
-  }
+function ExpandIcon() {
   return (
-    <pre className="text-xs whitespace-pre-wrap">
-      {JSON.stringify(answer, null, 2)}
-    </pre>
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+    </svg>
+  );
+}
+
+function CollapseIcon() {
+  return (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15v4.5M15 15h4.5M15 15l5.25 5.25M9 15H4.5M9 15v4.5M9 15l-5.25 5.25" />
+    </svg>
   );
 }
 
 export default function ChatWidget() {
   const [open, setOpen] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
   const [question, setQuestion] = useState("");
   const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGE]);
   const [loading, setLoading] = useState(false);
@@ -101,7 +224,6 @@ export default function ChatWidget() {
   const sendMessage = async (q: string) => {
     const trimmed = q.trim();
     if (!trimmed || loading) return;
-
     setMessages((prev) => [
       ...prev,
       { role: "user", content: trimmed, timestamp: new Date() },
@@ -109,7 +231,6 @@ export default function ChatWidget() {
     setQuestion("");
     setLoading(true);
     setError(null);
-
     try {
       const res = await askQuery(trimmed);
       setMessages((prev) => [
@@ -142,15 +263,24 @@ export default function ChatWidget() {
   const showSuggestions = messages.length === 1 && !loading;
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
+    <>
+      {/* Chat panel — independently positioned so content never affects its size */}
       {open && (
-        <div className="w-96 h-[32rem] bg-white rounded-2xl border border-gray-200 shadow-2xl flex flex-col overflow-hidden">
+        <div
+          className={
+            fullscreen
+              ? "fixed inset-4 z-50 bg-white rounded-2xl border border-gray-200 shadow-2xl flex flex-col overflow-hidden"
+              : "fixed bottom-24 right-6 z-50 w-96 h-[32rem] bg-white rounded-2xl border border-gray-200 shadow-2xl flex flex-col overflow-hidden"
+          }
+        >
           {/* Header */}
           <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
             <div className="flex items-center gap-2.5">
               <BotAvatar />
               <div>
-                <h2 className="font-semibold text-gray-900 text-sm leading-tight">GastosAI</h2>
+                <h2 className="font-semibold text-gray-900 text-sm leading-tight">
+                  GastosAI
+                </h2>
                 <p className="text-xs text-gray-400">Your expense assistant</p>
               </div>
             </div>
@@ -164,6 +294,13 @@ export default function ChatWidget() {
                 </button>
               )}
               <button
+                onClick={() => setFullscreen((f) => !f)}
+                aria-label={fullscreen ? "Exit fullscreen" : "Fullscreen"}
+                className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                {fullscreen ? <CollapseIcon /> : <ExpandIcon />}
+              </button>
+              <button
                 onClick={() => setOpen(false)}
                 aria-label="Close chat"
                 className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
@@ -176,7 +313,7 @@ export default function ChatWidget() {
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-3 space-y-3 bg-gray-50/30">
+          <div className="flex-1 overflow-y-auto min-h-0 p-3 space-y-3 bg-gray-50/30">
             {messages.map((m, i) => (
               <div
                 key={i}
@@ -184,15 +321,17 @@ export default function ChatWidget() {
               >
                 {m.role === "assistant" && <BotAvatar />}
                 <div
-                  className={`flex flex-col gap-0.5 ${
-                    m.role === "user" ? "items-end max-w-[78%]" : "items-start max-w-[85%]"
+                  className={`flex flex-col gap-0.5 min-w-0 ${
+                    m.role === "user"
+                      ? "items-end max-w-[78%]"
+                      : "items-start max-w-[88%]"
                   }`}
                 >
                   <div
-                    className={`rounded-2xl px-3.5 py-2 text-sm leading-relaxed ${
+                    className={`rounded-2xl px-3.5 py-2 text-sm leading-relaxed overflow-hidden ${
                       m.role === "user"
                         ? "bg-indigo-600 text-white rounded-br-sm"
-                        : "bg-white text-gray-800 rounded-bl-sm border border-gray-200 shadow-sm"
+                        : "bg-white text-gray-800 rounded-bl-sm border border-gray-200 shadow-sm w-full"
                     }`}
                   >
                     {m.role === "user" ? (
@@ -222,7 +361,9 @@ export default function ChatWidget() {
 
             {showSuggestions && (
               <div className="pt-1">
-                <p className="text-xs text-gray-400 mb-2 text-center">Try asking:</p>
+                <p className="text-xs text-gray-400 mb-2 text-center">
+                  Try asking:
+                </p>
                 <div className="flex flex-wrap gap-1.5 justify-center">
                   {SUGGESTED_PROMPTS.map((p) => (
                     <button
@@ -277,22 +418,24 @@ export default function ChatWidget() {
         </div>
       )}
 
-      {/* Toggle button */}
-      <button
-        onClick={() => setOpen((o) => !o)}
-        aria-label={open ? "Close chat" : "Open chat"}
-        className="w-14 h-14 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95"
-      >
-        {open ? (
-          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        ) : (
-          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-          </svg>
-        )}
-      </button>
-    </div>
+      {/* Toggle button — always fixed at bottom-right, independent of panel */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <button
+          onClick={() => setOpen((o) => !o)}
+          aria-label={open ? "Close chat" : "Open chat"}
+          className="w-14 h-14 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95"
+        >
+          {open ? (
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          ) : (
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+          )}
+        </button>
+      </div>
+    </>
   );
 }
