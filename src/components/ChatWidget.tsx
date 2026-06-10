@@ -7,6 +7,7 @@ import type { ParsedExpenseResult } from "../api/types";
 import { useAuth } from "../context/AuthContext";
 import { useFeatures } from "../hooks/useFeatures";
 import { formatCurrency, formatDate } from "../lib/formatters";
+import { looksLikeExpenseLog } from "../lib/intentDetection";
 
 interface Message {
   role: "user" | "assistant";
@@ -17,27 +18,6 @@ interface Message {
   draft?: ParsedExpenseResult;
   draftSaved?: boolean;
   categoryOverride?: string;
-}
-
-const EXPENSE_LOG_KEYWORDS = [
-  "spent", "bought", "paid", "purchased", "ordered", "charged",
-  "nagbayad", "binayad", "nagastos", "bumili", "nagbili",
-  "nagkain", "nagorder", "nag-order", "nag-bayad", "nakabili",
-];
-
-const QUERY_PHRASES = [
-  "how much", "total", "show", "list", "what", "when", "which",
-  "where", "did i", "have i", "how many", "magkano",
-];
-
-function looksLikeExpenseLog(text: string): boolean {
-  const lower = text.toLowerCase();
-  if (EXPENSE_LOG_KEYWORDS.some((k) => lower.includes(k))) return true;
-  if (/(pesos?|php|₱)/i.test(text)) return true;
-  if (!/\d/.test(text)) return false;
-  if (text.includes("?")) return false;
-  if (QUERY_PHRASES.some((q) => lower.includes(q))) return false;
-  return true;
 }
 
 interface ModeTheme {
