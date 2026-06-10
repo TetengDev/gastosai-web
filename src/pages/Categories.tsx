@@ -1,13 +1,24 @@
 import { useCallback, useEffect, useState } from "react";
 import {
+  Briefcase,
   Car,
+  Coffee,
   CreditCard,
   Droplets,
+  Dumbbell,
+  Film,
+  Gift,
+  Globe,
   GraduationCap,
   Heart,
+  Home,
+  Monitor,
+  Music,
   Package,
   Pencil,
+  Phone,
   Plane,
+  ShoppingBag,
   Sparkles,
   Tag,
   Trash2,
@@ -27,7 +38,34 @@ import {
 import type { Category } from "../api/types";
 import { getCategoryColor } from "../lib/formatters";
 
-const CATEGORY_ICON_MAP: Record<string, LucideIcon> = {
+const AVAILABLE_ICONS: Record<string, LucideIcon> = {
+  Briefcase,
+  Car,
+  Coffee,
+  CreditCard,
+  Droplets,
+  Dumbbell,
+  Film,
+  Gift,
+  Globe,
+  GraduationCap,
+  Heart,
+  Home,
+  Monitor,
+  Music,
+  Package,
+  Phone,
+  Plane,
+  ShoppingBag,
+  Sparkles,
+  Tag,
+  Utensils,
+  Users,
+  Wallet,
+  Zap,
+};
+
+const CATEGORY_NAME_ICON_MAP: Record<string, LucideIcon> = {
   "Cleaning Essentials": Sparkles,
   "Date": Heart,
   "Extras": Package,
@@ -43,8 +81,11 @@ const CATEGORY_ICON_MAP: Record<string, LucideIcon> = {
   "Vacation": Plane,
 };
 
-function getCategoryIcon(name: string): LucideIcon {
-  return CATEGORY_ICON_MAP[name] ?? Tag;
+function getCategoryIcon(cat: Category): LucideIcon {
+  if (cat.icon && cat.icon in AVAILABLE_ICONS) {
+    return AVAILABLE_ICONS[cat.icon];
+  }
+  return CATEGORY_NAME_ICON_MAP[cat.name] ?? Tag;
 }
 
 export default function Categories() {
@@ -55,6 +96,7 @@ export default function Categories() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Category | null>(null);
   const [nameInput, setNameInput] = useState("");
+  const [iconInput, setIconInput] = useState("");
   const [saving, setSaving] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
 
@@ -83,6 +125,7 @@ export default function Categories() {
   const openAdd = () => {
     setEditing(null);
     setNameInput("");
+    setIconInput("");
     setModalError(null);
     setModalOpen(true);
   };
@@ -90,6 +133,7 @@ export default function Categories() {
   const openEdit = (cat: Category) => {
     setEditing(cat);
     setNameInput(cat.name);
+    setIconInput(cat.icon ?? "");
     setModalError(null);
     setModalOpen(true);
   };
@@ -98,6 +142,7 @@ export default function Categories() {
     setModalOpen(false);
     setEditing(null);
     setNameInput("");
+    setIconInput("");
     setModalError(null);
   };
 
@@ -106,13 +151,14 @@ export default function Categories() {
     setSaving(true);
     setModalError(null);
     try {
+      const payload = { name: nameInput.trim(), icon: iconInput || null };
       if (editing) {
-        const updated = await updateCategory(editing.id, { name: nameInput.trim() });
+        const updated = await updateCategory(editing.id, payload);
         setCategories((prev) =>
           prev.map((c) => (c.id === updated.id ? updated : c))
         );
       } else {
-        const created = await createCategory({ name: nameInput.trim() });
+        const created = await createCategory(payload);
         setCategories((prev) => [...prev, created]);
       }
       closeModal();
@@ -212,16 +258,16 @@ export default function Categories() {
           {categories.map((cat) => {
             const color = getCategoryColor(cat.name);
             const isDefault = cat.name === "Uncategorized";
-            const Icon = getCategoryIcon(cat.name);
+            const Icon = getCategoryIcon(cat);
             return (
               <div
                 key={cat.id}
-                className={`group relative rounded-2xl p-5 transition-all hover:shadow-md hover:-translate-y-0.5 cursor-default ${color.bg} dark:opacity-90`}
+                className={`group relative rounded-2xl p-5 transition-all hover:shadow-md hover:-translate-y-0.5 cursor-default ${color.bg} ${color.darkBg}`}
               >
-                <div className="mb-3 w-9 h-9 rounded-xl bg-white/50 dark:bg-gray-900/40 flex items-center justify-center">
-                  <Icon className={`w-5 h-5 ${color.text}`} />
+                <div className="mb-3 w-9 h-9 rounded-xl bg-white/50 dark:bg-white/10 flex items-center justify-center">
+                  <Icon className={`w-5 h-5 ${color.text} ${color.darkText}`} />
                 </div>
-                <p className={`font-semibold text-sm leading-snug ${color.text}`}>
+                <p className={`font-semibold text-sm leading-snug ${color.text} ${color.darkText}`}>
                   {cat.name}
                 </p>
                 {isDefault && (
@@ -274,6 +320,29 @@ export default function Categories() {
                   placeholder="e.g. Food, Transport, Utilities"
                   className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-shadow bg-gray-50/50 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Icon{" "}
+                  <span className="text-gray-400 font-normal">(optional)</span>
+                </label>
+                <div className="grid grid-cols-6 gap-1.5">
+                  {Object.entries(AVAILABLE_ICONS).map(([name, Icon]) => (
+                    <button
+                      key={name}
+                      type="button"
+                      onClick={() => setIconInput(iconInput === name ? "" : name)}
+                      title={name}
+                      className={`p-2 rounded-xl flex items-center justify-center transition-colors ${
+                        iconInput === name
+                          ? "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 ring-2 ring-indigo-500"
+                          : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+                      }`}
+                    >
+                      <Icon className="w-4 h-4" />
+                    </button>
+                  ))}
+                </div>
               </div>
               {modalError && (
                 <p className="text-red-500 text-sm">{modalError}</p>

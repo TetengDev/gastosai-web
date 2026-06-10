@@ -1,7 +1,7 @@
 import { LogOut, Moon, Sun } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { getInitials } from "../lib/formatters";
+import { getAvatarGradient, getInitials } from "../lib/formatters";
 
 interface Props {
   isDark: boolean;
@@ -58,7 +58,7 @@ export default function Navbar({ isDark, onToggleDark }: Props) {
                   }`
                 }
               >
-                <div className="w-7 h-7 rounded-full bg-white/25 border border-white/50 flex items-center justify-center shrink-0">
+                <div className={`w-7 h-7 rounded-full bg-gradient-to-br ${getAvatarGradient(user.avatarColor)} border border-white/50 flex items-center justify-center shrink-0`}>
                   <span className="text-white text-xs font-bold leading-none select-none">
                     {getInitials(user.name)}
                   </span>

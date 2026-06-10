@@ -40,9 +40,9 @@ const MODE_THEMES: Record<ChatMode, ModeTheme> = {
     sendBtn: "from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700",
     fabGradient: "from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700",
     fabShadow: "shadow-indigo-500/40 hover:shadow-indigo-500/50",
-    chip: "bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100",
+    chip: "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-700 hover:bg-indigo-100 dark:hover:bg-indigo-800/50",
     inputRing: "focus:ring-indigo-500",
-    accentText: "text-indigo-700",
+    accentText: "text-indigo-700 dark:text-indigo-400",
     msgBg: "bg-gray-50/30",
     typingDot: "bg-indigo-400",
   },
@@ -55,9 +55,9 @@ const MODE_THEMES: Record<ChatMode, ModeTheme> = {
     sendBtn: "from-slate-600 to-slate-800 hover:from-slate-700 hover:to-slate-900",
     fabGradient: "from-slate-700 to-slate-900 hover:from-slate-800 hover:to-gray-950",
     fabShadow: "shadow-slate-700/50 hover:shadow-slate-800/60",
-    chip: "bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200",
+    chip: "bg-slate-100 dark:bg-slate-700/50 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 hover:bg-slate-200 dark:hover:bg-slate-700",
     inputRing: "focus:ring-slate-500",
-    accentText: "text-slate-800",
+    accentText: "text-slate-800 dark:text-slate-200",
     msgBg: "bg-slate-50/40",
     typingDot: "bg-slate-400",
   },
@@ -70,9 +70,9 @@ const MODE_THEMES: Record<ChatMode, ModeTheme> = {
     sendBtn: "from-pink-500 to-fuchsia-500 hover:from-pink-600 hover:to-fuchsia-600",
     fabGradient: "from-pink-500 to-fuchsia-600 hover:from-pink-600 hover:to-fuchsia-700",
     fabShadow: "shadow-pink-500/40 hover:shadow-pink-500/50",
-    chip: "bg-pink-50 text-pink-700 border border-pink-200 hover:bg-pink-100",
+    chip: "bg-pink-50 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300 border border-pink-200 dark:border-pink-700 hover:bg-pink-100 dark:hover:bg-pink-800/50",
     inputRing: "focus:ring-pink-500",
-    accentText: "text-fuchsia-700",
+    accentText: "text-fuchsia-700 dark:text-fuchsia-400",
     msgBg: "bg-pink-50/20",
     typingDot: "bg-pink-400",
   },
@@ -206,7 +206,7 @@ function renderAnswer(answer: unknown, accentText: string): ReactNode {
     const orderedKeys = [...labelKeys, ...metricKeys];
 
     return (
-      <div className="w-full mt-1 divide-y divide-gray-100">
+      <div className="w-full mt-1 divide-y divide-gray-100 dark:divide-gray-700">
         {rows.map((row, i) => (
           <div key={i} className="flex items-center justify-between gap-3 py-2">
             {orderedKeys.map((k, ki) => (

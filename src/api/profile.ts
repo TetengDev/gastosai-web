@@ -4,15 +4,22 @@ export interface UserProfileResponse {
   email: string;
   name: string;
   nickname: string | null;
+  avatarColor: string | null;
 }
 
 export interface UpdateProfileRequest {
   name: string;
   nickname: string;
+  email: string;
+  avatarColor?: string | null;
+}
+
+export interface UpdateProfileResponse extends UserProfileResponse {
+  token: string;
 }
 
 export const getProfile = () =>
   api.get<UserProfileResponse>("/user/profile").then((r) => r.data);
 
 export const updateProfile = (data: UpdateProfileRequest) =>
-  api.put<UserProfileResponse>("/user/profile", data).then((r) => r.data);
+  api.put<UpdateProfileResponse>("/user/profile", data).then((r) => r.data);

@@ -191,7 +191,7 @@ export default function Expenses() {
                       </td>
                       <td className="px-5 py-3.5">
                         <span
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${color.bg} ${color.text}`}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${color.bg} ${color.darkBg} ${color.text} ${color.darkText}`}
                         >
                           <span className={`w-1.5 h-1.5 rounded-full ${color.dot}`} />
                           {e.category}

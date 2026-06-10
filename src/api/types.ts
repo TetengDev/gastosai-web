@@ -16,10 +16,12 @@ export interface ExpenseRequest {
 export interface Category {
   id: number;
   name: string;
+  icon: string | null;
 }
 
 export interface CategoryRequest {
   name: string;
+  icon?: string | null;
 }
 
 export interface MonthlyReport {

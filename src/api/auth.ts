@@ -5,6 +5,7 @@ export interface AuthResponse {
   email: string;
   name: string;
   nickname: string | null;
+  avatarColor: string | null;
 }
 
 export interface RegisterRequest {

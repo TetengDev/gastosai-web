@@ -1,3 +1,19 @@
+export const AVATAR_COLORS = [
+  { key: "violet-indigo", from: "from-violet-500", to: "to-indigo-600" },
+  { key: "rose-pink", from: "from-rose-500", to: "to-pink-600" },
+  { key: "amber-orange", from: "from-amber-500", to: "to-orange-600" },
+  { key: "emerald-teal", from: "from-emerald-500", to: "to-teal-600" },
+  { key: "sky-blue", from: "from-sky-500", to: "to-blue-600" },
+  { key: "slate-gray", from: "from-slate-500", to: "to-gray-600" },
+] as const;
+
+export type AvatarColorKey = (typeof AVATAR_COLORS)[number]["key"];
+
+export function getAvatarGradient(avatarColor: string | null | undefined): string {
+  const preset = AVATAR_COLORS.find((c) => c.key === avatarColor);
+  return preset ? `${preset.from} ${preset.to}` : "from-violet-500 to-indigo-600";
+}
+
 export function getInitials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return "?";
@@ -6,16 +22,16 @@ export function getInitials(name: string): string {
 }
 
 const CATEGORY_COLORS = [
-  { bg: "bg-violet-100", text: "text-violet-700", dot: "bg-violet-500", chart: "#7c3aed" },
-  { bg: "bg-blue-100",   text: "text-blue-700",   dot: "bg-blue-500",   chart: "#2563eb" },
-  { bg: "bg-emerald-100",text: "text-emerald-700",dot: "bg-emerald-500",chart: "#059669" },
-  { bg: "bg-amber-100",  text: "text-amber-700",  dot: "bg-amber-500",  chart: "#d97706" },
-  { bg: "bg-rose-100",   text: "text-rose-700",   dot: "bg-rose-500",   chart: "#e11d48" },
-  { bg: "bg-cyan-100",   text: "text-cyan-700",   dot: "bg-cyan-500",   chart: "#0891b2" },
-  { bg: "bg-orange-100", text: "text-orange-700", dot: "bg-orange-500", chart: "#ea580c" },
-  { bg: "bg-pink-100",   text: "text-pink-700",   dot: "bg-pink-500",   chart: "#db2777" },
-  { bg: "bg-teal-100",   text: "text-teal-700",   dot: "bg-teal-500",   chart: "#0d9488" },
-  { bg: "bg-indigo-100", text: "text-indigo-700", dot: "bg-indigo-500", chart: "#4f46e5" },
+  { bg: "bg-violet-100",  darkBg: "dark:bg-violet-900/30",  text: "text-violet-700",  darkText: "dark:text-violet-300",  dot: "bg-violet-500",  chart: "#7c3aed" },
+  { bg: "bg-blue-100",    darkBg: "dark:bg-blue-900/30",    text: "text-blue-700",    darkText: "dark:text-blue-300",    dot: "bg-blue-500",    chart: "#2563eb" },
+  { bg: "bg-emerald-100", darkBg: "dark:bg-emerald-900/30", text: "text-emerald-700", darkText: "dark:text-emerald-300", dot: "bg-emerald-500", chart: "#059669" },
+  { bg: "bg-amber-100",   darkBg: "dark:bg-amber-900/30",   text: "text-amber-700",   darkText: "dark:text-amber-300",   dot: "bg-amber-500",   chart: "#d97706" },
+  { bg: "bg-rose-100",    darkBg: "dark:bg-rose-900/30",    text: "text-rose-700",    darkText: "dark:text-rose-300",    dot: "bg-rose-500",    chart: "#e11d48" },
+  { bg: "bg-cyan-100",    darkBg: "dark:bg-cyan-900/30",    text: "text-cyan-700",    darkText: "dark:text-cyan-300",    dot: "bg-cyan-500",    chart: "#0891b2" },
+  { bg: "bg-orange-100",  darkBg: "dark:bg-orange-900/30",  text: "text-orange-700",  darkText: "dark:text-orange-300",  dot: "bg-orange-500",  chart: "#ea580c" },
+  { bg: "bg-pink-100",    darkBg: "dark:bg-pink-900/30",    text: "text-pink-700",    darkText: "dark:text-pink-300",    dot: "bg-pink-500",    chart: "#db2777" },
+  { bg: "bg-teal-100",    darkBg: "dark:bg-teal-900/30",    text: "text-teal-700",    darkText: "dark:text-teal-300",    dot: "bg-teal-500",    chart: "#0d9488" },
+  { bg: "bg-indigo-100",  darkBg: "dark:bg-indigo-900/30",  text: "text-indigo-700",  darkText: "dark:text-indigo-300",  dot: "bg-indigo-500",  chart: "#4f46e5" },
 ];
 
 export function getCategoryColor(category: string) {

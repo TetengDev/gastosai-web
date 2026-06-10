@@ -228,7 +228,7 @@ export default function Dashboard() {
                     <span className={`w-2 h-2 rounded-full flex-shrink-0 ${color.dot}`} />
                     <div className="min-w-0">
                       <span
-                        className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${color.bg} ${color.text}`}
+                        className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${color.bg} ${color.darkBg} ${color.text} ${color.darkText}`}
                       >
                         {e.category}
                       </span>

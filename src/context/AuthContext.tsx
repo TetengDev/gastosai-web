@@ -9,6 +9,7 @@ interface AuthUser {
   email: string;
   name: string;
   nickname: string | null;
+  avatarColor: string | null;
 }
 
 interface AuthContextValue {
@@ -45,13 +46,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (data: LoginRequest) => {
     const res = await apiLogin(data);
     localStorage.setItem("token", res.token);
-    persistUser({ email: res.email, name: res.name, nickname: res.nickname ?? null });
+    persistUser({ email: res.email, name: res.name, nickname: res.nickname ?? null, avatarColor: res.avatarColor ?? null });
   };
 
   const register = async (data: RegisterRequest) => {
     const res = await apiRegister(data);
     localStorage.setItem("token", res.token);
-    persistUser({ email: res.email, name: res.name, nickname: res.nickname ?? null });
+    persistUser({ email: res.email, name: res.name, nickname: res.nickname ?? null, avatarColor: res.avatarColor ?? null });
   };
 
   const logout = () => {
@@ -62,9 +63,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const updateProfile = async (data: UpdateProfileRequest) => {
     const res = await apiUpdateProfile(data);
-    if (user) {
-      persistUser({ ...user, name: res.name, nickname: res.nickname ?? null });
-    }
+    localStorage.setItem("token", res.token);
+    persistUser({ email: res.email, name: res.name, nickname: res.nickname ?? null, avatarColor: res.avatarColor ?? null });
   };
 
   return (
