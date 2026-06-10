@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import ChatWidget from "./components/ChatWidget";
 import Navbar from "./components/Navbar";
@@ -11,8 +11,17 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import Settings from "./pages/Settings";
 
-function AppShell({ darkMode, onToggleDark }: { darkMode: boolean; onToggleDark: () => void }) {
+function AppShell({ darkMode, onToggleDark, onResetDark }: { darkMode: boolean; onToggleDark: () => void; onResetDark: () => void }) {
   const { user } = useAuth();
+  const prevUserRef = useRef(user);
+
+  useEffect(() => {
+    if (prevUserRef.current !== null && user === null) {
+      onResetDark();
+    }
+    prevUserRef.current = user;
+  }, [user, onResetDark]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-violet-50/30 dark:bg-none dark:bg-gray-950 transition-colors duration-300">
       <Routes>
@@ -63,7 +72,11 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <AppShell darkMode={darkMode} onToggleDark={() => setDarkMode((d) => !d)} />
+        <AppShell
+          darkMode={darkMode}
+          onToggleDark={() => setDarkMode((d) => !d)}
+          onResetDark={() => setDarkMode(window.matchMedia("(prefers-color-scheme: dark)").matches)}
+        />
       </AuthProvider>
     </BrowserRouter>
   );
