@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import { getInitials } from "../lib/formatters";
 
 export default function Settings() {
   const { user, updateProfile } = useAuth();
@@ -32,7 +33,19 @@ export default function Settings() {
       <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">Manage your profile preferences.</p>
 
       <section className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
-        <h2 className="text-base font-semibold text-gray-800 dark:text-gray-100 mb-5">Profile</h2>
+        <div className="flex items-center gap-4 mb-6 pb-6 border-b border-gray-100 dark:border-gray-700">
+          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shrink-0 shadow-md shadow-indigo-500/20">
+            <span className="text-white text-xl font-bold select-none">
+              {getInitials(user?.name ?? "")}
+            </span>
+          </div>
+          <div>
+            <p className="font-semibold text-gray-900 dark:text-gray-100">
+              {user?.nickname || user?.name}
+            </p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{user?.email}</p>
+          </div>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>

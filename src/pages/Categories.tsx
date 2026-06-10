@@ -1,5 +1,23 @@
 import { useCallback, useEffect, useState } from "react";
 import {
+  Car,
+  CreditCard,
+  Droplets,
+  GraduationCap,
+  Heart,
+  Package,
+  Pencil,
+  Plane,
+  Sparkles,
+  Tag,
+  Trash2,
+  Utensils,
+  Users,
+  Wallet,
+  Zap,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import {
   createCategory,
   deleteAllCategories,
   deleteCategory,
@@ -9,20 +27,24 @@ import {
 import type { Category } from "../api/types";
 import { getCategoryColor } from "../lib/formatters";
 
-function PencilIcon() {
-  return (
-    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
-    </svg>
-  );
-}
+const CATEGORY_ICON_MAP: Record<string, LucideIcon> = {
+  "Cleaning Essentials": Sparkles,
+  "Date": Heart,
+  "Extras": Package,
+  "Family Contributions": Users,
+  "Hygiene Essentials": Droplets,
+  "Meal Plan": Utensils,
+  "Monthly Personal": Wallet,
+  "Monthly Utilities": Zap,
+  "Training/Upskilling": GraduationCap,
+  "Transaction Fees": CreditCard,
+  "Transportation": Car,
+  "Uncategorized": Tag,
+  "Vacation": Plane,
+};
 
-function TrashIcon() {
-  return (
-    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-    </svg>
-  );
+function getCategoryIcon(name: string): LucideIcon {
+  return CATEGORY_ICON_MAP[name] ?? Tag;
 }
 
 export default function Categories() {
@@ -152,9 +174,7 @@ export default function Categories() {
                   onClick={() => setConfirmDeleteAll(true)}
                   className="inline-flex items-center gap-1 text-xs text-red-400 dark:text-red-500 hover:text-red-600 dark:hover:text-red-400 transition-colors cursor-pointer"
                 >
-                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                  </svg>
+                  <Trash2 className="w-3 h-3" />
                   Delete All
                 </button>
               )}
@@ -192,14 +212,14 @@ export default function Categories() {
           {categories.map((cat) => {
             const color = getCategoryColor(cat.name);
             const isDefault = cat.name === "Uncategorized";
+            const Icon = getCategoryIcon(cat.name);
             return (
               <div
                 key={cat.id}
                 className={`group relative rounded-2xl p-5 transition-all hover:shadow-md hover:-translate-y-0.5 cursor-default ${color.bg} dark:opacity-90`}
               >
-                <div className="mb-3">
-                  <span className={`w-8 h-8 rounded-xl flex items-center justify-center ${color.dot} opacity-30`} />
-                  <span className={`w-4 h-4 rounded-full ${color.dot} -mt-6 ml-2 block`} />
+                <div className="mb-3 w-9 h-9 rounded-xl bg-white/50 dark:bg-gray-900/40 flex items-center justify-center">
+                  <Icon className={`w-5 h-5 ${color.text}`} />
                 </div>
                 <p className={`font-semibold text-sm leading-snug ${color.text}`}>
                   {cat.name}
@@ -216,14 +236,14 @@ export default function Categories() {
                       title="Edit"
                       className="p-1.5 bg-white/70 hover:bg-white dark:bg-gray-900/70 dark:hover:bg-gray-900 rounded-lg text-gray-500 hover:text-indigo-600 transition-colors"
                     >
-                      <PencilIcon />
+                      <Pencil className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={() => setConfirmDelete(cat)}
                       title="Delete"
                       className="p-1.5 bg-white/70 hover:bg-white dark:bg-gray-900/70 dark:hover:bg-gray-900 rounded-lg text-gray-500 hover:text-red-500 transition-colors"
                     >
-                      <TrashIcon />
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 )}
@@ -314,7 +334,7 @@ export default function Categories() {
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-2xl max-w-sm w-full mx-4 border border-gray-100 dark:border-gray-800">
             <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500">
-              <TrashIcon />
+              <Trash2 className="w-5 h-5" />
             </div>
             <h3 className="font-bold text-gray-900 dark:text-gray-100 text-center mb-1">
               Delete all categories?
