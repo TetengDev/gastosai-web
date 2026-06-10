@@ -29,6 +29,8 @@ export function useExpenses() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
+    window.addEventListener("gastosai:expense-created", load);
+    return () => window.removeEventListener("gastosai:expense-created", load);
   }, [load]);
 
   const add = async (req: ExpenseRequest): Promise<Expense> => {

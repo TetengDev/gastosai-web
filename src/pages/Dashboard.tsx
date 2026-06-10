@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Cell,
   Pie,
@@ -43,8 +43,8 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    Promise.all([getCategoryReport(), getExpenses()])
+  const fetchData = useCallback(() => {
+    void Promise.all([getCategoryReport(), getExpenses()])
       .then(([cats, expenses]) => {
         setCategoryData(cats);
         setRecentExpenses(expenses.slice(0, 10));
@@ -52,6 +52,12 @@ export default function Dashboard() {
       .catch(() => setError("Failed to load dashboard data."))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    fetchData();
+    window.addEventListener("gastosai:expense-created", fetchData);
+    return () => window.removeEventListener("gastosai:expense-created", fetchData);
+  }, [fetchData]);
 
   const total = categoryData.reduce((sum, c) => sum + Number(c.total), 0);
   const chartData = buildChartData(categoryData);

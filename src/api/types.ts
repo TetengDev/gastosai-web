@@ -33,3 +33,13 @@ export interface CategoryReport {
   category: string;
   total: number;
 }
+
+export interface ParsedExpenseResult {
+  amount: number;
+  category: string;
+  date: string;
+  description: string;
+  confidence: string;
+  saveable: boolean;
+  hint: string | null;
+}

@@ -1,5 +1,5 @@
 import api from "./client";
-import type { CategoryReport, Expense, ExpenseRequest, MonthlyReport } from "./types";
+import type { CategoryReport, Expense, ExpenseRequest, MonthlyReport, ParsedExpenseResult } from "./types";
 
 export interface ImportResult {
   imported: number;
@@ -31,6 +31,9 @@ export const importExpensesCsv = (file: File) => {
     })
     .then((r) => r.data);
 };
+
+export const parseExpense = (text: string) =>
+  api.post<ParsedExpenseResult>("/expenses/parse", { text }).then((r) => r.data);
 
 export const getMonthlyReport = () =>
   api.get<MonthlyReport[]>("/expenses/report/monthly").then((r) => r.data);

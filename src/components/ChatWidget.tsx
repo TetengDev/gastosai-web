@@ -1,7 +1,9 @@
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import { askQuery, askWithAttachment, type ChatMode } from "../api/ai";
-import { importExpensesCsv } from "../api/expenses";
+import { getCategories } from "../api/categories";
+import { createExpense, importExpensesCsv, parseExpense } from "../api/expenses";
+import type { ParsedExpenseResult } from "../api/types";
 import { useAuth } from "../context/AuthContext";
 import { useFeatures } from "../hooks/useFeatures";
 import { formatCurrency, formatDate } from "../lib/formatters";
@@ -12,6 +14,30 @@ interface Message {
   timestamp: Date;
   attachmentUrl?: string;
   attachmentName?: string;
+  draft?: ParsedExpenseResult;
+  draftSaved?: boolean;
+  categoryOverride?: string;
+}
+
+const EXPENSE_LOG_KEYWORDS = [
+  "spent", "bought", "paid", "purchased", "ordered", "charged",
+  "nagbayad", "binayad", "nagastos", "bumili", "nagbili",
+  "nagkain", "nagorder", "nag-order", "nag-bayad", "nakabili",
+];
+
+const QUERY_PHRASES = [
+  "how much", "total", "show", "list", "what", "when", "which",
+  "where", "did i", "have i", "how many", "magkano",
+];
+
+function looksLikeExpenseLog(text: string): boolean {
+  const lower = text.toLowerCase();
+  if (EXPENSE_LOG_KEYWORDS.some((k) => lower.includes(k))) return true;
+  if (/(pesos?|php|₱)/i.test(text)) return true;
+  if (!/\d/.test(text)) return false;
+  if (text.includes("?")) return false;
+  if (QUERY_PHRASES.some((q) => lower.includes(q))) return false;
+  return true;
 }
 
 interface ModeTheme {
@@ -89,6 +115,7 @@ const SUGGESTED_PROMPTS = [
   "Total expenses this month",
   "List all expenses over ₱500",
   "How much did I spend last week?",
+  "spent 250 on Jollibee lunch",
 ];
 
 function makeWelcomeMessage(displayName?: string | null): Message {
@@ -287,6 +314,7 @@ export default function ChatWidget() {
   const [open, setOpen] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [mode, setMode] = useState<ChatMode>("plain");
+  const [categoryNames, setCategoryNames] = useState<string[]>([]);
   const [question, setQuestion] = useState("");
   const [messages, setMessages] = useState<Message[]>(() => [
     makeWelcomeMessage(user?.nickname || user?.name),
@@ -305,8 +333,11 @@ export default function ChatWidget() {
     if (open) {
       bottomRef.current?.scrollIntoView({ behavior: "smooth" });
       setTimeout(() => inputRef.current?.focus(), 50);
+      if (categoryNames.length === 0) {
+        void getCategories().then((cats) => setCategoryNames(cats.map((c) => c.name)));
+      }
     }
-  }, [messages, loading, open]);
+  }, [messages, loading, open, categoryNames.length]);
 
   const clearPendingFile = () => {
     if (pendingFileUrl) URL.revokeObjectURL(pendingFileUrl);
@@ -358,6 +389,23 @@ export default function ChatWidget() {
           ...prev,
           { role: "assistant", content: summary, timestamp: new Date() },
         ]);
+      } else if (!file && looksLikeExpenseLog(trimmed)) {
+        const draft = await parseExpense(trimmed);
+        if (draft.saveable) {
+          setMessages((prev) => [
+            ...prev,
+            { role: "assistant", content: null, timestamp: new Date(), draft },
+          ]);
+        } else {
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: "assistant",
+              content: draft.hint ?? "I couldn't parse that as an expense. Try something like: 'spent 250 on lunch at Jollibee'.",
+              timestamp: new Date(),
+            },
+          ]);
+        }
       } else if (!file || isImageFile(file)) {
         const res = file
           ? await askWithAttachment(trimmed, file)
@@ -397,6 +445,23 @@ export default function ChatWidget() {
     setMessages([makeWelcomeMessage(user?.nickname || user?.name)]);
     setError(null);
     inputRef.current?.focus();
+  };
+
+  const saveDraft = async (msgIndex: number, draft: ParsedExpenseResult, categoryOverride?: string) => {
+    try {
+      await createExpense({
+        amount: draft.amount,
+        category: categoryOverride ?? draft.category,
+        date: draft.date,
+        description: draft.description,
+      });
+      setMessages((prev) =>
+        prev.map((m, i) => (i === msgIndex ? { ...m, draftSaved: true } : m))
+      );
+      window.dispatchEvent(new CustomEvent("gastosai:expense-created"));
+    } catch {
+      setError("Failed to save expense. Please try again.");
+    }
   };
 
   const showSuggestions = messages.length === 1 && !loading;
@@ -506,6 +571,56 @@ export default function ChatWidget() {
                         {(m.content as string) !== "Analyze this image" || !m.attachmentUrl ? (
                           <span>{m.content as string}</span>
                         ) : null}
+                      </div>
+                    ) : m.draft ? (
+                      <div className="space-y-2">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Draft expense</p>
+                        <div className="space-y-1">
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs text-gray-500 dark:text-gray-400">Amount</span>
+                            <span className={`text-sm font-semibold ${theme.accentText}`}>{formatCurrency(m.draft.amount)}</span>
+                          </div>
+                          <div className="flex justify-between items-start gap-2">
+                            <span className="text-xs text-gray-500 dark:text-gray-400 pt-1 shrink-0">Category</span>
+                            {m.draftSaved ? (
+                              <span className="text-sm dark:text-gray-200">{m.categoryOverride ?? m.draft.category}</span>
+                            ) : categoryNames.length > 0 && !categoryNames.includes(m.categoryOverride ?? m.draft.category) ? (
+                              <div className="flex flex-col items-end gap-1 min-w-0">
+                                <span className="text-xs text-amber-600 dark:text-amber-400">New category</span>
+                                <select
+                                  value={m.categoryOverride ?? m.draft.category}
+                                  onChange={(e) => setMessages((prev) => prev.map((msg, idx) => idx === i ? { ...msg, categoryOverride: e.target.value } : msg))}
+                                  className="text-xs border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 max-w-[140px]"
+                                >
+                                  <option value={m.draft.category}>{m.draft.category} (create new)</option>
+                                  {categoryNames.map((n) => <option key={n} value={n}>{n}</option>)}
+                                </select>
+                              </div>
+                            ) : (
+                              <span className="text-sm dark:text-gray-200">{m.categoryOverride ?? m.draft.category}</span>
+                            )}
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs text-gray-500 dark:text-gray-400">Date</span>
+                            <span className="text-sm dark:text-gray-200">{formatDate(m.draft.date)}</span>
+                          </div>
+                          {m.draft.description && (
+                            <div className="flex justify-between items-center gap-3">
+                              <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">Note</span>
+                              <span className="text-sm dark:text-gray-200 text-right">{m.draft.description}</span>
+                            </div>
+                          )}
+                        </div>
+                        {m.draftSaved ? (
+                          <p className="text-xs text-green-600 dark:text-green-400 font-medium pt-1">Saved to expenses</p>
+                        ) : (
+                          <button
+                            onClick={() => void saveDraft(i, m.draft!, m.categoryOverride)}
+                            className={`mt-1 w-full text-xs font-medium py-1.5 rounded-lg bg-gradient-to-r ${theme.sendBtn} text-white transition-all`}
+                          >
+                            Save expense
+                          </button>
+                        )}
                       </div>
                     ) : (
                       renderAnswer(m.content, theme.accentText)
