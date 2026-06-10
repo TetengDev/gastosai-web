@@ -44,6 +44,13 @@ export interface ParsedExpenseResult {
   hint: string | null;
 }
 
+export interface MonthlyComparison {
+  month: string;
+  currentTotal: number;
+  previousTotal: number;
+  changePercent: number | null;
+}
+
 export interface BudgetRequest {
   categoryId: number;
   month: string;

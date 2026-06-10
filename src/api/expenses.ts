@@ -1,5 +1,5 @@
 import api from "./client";
-import type { CategoryReport, Expense, ExpenseRequest, MonthlyReport, ParsedExpenseResult } from "./types";
+import type { CategoryReport, Expense, ExpenseRequest, MonthlyComparison, MonthlyReport, ParsedExpenseResult } from "./types";
 
 export interface ImportResult {
   imported: number;
@@ -7,8 +7,8 @@ export interface ImportResult {
   errors: string[];
 }
 
-export const getExpenses = () =>
-  api.get<Expense[]>("/expenses").then((r) => r.data);
+export const getExpenses = (params?: { from?: string; to?: string }) =>
+  api.get<Expense[]>("/expenses", { params }).then((r) => r.data);
 
 export const createExpense = (data: ExpenseRequest) =>
   api.post<Expense>("/expenses", data).then((r) => r.data);
@@ -37,6 +37,9 @@ export const parseExpense = (text: string) =>
 
 export const getMonthlyReport = () =>
   api.get<MonthlyReport[]>("/expenses/report/monthly").then((r) => r.data);
+
+export const getMonthlyComparison = (month: string) =>
+  api.get<MonthlyComparison>("/expenses/report/monthly-comparison", { params: { month } }).then((r) => r.data);
 
 export const getCategoryReport = () =>
   api.get<CategoryReport[]>("/expenses/report/category").then((r) => r.data);

@@ -1,19 +1,37 @@
 import { useCallback, useEffect, useState } from "react";
 import {
+  Bar,
+  BarChart,
+  CartesianGrid,
   Cell,
   Pie,
   PieChart,
   ResponsiveContainer,
   Tooltip,
+  XAxis,
+  YAxis,
 } from "recharts";
-import { getCategoryReport, getExpenses } from "../api/expenses";
-import type { CategoryReport, Expense } from "../api/types";
+import { getCategoryReport, getExpenses, getMonthlyComparison, getMonthlyReport } from "../api/expenses";
+import type { CategoryReport, Expense, MonthlyComparison, MonthlyReport } from "../api/types";
 import BudgetOverviewCard from "../components/BudgetOverviewCard";
 import {
   formatCurrency,
   formatDate,
   getCategoryColor,
 } from "../lib/formatters";
+
+const currentMonth = new Date().toISOString().slice(0, 7);
+
+function formatMonthLabel(yyyyMM: string): string {
+  const [y, m] = yyyyMM.split("-").map(Number);
+  return new Date(y, m - 1, 1).toLocaleString("default", { month: "short", year: "numeric" });
+}
+
+function prevMonthLabel(yyyyMM: string): string {
+  const [y, m] = yyyyMM.split("-").map(Number);
+  const prev = new Date(y, m - 2, 1);
+  return prev.toLocaleString("default", { month: "short", year: "numeric" });
+}
 
 const MAX_SLICES = 8;
 
@@ -41,14 +59,18 @@ function buildChartData(categoryData: CategoryReport[]) {
 export default function Dashboard() {
   const [categoryData, setCategoryData] = useState<CategoryReport[]>([]);
   const [recentExpenses, setRecentExpenses] = useState<Expense[]>([]);
+  const [monthlyData, setMonthlyData] = useState<MonthlyReport[]>([]);
+  const [momData, setMomData] = useState<MonthlyComparison | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(() => {
-    void Promise.all([getCategoryReport(), getExpenses()])
-      .then(([cats, expenses]) => {
+    void Promise.all([getCategoryReport(), getExpenses(), getMonthlyReport(), getMonthlyComparison(currentMonth)])
+      .then(([cats, expenses, monthly, mom]) => {
         setCategoryData(cats);
         setRecentExpenses(expenses.slice(0, 10));
+        setMonthlyData(monthly);
+        setMomData(mom);
       })
       .catch(() => setError("Failed to load dashboard data."))
       .finally(() => setLoading(false));
@@ -98,8 +120,60 @@ export default function Dashboard() {
         <div className="absolute -top-6 -right-6 w-24 h-24 bg-white/5 rounded-full" />
       </div>
 
+      {/* Month-over-month comparison */}
+      {momData && (
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6">
+          <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-4">
+            Spending Trend
+          </p>
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mb-1">This month</p>
+              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                {formatMonthLabel(momData.month)}
+              </p>
+              <p className="text-2xl font-extrabold text-gray-900 dark:text-gray-100 tracking-tight">
+                {formatCurrency(momData.currentTotal)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mb-1">Last month</p>
+              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                {prevMonthLabel(momData.month)}
+              </p>
+              <p className="text-2xl font-extrabold text-gray-900 dark:text-gray-100 tracking-tight">
+                {formatCurrency(momData.previousTotal)}
+              </p>
+            </div>
+          </div>
+          <div className={`flex items-center gap-2 text-sm font-medium px-3 py-2 rounded-xl w-fit ${
+            momData.changePercent === null
+              ? "bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-500"
+              : momData.changePercent <= 0
+                ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400"
+                : "bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400"
+          }`}>
+            {momData.changePercent === null ? (
+              <span>No data for {prevMonthLabel(momData.month)} — can&apos;t compare yet</span>
+            ) : momData.changePercent === 0 ? (
+              <span>Same spending as {prevMonthLabel(momData.month)}</span>
+            ) : (
+              <>
+                <span>{momData.changePercent > 0 ? "↑" : "↓"}</span>
+                <span>
+                  You spent{" "}
+                  <strong>{Math.abs(momData.changePercent).toFixed(1)}%</strong>{" "}
+                  {momData.changePercent > 0 ? "more" : "less"} than{" "}
+                  {prevMonthLabel(momData.month)}
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Budget overview */}
-      <BudgetOverviewCard month={new Date().toISOString().slice(0, 7)} />
+      <BudgetOverviewCard month={currentMonth} />
 
       {/* Chart + breakdown — fixed height so Recent Expenses stays in view */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -203,6 +277,28 @@ export default function Dashboard() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Monthly trend */}
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6">
+        <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-4">
+          Monthly Trend
+        </p>
+        {monthlyData.length === 0 ? (
+          <p className="text-gray-400 dark:text-gray-500 text-sm text-center py-8">
+            No monthly data yet.
+          </p>
+        ) : (
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={monthlyData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+              <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => formatCurrency(v as number)} width={80} />
+              <Tooltip formatter={(v) => formatCurrency(v as number)} />
+              <Bar dataKey="total" fill="#6366f1" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
       </div>
 
       {/* Recent expenses */}

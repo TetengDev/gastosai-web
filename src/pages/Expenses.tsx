@@ -1,7 +1,7 @@
 import { Loader2, Pencil, Trash2, Upload } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ExpenseModal from "../components/ExpenseModal";
-import { importExpensesCsv, type ImportResult } from "../api/expenses";
+import { getExpenses, importExpensesCsv, type ImportResult } from "../api/expenses";
 import type { Expense } from "../api/types";
 import { useExpenses } from "../hooks/useExpenses";
 import { useFeatures } from "../hooks/useFeatures";
@@ -10,6 +10,9 @@ import { formatCurrency, formatDate, getCategoryColor } from "../lib/formatters"
 export default function Expenses() {
   const features = useFeatures();
   const { expenses, loading, error, add, update, remove, removeAll, refresh } = useExpenses();
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [filteredExpenses, setFilteredExpenses] = useState<Expense[] | null>(null);
   const [editing, setEditing] = useState<Expense | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
@@ -19,6 +22,27 @@ export default function Expenses() {
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const csvInputRef = useRef<HTMLInputElement>(null);
+
+  const [isFetchingFilter, setIsFetchingFilter] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    const timer = setTimeout(() => {
+      if (!from && !to) {
+        setFilteredExpenses(null);
+        setIsFetchingFilter(false);
+        return;
+      }
+      setIsFetchingFilter(true);
+      getExpenses({ from: from || undefined, to: to || undefined })
+        .then((data) => { if (active) setFilteredExpenses(data); })
+        .catch(() => { if (active) setFilteredExpenses([]); })
+        .finally(() => { if (active) setIsFetchingFilter(false); });
+    }, 350);
+    return () => { clearTimeout(timer); active = false; };
+  }, [from, to]);
+
+  const displayExpenses = (from || to) ? (filteredExpenses ?? expenses) : expenses;
 
   const handleCsvChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -60,7 +84,7 @@ export default function Expenses() {
           {expenses.length > 0 && (
             <div className="flex items-center gap-3 mt-0.5">
               <p className="text-sm text-gray-400 dark:text-gray-500">
-                {expenses.length} total entries
+                {(from || to) ? `${displayExpenses.length} of ${expenses.length}` : `${expenses.length} total`} entries
               </p>
               <button
                 onClick={() => setConfirmDeleteAll(true)}
@@ -108,6 +132,39 @@ export default function Expenses() {
             + Add Expense
           </button>
         </div>
+      </div>
+
+      {/* Date range filter */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2">
+          <label className="text-sm text-gray-500 dark:text-gray-400">From</label>
+          <input
+            type="date"
+            value={from}
+            onChange={(e) => setFrom(e.target.value)}
+            className="border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm bg-gray-50/50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="text-sm text-gray-500 dark:text-gray-400">To</label>
+          <input
+            type="date"
+            value={to}
+            onChange={(e) => setTo(e.target.value)}
+            className="border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm bg-gray-50/50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          />
+        </div>
+        {isFetchingFilter && (
+          <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-400 dark:text-indigo-500" />
+        )}
+        {(from || to) && !isFetchingFilter && (
+          <button
+            onClick={() => { setFrom(""); setTo(""); setFilteredExpenses(null); setIsFetchingFilter(false); }}
+            className="text-sm text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+          >
+            Clear
+          </button>
+        )}
       </div>
 
       {importResult && (
@@ -158,6 +215,19 @@ export default function Expenses() {
               + Add your first expense
             </button>
           </div>
+        ) : displayExpenses.length === 0 ? (
+          <div className="p-12 text-center">
+            <p className="text-3xl mb-3">🔍</p>
+            <p className="text-gray-700 dark:text-gray-300 font-semibold">
+              No expenses match this filter
+            </p>
+            <button
+              onClick={() => { setFrom(""); setTo(""); setFilteredExpenses(null); setIsFetchingFilter(false); }}
+              className="mt-3 text-sm text-indigo-500 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
+            >
+              Clear filter
+            </button>
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -179,7 +249,7 @@ export default function Expenses() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
-                {expenses.map((e) => {
+                {displayExpenses.map((e) => {
                   const color = getCategoryColor(e.category ?? "");
                   return (
                     <tr
