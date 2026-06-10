@@ -43,3 +43,36 @@ export interface ParsedExpenseResult {
   saveable: boolean;
   hint: string | null;
 }
+
+export interface BudgetRequest {
+  categoryId: number;
+  month: string;
+  amountLimit: number;
+}
+
+export interface BudgetResponse {
+  id: number;
+  categoryId: number;
+  categoryName: string;
+  month: string;
+  amountLimit: number;
+}
+
+export interface BudgetSummaryItem {
+  categoryId: number;
+  categoryName: string;
+  budgeted: number;
+  spent: number;
+  remaining: number;
+  percentUsed: number;
+  status: "ON_TRACK" | "WARNING" | "OVER_BUDGET";
+}
+
+export interface BudgetSummaryResponse {
+  month: string;
+  items: BudgetSummaryItem[];
+  totalBudgeted: number;
+  totalSpent: number;
+  safeToSpend: number;
+  dailyAllowance: number;
+}

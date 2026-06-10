@@ -8,6 +8,7 @@ import {
 } from "recharts";
 import { getCategoryReport, getExpenses } from "../api/expenses";
 import type { CategoryReport, Expense } from "../api/types";
+import BudgetOverviewCard from "../components/BudgetOverviewCard";
 import {
   formatCurrency,
   formatDate,
@@ -96,6 +97,9 @@ export default function Dashboard() {
         <div className="absolute -bottom-10 -right-10 w-48 h-48 bg-white/5 rounded-full" />
         <div className="absolute -top-6 -right-6 w-24 h-24 bg-white/5 rounded-full" />
       </div>
+
+      {/* Budget overview */}
+      <BudgetOverviewCard month={new Date().toISOString().slice(0, 7)} />
 
       {/* Chart + breakdown — fixed height so Recent Expenses stays in view */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

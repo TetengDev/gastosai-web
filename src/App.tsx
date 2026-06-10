@@ -4,6 +4,7 @@ import ChatWidget from "./components/ChatWidget";
 import Navbar from "./components/Navbar";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import Budget from "./pages/Budget";
 import Categories from "./pages/Categories";
 import Dashboard from "./pages/Dashboard";
 import Expenses from "./pages/Expenses";
@@ -38,6 +39,7 @@ function AppShell({ darkMode, onToggleDark, onResetDark }: { darkMode: boolean; 
                     <Route path="/" element={<Dashboard />} />
                     <Route path="/expenses" element={<Expenses />} />
                     <Route path="/categories" element={<Categories />} />
+                    <Route path="/budget" element={<Budget />} />
                     <Route path="/settings" element={<Settings />} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                   </Routes>
