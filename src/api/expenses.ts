@@ -43,3 +43,13 @@ export const getMonthlyComparison = (month: string) =>
 
 export const getCategoryReport = () =>
   api.get<CategoryReport[]>("/expenses/report/category").then((r) => r.data);
+
+export const exportExpenses = async (params?: { from?: string; to?: string }): Promise<void> => {
+  const res = await api.get<Blob>("/expenses/export", { params, responseType: "blob" });
+  const url = URL.createObjectURL(res.data);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "expenses.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+};

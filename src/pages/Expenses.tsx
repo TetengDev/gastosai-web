@@ -1,7 +1,7 @@
-import { Loader2, Pencil, Trash2, Upload } from "lucide-react";
+import { Download, Loader2, Pencil, Trash2, Upload } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import ExpenseModal from "../components/ExpenseModal";
-import { getExpenses, importExpensesCsv, type ImportResult } from "../api/expenses";
+import { exportExpenses, getExpenses, importExpensesCsv, type ImportResult } from "../api/expenses";
 import type { Expense } from "../api/types";
 import { useExpenses } from "../hooks/useExpenses";
 import { useFeatures } from "../hooks/useFeatures";
@@ -23,6 +23,7 @@ export default function Expenses() {
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const csvInputRef = useRef<HTMLInputElement>(null);
 
+  const [exporting, setExporting] = useState(false);
   const [isFetchingFilter, setIsFetchingFilter] = useState(false);
 
   useEffect(() => {
@@ -163,6 +164,34 @@ export default function Expenses() {
             className="text-sm text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
           >
             Clear
+          </button>
+        )}
+        {expenses.length > 0 && (
+          <button
+            disabled={exporting}
+            onClick={async () => {
+              setExporting(true);
+              try {
+                await exportExpenses({ from: from || undefined, to: to || undefined });
+              } catch {
+                // silent fail
+              } finally {
+                setExporting(false);
+              }
+            }}
+            className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 rounded-xl text-sm hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          >
+            {exporting ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                Exporting…
+              </>
+            ) : (
+              <>
+                <Download className="w-3.5 h-3.5" />
+                Export CSV
+              </>
+            )}
           </button>
         )}
       </div>
