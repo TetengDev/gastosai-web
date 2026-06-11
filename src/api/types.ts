@@ -84,3 +84,20 @@ export interface BudgetSummaryResponse {
   safeToSpend: number;
   dailyAllowance: number;
 }
+
+export interface TopCategoryInsight {
+  month: string;
+  category: string;
+  total: number;
+  percentOfMonthTotal: number;
+}
+
+export interface MonthSummaryInsight {
+  month: string;
+  summary: string;
+}
+
+export interface RecommendationsInsight {
+  month: string;
+  recommendations: string[];
+}

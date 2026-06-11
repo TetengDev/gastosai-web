@@ -449,10 +449,10 @@ export default function ChatWidget() {
   const saveDraft = async (msgIndex: number, draft: ParsedExpenseResult, categoryOverride?: string) => {
     try {
       await createExpense({
-        amount: draft.amount,
-        category: categoryOverride ?? draft.category,
-        date: draft.date,
-        description: draft.description,
+        amount: draft.amount ?? 0,
+        category: categoryOverride ?? draft.category ?? undefined,
+        date: draft.date ?? undefined,
+        description: draft.description ?? "",
       });
       setMessages((prev) =>
         prev.map((m, i) => (i === msgIndex ? { ...m, draftSaved: true } : m))
@@ -577,26 +577,26 @@ export default function ChatWidget() {
                         <div className="space-y-1">
                           <div className="flex justify-between items-center">
                             <span className="text-xs text-gray-500 dark:text-gray-400">Amount</span>
-                            <span className={`text-sm font-semibold ${theme.accentText}`}>{formatCurrency(m.draft.amount)}</span>
+                            <span className={`text-sm font-semibold ${theme.accentText}`}>{formatCurrency(m.draft.amount ?? 0)}</span>
                           </div>
                           <div className="flex justify-between items-start gap-2">
                             <span className="text-xs text-gray-500 dark:text-gray-400 pt-1 shrink-0">Category</span>
                             {m.draftSaved ? (
-                              <span className="text-sm dark:text-gray-200">{m.categoryOverride ?? m.draft.category}</span>
-                            ) : categoryNames.length > 0 && !categoryNames.includes(m.categoryOverride ?? m.draft.category) ? (
+                              <span className="text-sm dark:text-gray-200">{m.categoryOverride ?? m.draft.category ?? ""}</span>
+                            ) : categoryNames.length > 0 && !categoryNames.includes(m.categoryOverride ?? m.draft.category ?? "") ? (
                               <div className="flex flex-col items-end gap-1 min-w-0">
                                 <span className="text-xs text-amber-600 dark:text-amber-400">New category</span>
                                 <select
-                                  value={m.categoryOverride ?? m.draft.category}
+                                  value={m.categoryOverride ?? m.draft.category ?? ""}
                                   onChange={(e) => setMessages((prev) => prev.map((msg, idx) => idx === i ? { ...msg, categoryOverride: e.target.value } : msg))}
                                   className="text-xs border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 max-w-[140px]"
                                 >
-                                  <option value={m.draft.category}>{m.draft.category} (create new)</option>
+                                  <option value={m.draft.category ?? ""}>{m.draft.category ?? ""} (create new)</option>
                                   {categoryNames.map((n) => <option key={n} value={n}>{n}</option>)}
                                 </select>
                               </div>
                             ) : (
-                              <span className="text-sm dark:text-gray-200">{m.categoryOverride ?? m.draft.category}</span>
+                              <span className="text-sm dark:text-gray-200">{m.categoryOverride ?? m.draft.category ?? ""}</span>
                             )}
                           </div>
                           <div className="flex justify-between items-center">

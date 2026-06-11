@@ -13,6 +13,7 @@ import {
 } from "recharts";
 import { getCategoryReport, getExpenses, getMonthlyComparison, getMonthlyReport } from "../api/expenses";
 import type { CategoryReport, Expense, MonthlyComparison, MonthlyReport } from "../api/types";
+import AiInsightsCard from "../components/AiInsightsCard";
 import BudgetOverviewCard from "../components/BudgetOverviewCard";
 import {
   formatCurrency,
@@ -174,6 +175,9 @@ export default function Dashboard() {
 
       {/* Budget overview */}
       <BudgetOverviewCard month={currentMonth} />
+
+      {/* AI Insights */}
+      <AiInsightsCard month={currentMonth} />
 
       {/* Chart + breakdown — fixed height so Recent Expenses stays in view */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
