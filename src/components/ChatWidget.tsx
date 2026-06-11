@@ -386,10 +386,25 @@ export default function ChatWidget() {
             },
           ]);
         }
-      } else if (!file || isImageFile(file)) {
-        const res = file
-          ? await askWithAttachment(trimmed, file)
-          : await askQuery(trimmed, mode);
+      } else if (file && isImageFile(file)) {
+        const draft = await askWithAttachment(trimmed, file);
+        if (draft.saveable) {
+          setMessages((prev) => [
+            ...prev,
+            { role: "assistant", content: null, timestamp: new Date(), draft },
+          ]);
+        } else {
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: "assistant",
+              content: draft.hint ?? "Couldn't extract expense info from this image.",
+              timestamp: new Date(),
+            },
+          ]);
+        }
+      } else if (!file) {
+        const res = await askQuery(trimmed, mode);
         setMessages((prev) => [
           ...prev,
           { role: "assistant", content: res.answer, timestamp: new Date() },

@@ -1,4 +1,5 @@
 import api from "./client";
+import type { ParsedExpenseResult } from "./types";
 
 export type ChatMode = "plain" | "professional" | "genz";
 
@@ -14,7 +15,7 @@ export const askWithAttachment = (question: string, file: File) => {
   form.append("file", file);
   if (question.trim()) form.append("question", question.trim());
   return api
-    .post<AiQueryResponse>("/ai/vision", form, {
+    .post<ParsedExpenseResult>("/ai/vision", form, {
       headers: { "Content-Type": "multipart/form-data" },
     })
     .then((r) => r.data);
