@@ -35,13 +35,14 @@ export interface CategoryReport {
 }
 
 export interface ParsedExpenseResult {
-  amount: number;
-  category: string;
-  date: string;
-  description: string;
+  amount: number | null;
+  category: string | null;
+  date: string | null;
+  description: string | null;
   confidence: string;
   saveable: boolean;
   hint: string | null;
+  rejectionMessage: string | null;
 }
 
 export interface MonthlyComparison {

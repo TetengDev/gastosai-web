@@ -24,6 +24,7 @@ interface ModeTheme {
   headerGradient: string;
   avatarGradient: string;
   userBubble: string;
+  botBubble: string;
   activePill: string;
   inactivePill: string;
   sendBtn: string;
@@ -41,6 +42,7 @@ const MODE_THEMES: Record<ChatMode, ModeTheme> = {
     headerGradient: "from-violet-600 to-indigo-700",
     avatarGradient: "from-violet-600 to-indigo-600",
     userBubble: "from-violet-600 to-indigo-600",
+    botBubble: "bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700",
     activePill: "bg-white/25 text-white shadow-sm",
     inactivePill: "text-white/70 hover:text-white hover:bg-white/15",
     sendBtn: "from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700",
@@ -56,6 +58,7 @@ const MODE_THEMES: Record<ChatMode, ModeTheme> = {
     headerGradient: "from-slate-700 to-slate-900",
     avatarGradient: "from-slate-500 to-slate-700",
     userBubble: "from-slate-600 to-slate-800",
+    botBubble: "bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700",
     activePill: "bg-white/20 text-white shadow-sm",
     inactivePill: "text-white/60 hover:text-white hover:bg-white/15",
     sendBtn: "from-slate-600 to-slate-800 hover:from-slate-700 hover:to-slate-900",
@@ -71,6 +74,7 @@ const MODE_THEMES: Record<ChatMode, ModeTheme> = {
     headerGradient: "from-pink-500 via-fuchsia-500 to-purple-600",
     avatarGradient: "from-pink-500 to-fuchsia-600",
     userBubble: "from-pink-500 to-fuchsia-500",
+    botBubble: "bg-pink-50 dark:bg-pink-900/20 border-pink-200 dark:border-pink-800/50",
     activePill: "bg-white/25 text-white shadow-sm",
     inactivePill: "text-white/70 hover:text-white hover:bg-white/15",
     sendBtn: "from-pink-500 to-fuchsia-500 hover:from-pink-600 hover:to-fuchsia-600",
@@ -148,7 +152,7 @@ function formatField(key: string, value: unknown): string {
 function renderAnswer(answer: unknown, accentText: string): ReactNode {
   if (answer === null || answer === undefined)
     return <span>No results found.</span>;
-  if (typeof answer === "string") return <span>{answer}</span>;
+  if (typeof answer === "string") return <span className={accentText}>{answer}</span>;
   if (typeof answer === "number")
     return (
       <span className={`font-semibold ${accentText}`}>
@@ -387,7 +391,7 @@ export default function ChatWidget() {
           ]);
         }
       } else if (file && isImageFile(file)) {
-        const draft = await askWithAttachment(trimmed, file);
+        const draft = await askWithAttachment(trimmed, file, mode);
         if (draft.saveable) {
           setMessages((prev) => [
             ...prev,
@@ -398,7 +402,7 @@ export default function ChatWidget() {
             ...prev,
             {
               role: "assistant",
-              content: draft.hint ?? "Couldn't extract expense info from this image.",
+              content: draft.rejectionMessage ?? "That doesn't look like a receipt. Please attach a receipt, invoice, or bill.",
               timestamp: new Date(),
             },
           ]);
@@ -551,7 +555,7 @@ export default function ChatWidget() {
                     className={`rounded-2xl px-3.5 py-2 text-sm leading-relaxed overflow-hidden transition-colors duration-300 ${
                       m.role === "user"
                         ? `bg-gradient-to-br ${theme.userBubble} text-white rounded-br-sm`
-                        : "bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 rounded-bl-sm border border-gray-100 dark:border-gray-700 shadow-sm w-full"
+                        : `${theme.botBubble} text-gray-800 dark:text-gray-100 rounded-bl-sm border shadow-sm w-full`
                     }`}
                   >
                     {m.role === "user" ? (
