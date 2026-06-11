@@ -102,8 +102,10 @@ export default function Categories() {
 
   const [confirmDelete, setConfirmDelete] = useState<Category | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
   const [deletingAll, setDeletingAll] = useState(false);
+  const [deleteAllError, setDeleteAllError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -175,12 +177,16 @@ export default function Categories() {
   const handleDelete = async () => {
     if (!confirmDelete) return;
     setDeleting(true);
+    setDeleteError(null);
     try {
       await deleteCategory(confirmDelete.id);
       setCategories((prev) => prev.filter((c) => c.id !== confirmDelete.id));
       setConfirmDelete(null);
-    } catch {
-      setConfirmDelete(null);
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+        ?? "Failed to delete. The category may be in use or protected.";
+      setDeleteError(msg);
     } finally {
       setDeleting(false);
     }
@@ -374,25 +380,30 @@ export default function Categories() {
             <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2">
               Delete "{confirmDelete.name}"?
             </h3>
-            <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">
-              Expenses in this category will be moved to{" "}
+            <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">
+              All expenses in this category will be moved to{" "}
               <span className="font-medium text-gray-700 dark:text-gray-300">
                 Uncategorized
-              </span>.
+              </span>. This cannot be undone.
             </p>
+            {deleteError && (
+              <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-xl px-4 py-2.5 mb-4">
+                {deleteError}
+              </p>
+            )}
             <div className="flex gap-3">
               <button
-                onClick={() => setConfirmDelete(null)}
+                onClick={() => { setConfirmDelete(null); setDeleteError(null); }}
                 className="flex-1 px-4 py-2.5 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors font-medium"
               >
                 Cancel
               </button>
               <button
                 disabled={deleting}
-                onClick={handleDelete}
+                onClick={() => { void handleDelete(); }}
                 className="flex-1 px-4 py-2.5 text-sm bg-red-600 text-white rounded-xl hover:bg-red-700 disabled:opacity-50 font-semibold transition-colors"
               >
-                {deleting ? "Deleting..." : "Delete"}
+                {deleting ? "Deleting..." : "Delete Category"}
               </button>
             </div>
           </div>
@@ -408,14 +419,18 @@ export default function Categories() {
             <h3 className="font-bold text-gray-900 dark:text-gray-100 text-center mb-1">
               Delete all categories?
             </h3>
-            <p className="text-gray-500 dark:text-gray-400 text-sm mb-6 text-center">
-              All categories except{" "}
-              <span className="font-medium text-gray-700 dark:text-gray-300">Uncategorized</span>{" "}
-              will be removed. Expenses will be moved to Uncategorized. This cannot be undone.
+            <p className="text-gray-500 dark:text-gray-400 text-sm mb-4 text-center">
+              All {categories.filter((c) => c.name !== "Uncategorized").length} categories will be removed.
+              Expenses will be moved to Uncategorized. This cannot be undone.
             </p>
+            {deleteAllError && (
+              <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-xl px-4 py-2.5 mb-4">
+                {deleteAllError}
+              </p>
+            )}
             <div className="flex gap-3">
               <button
-                onClick={() => setConfirmDeleteAll(false)}
+                onClick={() => { setConfirmDeleteAll(false); setDeleteAllError(null); }}
                 className="flex-1 px-4 py-2.5 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors font-medium"
               >
                 Cancel
@@ -424,11 +439,17 @@ export default function Categories() {
                 disabled={deletingAll}
                 onClick={async () => {
                   setDeletingAll(true);
+                  setDeleteAllError(null);
                   try {
                     await deleteAllCategories();
                     setCategories((prev) => prev.filter((c) => c.name === "Uncategorized"));
-                  } finally {
                     setConfirmDeleteAll(false);
+                  } catch (err: unknown) {
+                    const msg =
+                      (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+                      ?? "Failed to delete all categories.";
+                    setDeleteAllError(msg);
+                  } finally {
                     setDeletingAll(false);
                   }
                 }}

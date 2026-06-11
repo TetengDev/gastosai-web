@@ -15,6 +15,7 @@ import { getCategoryReport, getExpenses, getMonthlyComparison, getMonthlyReport 
 import type { CategoryReport, Expense, MonthlyComparison, MonthlyReport } from "../api/types";
 import AiInsightsCard from "../components/AiInsightsCard";
 import BudgetOverviewCard from "../components/BudgetOverviewCard";
+import UpcomingBillsCard from "../components/UpcomingBillsCard";
 import {
   formatCurrency,
   formatDate,
@@ -175,6 +176,9 @@ export default function Dashboard() {
 
       {/* Budget overview */}
       <BudgetOverviewCard month={currentMonth} />
+
+      {/* Upcoming bills */}
+      <UpcomingBillsCard month={currentMonth} />
 
       {/* AI Insights */}
       <AiInsightsCard month={currentMonth} />

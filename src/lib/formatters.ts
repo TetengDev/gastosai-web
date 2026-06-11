@@ -66,3 +66,10 @@ export const toDateTimeLocal = (date: string | null | undefined): string => {
   if (!date) return "";
   return date.slice(0, 16);
 };
+
+export const formatMonth = (month: string): string => {
+  return new Date(month + "-01").toLocaleDateString("en-PH", {
+    month: "long",
+    year: "numeric",
+  });
+};

@@ -15,3 +15,6 @@ export const deleteBudget = (id: number): Promise<void> =>
 
 export const getBudgetSummary = (month: string): Promise<BudgetSummaryResponse> =>
   api.get<BudgetSummaryResponse>("/budgets/summary", { params: { month } }).then((r) => r.data);
+
+export const deleteAllBudgets = (month: string): Promise<void> =>
+  api.delete("/budgets", { params: { month } }).then(() => undefined);

@@ -101,3 +101,37 @@ export interface RecommendationsInsight {
   month: string;
   recommendations: string[];
 }
+
+export type RecurringFrequency = "MONTHLY" | "WEEKLY" | "YEARLY";
+
+export interface RecurringExpenseRequest {
+  name: string;
+  amount: number;
+  categoryName?: string;
+  frequency: RecurringFrequency;
+  dayOfMonth?: number | null;
+  dayOfWeek?: number | null;
+  monthOfYear?: number | null;
+  active?: boolean;
+}
+
+export interface RecurringExpenseResponse {
+  id: number;
+  name: string;
+  amount: number;
+  categoryName: string;
+  frequency: RecurringFrequency;
+  dayOfMonth: number | null;
+  dayOfWeek: number | null;
+  monthOfYear: number | null;
+  active: boolean;
+}
+
+export interface UpcomingBillResponse {
+  id: number;
+  name: string;
+  amount: number;
+  categoryName: string;
+  frequency: RecurringFrequency;
+  dueDate: string;
+}
