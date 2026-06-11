@@ -44,6 +44,9 @@ export default function Navbar({ isDark, onToggleDark }: Props) {
         <NavLink to="/recurring" className={linkClass}>
           Recurring
         </NavLink>
+        <NavLink to="/goals" className={linkClass}>
+          Goals
+        </NavLink>
         <div className="ml-auto flex items-center gap-1">
           <button
             onClick={onToggleDark}

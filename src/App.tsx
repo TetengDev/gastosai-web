@@ -8,6 +8,7 @@ import Budget from "./pages/Budget";
 import Categories from "./pages/Categories";
 import Dashboard from "./pages/Dashboard";
 import Expenses from "./pages/Expenses";
+import Goals from "./pages/Goals";
 import LoginPage from "./pages/LoginPage";
 import Recurring from "./pages/Recurring";
 import RegisterPage from "./pages/RegisterPage";
@@ -42,6 +43,7 @@ function AppShell({ darkMode, onToggleDark, onResetDark }: { darkMode: boolean; 
                     <Route path="/categories" element={<Categories />} />
                     <Route path="/budget" element={<Budget />} />
                     <Route path="/recurring" element={<Recurring />} />
+                    <Route path="/goals" element={<Goals />} />
                     <Route path="/settings" element={<Settings />} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                   </Routes>
