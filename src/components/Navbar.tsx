@@ -47,6 +47,9 @@ export default function Navbar({ isDark, onToggleDark }: Props) {
         <NavLink to="/goals" className={linkClass}>
           Goals
         </NavLink>
+        <NavLink to="/alerts" className={linkClass}>
+          Alerts
+        </NavLink>
         <div className="ml-auto flex items-center gap-1">
           <button
             onClick={onToggleDark}

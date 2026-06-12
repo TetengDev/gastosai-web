@@ -14,6 +14,7 @@ import {
 import { getCategoryReport, getExpenses, getMonthlyComparison, getMonthlyReport } from "../api/expenses";
 import type { CategoryReport, Expense, MonthlyComparison, MonthlyReport } from "../api/types";
 import AiInsightsCard from "../components/AiInsightsCard";
+import AlertsCard from "../components/AlertsCard";
 import BudgetOverviewCard from "../components/BudgetOverviewCard";
 import GoalProgressCard from "../components/GoalProgressCard";
 import UpcomingBillsCard from "../components/UpcomingBillsCard";
@@ -183,6 +184,9 @@ export default function Dashboard() {
 
       {/* Savings goals */}
       <GoalProgressCard />
+
+      {/* Spending alerts */}
+      <AlertsCard />
 
       {/* AI Insights */}
       <AiInsightsCard month={currentMonth} />
