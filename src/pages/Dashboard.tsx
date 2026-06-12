@@ -16,7 +16,9 @@ import type { CategoryReport, Expense, MonthlyComparison, MonthlyReport } from "
 import AiInsightsCard from "../components/AiInsightsCard";
 import AlertsCard from "../components/AlertsCard";
 import BudgetOverviewCard from "../components/BudgetOverviewCard";
+import DailyTrendCard from "../components/DailyTrendCard";
 import GoalProgressCard from "../components/GoalProgressCard";
+import TopExpensesCard from "../components/TopExpensesCard";
 import UpcomingBillsCard from "../components/UpcomingBillsCard";
 import {
   formatCurrency,
@@ -178,6 +180,12 @@ export default function Dashboard() {
 
       {/* Budget overview */}
       <BudgetOverviewCard month={currentMonth} />
+
+      {/* Daily trend + top expenses */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <DailyTrendCard month={currentMonth} />
+        <TopExpensesCard month={currentMonth} />
+      </div>
 
       {/* Upcoming bills */}
       <UpcomingBillsCard month={currentMonth} />

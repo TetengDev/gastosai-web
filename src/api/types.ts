@@ -141,3 +141,8 @@ export interface UpcomingBillResponse {
   frequency: RecurringFrequency;
   dueDate: string;
 }
+
+export interface DailyReport {
+  date: string;
+  total: number;
+}

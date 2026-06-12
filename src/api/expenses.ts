@@ -1,5 +1,5 @@
 import api from "./client";
-import type { CategoryReport, Expense, ExpenseRequest, MonthlyComparison, MonthlyReport, ParsedExpenseResult } from "./types";
+import type { CategoryReport, DailyReport, Expense, ExpenseRequest, MonthlyComparison, MonthlyReport, ParsedExpenseResult } from "./types";
 
 export interface ImportResult {
   imported: number;
@@ -43,6 +43,12 @@ export const getMonthlyComparison = (month: string) =>
 
 export const getCategoryReport = () =>
   api.get<CategoryReport[]>("/expenses/report/category").then((r) => r.data);
+
+export const getDailyReport = (month: string) =>
+  api.get<DailyReport[]>("/expenses/report/daily", { params: { month } }).then((r) => r.data);
+
+export const getTopTransactions = (month: string, limit = 5) =>
+  api.get<Expense[]>("/expenses/report/top", { params: { month, limit } }).then((r) => r.data);
 
 export const exportExpenses = async (params?: { from?: string; to?: string }): Promise<void> => {
   const res = await api.get<Blob>("/expenses/export", { params, responseType: "blob" });
