@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { getCategories } from "../api/categories";
-import type { Category, Expense, ExpenseRequest } from "../api/types";
+import type { Category, Expense, ExpenseRequest, ExpenseType } from "../api/types";
 import { toDateTimeLocal } from "../lib/formatters";
 
 interface Props {
@@ -16,6 +16,8 @@ export default function ExpenseModal({ expense, onSave, onClose }: Props) {
     category: expense?.category ?? "Uncategorized",
     date: expense?.date ? toDateTimeLocal(expense.date) : now,
     description: expense?.description ?? "",
+    expenseType: expense?.expenseType ?? "PERSONAL",
+    reimbursable: expense?.reimbursable ?? false,
   });
   const [categories, setCategories] = useState<Category[]>([]);
   const [saving, setSaving] = useState(false);
@@ -121,6 +123,36 @@ export default function ExpenseModal({ expense, onSave, onClose }: Props) {
               placeholder="What was this expense for?"
               className={inputClass}
             />
+          </div>
+          <div>
+            <label className={labelClass}>Type</label>
+            <select
+              value={form.expenseType ?? "PERSONAL"}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, expenseType: e.target.value as ExpenseType }))
+              }
+              className={inputClass}
+            >
+              <option value="PERSONAL">Personal</option>
+              <option value="BUSINESS">Business</option>
+            </select>
+          </div>
+          <div className="flex items-center gap-3">
+            <input
+              id="reimbursable"
+              type="checkbox"
+              checked={form.reimbursable ?? false}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, reimbursable: e.target.checked }))
+              }
+              className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-500 bg-gray-50 dark:bg-gray-800 cursor-pointer"
+            />
+            <label
+              htmlFor="reimbursable"
+              className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer select-none"
+            >
+              Reimbursable
+            </label>
           </div>
           {error && <p className="text-red-500 text-sm">{error}</p>}
           <div className="flex gap-3 pt-2">

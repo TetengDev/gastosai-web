@@ -271,6 +271,9 @@ export default function Expenses() {
                   <th className="px-5 py-3.5 text-left font-semibold text-gray-400 dark:text-gray-500 text-xs uppercase tracking-wide">
                     Description
                   </th>
+                  <th className="px-5 py-3.5 text-left font-semibold text-gray-400 dark:text-gray-500 text-xs uppercase tracking-wide">
+                    Type
+                  </th>
                   <th className="px-5 py-3.5 text-right font-semibold text-gray-400 dark:text-gray-500 text-xs uppercase tracking-wide">
                     Amount
                   </th>
@@ -300,6 +303,24 @@ export default function Expenses() {
                         {e.description || (
                           <span className="text-gray-300 dark:text-gray-600">—</span>
                         )}
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {e.expenseType === "BUSINESS" ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300">
+                              Business
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
+                              Personal
+                            </span>
+                          )}
+                          {e.reimbursable && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300">
+                              Reimb.
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-5 py-3.5 text-right font-semibold text-gray-900 dark:text-gray-100 whitespace-nowrap">
                         {formatCurrency(e.amount)}
