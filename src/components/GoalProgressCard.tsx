@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getGoals, type Goal } from "../api/goals";
 import { formatCurrency } from "../lib/formatters";
@@ -29,7 +29,7 @@ export default function GoalProgressCard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const fetchData = useCallback(() => {
     getGoals()
       .then((data) => {
         setGoals(data);
@@ -38,6 +38,12 @@ export default function GoalProgressCard() {
       .catch(() => setError("Failed to load goals."))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    fetchData();
+    window.addEventListener("gastosai:goal-changed", fetchData);
+    return () => window.removeEventListener("gastosai:goal-changed", fetchData);
+  }, [fetchData]);
 
   const active = goals
     .filter((g) => g.status !== "COMPLETED" && g.status !== "PAUSED")

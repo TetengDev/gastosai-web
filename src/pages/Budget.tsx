@@ -122,6 +122,7 @@ export default function Budget() {
         setBudgets((prev) => [...prev, created]);
       }
       closeModal();
+      window.dispatchEvent(new CustomEvent("gastosai:budget-changed"));
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { message?: string; detail?: string } } })
@@ -139,6 +140,7 @@ export default function Budget() {
       await deleteBudget(confirmDelete.id);
       setBudgets((prev) => prev.filter((b) => b.id !== confirmDelete.id));
       setConfirmDelete(null);
+      window.dispatchEvent(new CustomEvent("gastosai:budget-changed"));
     } catch {
       setConfirmDelete(null);
     } finally {
@@ -436,6 +438,7 @@ export default function Budget() {
                     await deleteAllBudgets(month);
                     setBudgets([]);
                     setConfirmDeleteAll(false);
+                    window.dispatchEvent(new CustomEvent("gastosai:budget-changed"));
                   } catch (err: unknown) {
                     const msg =
                       (err as { response?: { data?: { message?: string } } })?.response?.data?.message

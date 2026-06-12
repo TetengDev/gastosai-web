@@ -109,6 +109,7 @@ export default function Goals() {
         setGoals((prev) => [created, ...prev]);
       }
       closeModal();
+      window.dispatchEvent(new CustomEvent("gastosai:goal-changed"));
     } catch {
       setModalError("Failed to save goal.");
     } finally {
@@ -123,6 +124,7 @@ export default function Goals() {
       await deleteGoal(confirmDelete.id);
       setGoals((prev) => prev.filter((g) => g.id !== confirmDelete.id));
       setConfirmDelete(null);
+      window.dispatchEvent(new CustomEvent("gastosai:goal-changed"));
     } catch {
       setConfirmDelete(null);
     } finally {

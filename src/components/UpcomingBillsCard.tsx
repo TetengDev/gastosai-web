@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getUpcomingBills } from "../api/recurring";
 import type { UpcomingBillResponse } from "../api/types";
@@ -18,14 +18,18 @@ export default function UpcomingBillsCard({ month }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let active = true;
+  const fetchData = useCallback(() => {
     getUpcomingBills(month)
-      .then((data) => { if (active) { setBills(data); setError(null); } })
-      .catch(() => { if (active) setError("Could not load upcoming bills."); })
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
+      .then((data) => { setBills(data); setError(null); })
+      .catch(() => setError("Could not load upcoming bills."))
+      .finally(() => setLoading(false));
   }, [month]);
+
+  useEffect(() => {
+    fetchData();
+    window.addEventListener("gastosai:recurring-changed", fetchData);
+    return () => window.removeEventListener("gastosai:recurring-changed", fetchData);
+  }, [fetchData]);
 
   return (
     <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6">

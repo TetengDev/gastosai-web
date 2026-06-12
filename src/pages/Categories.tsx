@@ -164,6 +164,7 @@ export default function Categories() {
         setCategories((prev) => [...prev, created]);
       }
       closeModal();
+      window.dispatchEvent(new CustomEvent("gastosai:expense-changed"));
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data
@@ -182,6 +183,7 @@ export default function Categories() {
       await deleteCategory(confirmDelete.id);
       setCategories((prev) => prev.filter((c) => c.id !== confirmDelete.id));
       setConfirmDelete(null);
+      window.dispatchEvent(new CustomEvent("gastosai:expense-changed"));
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message
@@ -444,6 +446,7 @@ export default function Categories() {
                     await deleteAllCategories();
                     setCategories((prev) => prev.filter((c) => c.name === "Uncategorized"));
                     setConfirmDeleteAll(false);
+                    window.dispatchEvent(new CustomEvent("gastosai:expense-changed"));
                   } catch (err: unknown) {
                     const msg =
                       (err as { response?: { data?: { message?: string } } })?.response?.data?.message

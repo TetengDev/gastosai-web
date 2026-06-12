@@ -84,8 +84,8 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchData();
-    window.addEventListener("gastosai:expense-created", fetchData);
-    return () => window.removeEventListener("gastosai:expense-created", fetchData);
+    window.addEventListener("gastosai:expense-changed", fetchData);
+    return () => window.removeEventListener("gastosai:expense-changed", fetchData);
   }, [fetchData]);
 
   const total = categoryData.reduce((sum, c) => sum + Number(c.total), 0);

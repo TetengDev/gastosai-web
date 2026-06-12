@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getBudgetSummary } from "../api/budgets";
 import type { BudgetSummaryResponse } from "../api/types";
@@ -19,12 +19,22 @@ export default function BudgetOverviewCard({ month }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const fetchData = useCallback(() => {
     getBudgetSummary(month)
       .then((data) => { setSummary(data); setError(null); })
       .catch(() => setError("Failed to load budget summary."))
       .finally(() => setLoading(false));
   }, [month]);
+
+  useEffect(() => {
+    fetchData();
+    window.addEventListener("gastosai:expense-changed", fetchData);
+    window.addEventListener("gastosai:budget-changed", fetchData);
+    return () => {
+      window.removeEventListener("gastosai:expense-changed", fetchData);
+      window.removeEventListener("gastosai:budget-changed", fetchData);
+    };
+  }, [fetchData]);
 
   return (
     <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6">

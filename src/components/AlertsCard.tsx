@@ -1,5 +1,5 @@
 import { CheckCheck } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { type Alert, getAlerts, markAlertRead } from "../api/alerts";
 
@@ -16,7 +16,7 @@ export default function AlertsCard() {
 
   const currentMonth = new Date().toISOString().slice(0, 7);
 
-  useEffect(() => {
+  const fetchData = useCallback(() => {
     getAlerts(currentMonth)
       .then((data) => {
         setAlerts(data.slice(0, 4));
@@ -25,6 +25,12 @@ export default function AlertsCard() {
       .catch(() => setError("Failed to load alerts."))
       .finally(() => setLoading(false));
   }, [currentMonth]);
+
+  useEffect(() => {
+    fetchData();
+    window.addEventListener("gastosai:expense-changed", fetchData);
+    return () => window.removeEventListener("gastosai:expense-changed", fetchData);
+  }, [fetchData]);
 
   const handleRead = async (id: number) => {
     const updated = await markAlertRead(id);

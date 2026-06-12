@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { getDailyReport } from "../api/expenses";
 import type { DailyReport } from "../api/types";
@@ -17,12 +17,18 @@ export default function DailyTrendCard({ month }: Props) {
   const [data, setData] = useState<DailyReport[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const fetchData = useCallback(() => {
     getDailyReport(month)
       .then(setData)
       .catch(() => setData([]))
       .finally(() => setLoading(false));
   }, [month]);
+
+  useEffect(() => {
+    fetchData();
+    window.addEventListener("gastosai:expense-changed", fetchData);
+    return () => window.removeEventListener("gastosai:expense-changed", fetchData);
+  }, [fetchData]);
 
   const chartData = data.map((d) => ({
     day: d.date.split("-")[2],

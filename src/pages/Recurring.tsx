@@ -143,6 +143,7 @@ export default function Recurring() {
       }
       closeModal();
       void load();
+      window.dispatchEvent(new CustomEvent("gastosai:recurring-changed"));
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { message?: string; detail?: string } } })
@@ -157,6 +158,7 @@ export default function Recurring() {
     try {
       await deleteRecurring(id);
       setBills((prev) => prev.filter((b) => b.id !== id));
+      window.dispatchEvent(new CustomEvent("gastosai:recurring-changed"));
     } catch {
       setError("Failed to delete.");
     } finally {
@@ -544,6 +546,7 @@ export default function Recurring() {
                     await deleteAllRecurring();
                     setBills([]);
                     setConfirmDeleteAll(false);
+                    window.dispatchEvent(new CustomEvent("gastosai:recurring-changed"));
                   } catch (err: unknown) {
                     const msg =
                       (err as { response?: { data?: { message?: string } } })?.response?.data?.message

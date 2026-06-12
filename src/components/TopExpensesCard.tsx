@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getTopTransactions } from "../api/expenses";
 import type { Expense } from "../api/types";
 import { formatCurrency, getCategoryColor } from "../lib/formatters";
@@ -16,12 +16,18 @@ export default function TopExpensesCard({ month }: Props) {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const fetchData = useCallback(() => {
     getTopTransactions(month, 5)
       .then(setExpenses)
       .catch(() => setExpenses([]))
       .finally(() => setLoading(false));
   }, [month]);
+
+  useEffect(() => {
+    fetchData();
+    window.addEventListener("gastosai:expense-changed", fetchData);
+    return () => window.removeEventListener("gastosai:expense-changed", fetchData);
+  }, [fetchData]);
 
   return (
     <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6">

@@ -457,7 +457,7 @@ export default function ChatWidget() {
       setMessages((prev) =>
         prev.map((m, i) => (i === msgIndex ? { ...m, draftSaved: true } : m))
       );
-      window.dispatchEvent(new CustomEvent("gastosai:expense-created"));
+      window.dispatchEvent(new CustomEvent("gastosai:expense-changed"));
     } catch {
       setError("Failed to save expense. Please try again.");
     }
