@@ -11,7 +11,13 @@ import { createCategory, getCategories } from "../api/categories";
 import type { BudgetResponse } from "../api/types";
 import type { Category } from "../api/types";
 import CategoryCombobox from "../components/CategoryCombobox";
+import CurrencySelect from "../components/CurrencySelect";
+import { RATE_TTL_MS, rateCache } from "../lib/cache";
 import { formatCurrency, formatMonth } from "../lib/formatters";
+
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  PHP: "₱", USD: "$", EUR: "€", SGD: "S$", JPY: "¥", GBP: "£", AUD: "A$",
+};
 
 const currentMonth = () => new Date().toISOString().slice(0, 7);
 
@@ -28,6 +34,10 @@ export default function Budget() {
   const [categoryId, setCategoryId] = useState<number | "">("");
   const [amountLimit, setAmountLimit] = useState("");
   const [modalMonth, setModalMonth] = useState(currentMonth);
+  const [budgetCurrency, setBudgetCurrency] = useState("PHP");
+  const [budgetExchangeRate, setBudgetExchangeRate] = useState(1);
+  const [rateFetching, setRateFetching] = useState(false);
+  const [suggestedRate, setSuggestedRate] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
 
@@ -57,6 +67,32 @@ export default function Budget() {
     load();
   }, [load]);
 
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (budgetCurrency === "PHP") { setSuggestedRate(null); setBudgetExchangeRate(1); return; }
+    const now = Date.now();
+    const cached = rateCache[budgetCurrency];
+    if (cached && now - cached.ts < RATE_TTL_MS) {
+      setSuggestedRate(cached.rate);
+      setBudgetExchangeRate(cached.rate);
+      return;
+    }
+    setRateFetching(true);
+    fetch(`https://open.er-api.com/v6/latest/${budgetCurrency}`)
+      .then((r) => r.json())
+      .then((data: { rates?: Record<string, number> }) => {
+        const raw = data.rates?.["PHP"];
+        if (raw) {
+          const rate = parseFloat(raw.toFixed(4));
+          rateCache[budgetCurrency] = { rate, ts: Date.now() };
+          setSuggestedRate(rate);
+          setBudgetExchangeRate(rate);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setRateFetching(false));
+  }, [budgetCurrency]);
+
   const openAdd = () => {
     setEditing(null);
     setSelectedCategoryName("");
@@ -64,6 +100,9 @@ export default function Budget() {
     setAmountLimit("");
     setModalMonth(month);
     setModalError(null);
+    setBudgetCurrency("PHP");
+    setBudgetExchangeRate(1);
+    setSuggestedRate(null);
     setModalOpen(true);
   };
 
@@ -74,6 +113,9 @@ export default function Budget() {
     setAmountLimit(String(budget.amountLimit));
     setModalMonth(budget.month);
     setModalError(null);
+    setBudgetCurrency(budget.currency ?? "PHP");
+    setBudgetExchangeRate(budget.exchangeRate ?? 1);
+    setSuggestedRate(null);
     setModalOpen(true);
   };
 
@@ -84,6 +126,9 @@ export default function Budget() {
     setCategoryId("");
     setAmountLimit("");
     setModalError(null);
+    setBudgetCurrency("PHP");
+    setBudgetExchangeRate(1);
+    setSuggestedRate(null);
   };
 
   const handleCreateCategory = async (name: string) => {
@@ -113,6 +158,8 @@ export default function Budget() {
         categoryId: Number(categoryId),
         month: modalMonth,
         amountLimit: parseFloat(amountLimit),
+        currency: budgetCurrency,
+        exchangeRate: budgetExchangeRate,
       };
       if (editing) {
         const updated = await updateBudget(editing.id, payload);
@@ -259,7 +306,12 @@ export default function Budget() {
                     {b.categoryName}
                   </td>
                   <td className="px-6 py-4 text-right text-gray-700 dark:text-gray-300 font-semibold">
-                    {formatCurrency(b.amountLimit)}
+                    {b.currency !== "PHP" && (
+                      <span className="mr-1.5 text-xs font-medium px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
+                        {b.currency} {b.amountLimit.toFixed(2)}
+                      </span>
+                    )}
+                    {formatCurrency(b.amountLimitInBaseCurrency ?? b.amountLimit)}
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
@@ -334,19 +386,65 @@ export default function Budget() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                  Amount Limit
+                  Currency
                 </label>
-                <input
-                  type="number"
-                  required
-                  min={0.01}
-                  step={0.01}
-                  value={amountLimit}
-                  onChange={(e) => setAmountLimit(e.target.value)}
-                  placeholder="0.00"
-                  className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-shadow bg-gray-50/50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 dark:placeholder-gray-500"
+                <CurrencySelect
+                  value={budgetCurrency}
+                  onChange={(c) => {
+                    setSuggestedRate(null);
+                    setBudgetCurrency(c);
+                    if (c === "PHP") setBudgetExchangeRate(1);
+                  }}
                 />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  Amount Limit
+                </label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 text-sm font-medium select-none">
+                    {CURRENCY_SYMBOLS[budgetCurrency] ?? budgetCurrency}
+                  </span>
+                  <input
+                    type="number"
+                    required
+                    min={0.01}
+                    step={0.01}
+                    value={amountLimit}
+                    onChange={(e) => setAmountLimit(e.target.value)}
+                    placeholder="0.00"
+                    className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 pl-10 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-shadow bg-gray-50/50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 dark:placeholder-gray-500"
+                  />
+                </div>
+              </div>
+              {budgetCurrency !== "PHP" && (
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Exchange Rate (1 {budgetCurrency} = ? PHP)
+                    </label>
+                    {rateFetching && (
+                      <span className="text-xs text-gray-400 dark:text-gray-500">Fetching rate…</span>
+                    )}
+                    {!rateFetching && suggestedRate !== null && (
+                      <span className="text-xs text-emerald-600 dark:text-emerald-400">
+                        Suggested: {suggestedRate.toFixed(4)}
+                      </span>
+                    )}
+                  </div>
+                  <input
+                    type="number"
+                    step="0.0001"
+                    min="0.0001"
+                    value={budgetExchangeRate}
+                    onChange={(e) => setBudgetExchangeRate(parseFloat(e.target.value) || 1)}
+                    className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-shadow bg-gray-50/50 dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                  />
+                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-1.5">
+                    Rate is suggested and may not reflect real-time market prices. Adjust if needed.
+                  </p>
+                </div>
+              )}
               {modalError && (
                 <p className="text-red-500 text-sm">{modalError}</p>
               )}

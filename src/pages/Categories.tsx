@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { invalidateCategoryCache } from "../lib/cache";
 import {
   Briefcase,
   Car,
@@ -164,6 +165,7 @@ export default function Categories() {
         setCategories((prev) => [...prev, created]);
       }
       closeModal();
+      invalidateCategoryCache();
       window.dispatchEvent(new CustomEvent("gastosai:expense-changed"));
     } catch (err: unknown) {
       const msg =
@@ -183,6 +185,7 @@ export default function Categories() {
       await deleteCategory(confirmDelete.id);
       setCategories((prev) => prev.filter((c) => c.id !== confirmDelete.id));
       setConfirmDelete(null);
+      invalidateCategoryCache();
       window.dispatchEvent(new CustomEvent("gastosai:expense-changed"));
     } catch (err: unknown) {
       const msg =
@@ -446,6 +449,7 @@ export default function Categories() {
                     await deleteAllCategories();
                     setCategories((prev) => prev.filter((c) => c.name === "Uncategorized"));
                     setConfirmDeleteAll(false);
+                    invalidateCategoryCache();
                     window.dispatchEvent(new CustomEvent("gastosai:expense-changed"));
                   } catch (err: unknown) {
                     const msg =

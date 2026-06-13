@@ -1,7 +1,18 @@
 import { Pencil, RotateCcw, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { createGoal, deleteGoal, getGoals, updateGoal, type Goal, type GoalRequest } from "../api/goals";
+import CurrencySelect from "../components/CurrencySelect";
 import { formatCurrency } from "../lib/formatters";
+
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  PHP: "₱", USD: "$", EUR: "€", SGD: "S$", JPY: "¥", GBP: "£", AUD: "A$",
+};
+
+function formatGoalAmount(amount: number, currency: string): string {
+  if (currency === "PHP") return formatCurrency(amount);
+  const sym = CURRENCY_SYMBOLS[currency] ?? currency;
+  return `${sym}${amount.toFixed(2)}`;
+}
 
 const STATUS_LABEL: Record<Goal["status"], string> = {
   ON_TRACK: "On Track",
@@ -35,6 +46,7 @@ const EMPTY_FORM: GoalRequest = {
   savedAmount: 0,
   targetDate: null,
   paused: false,
+  currency: "PHP",
 };
 
 export default function Goals() {
@@ -83,6 +95,7 @@ export default function Goals() {
       savedAmount: goal.savedAmount,
       targetDate: goal.targetDate,
       paused: goal.paused ?? false,
+      currency: goal.currency ?? "PHP",
     });
     setModalError(null);
     setModalOpen(true);
@@ -229,7 +242,7 @@ export default function Goals() {
 
               <div className="mb-2">
                 <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1.5">
-                  <span>{formatCurrency(goal.savedAmount)} saved</span>
+                  <span>{formatGoalAmount(goal.savedAmount, goal.currency ?? "PHP")} saved</span>
                   <span>{goal.progressPercent}%</span>
                 </div>
                 <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
@@ -241,7 +254,7 @@ export default function Goals() {
               </div>
 
               <div className="flex items-center justify-between text-xs text-gray-400 dark:text-gray-500 mt-2">
-                <span>Target: {formatCurrency(goal.targetAmount)}</span>
+                <span>Target: {formatGoalAmount(goal.targetAmount, goal.currency ?? "PHP")}</span>
                 {goal.targetDate && (
                   <span>By {formatTargetDate(goal.targetDate)}</span>
                 )}
@@ -272,10 +285,20 @@ export default function Goals() {
                 />
               </div>
 
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  Currency
+                </label>
+                <CurrencySelect
+                  value={form.currency ?? "PHP"}
+                  onChange={(c) => setForm((f) => ({ ...f, currency: c }))}
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                    Target Amount (₱)
+                    Target Amount ({CURRENCY_SYMBOLS[form.currency ?? "PHP"] ?? form.currency})
                   </label>
                   <input
                     type="number"
@@ -288,7 +311,7 @@ export default function Goals() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                    Saved So Far (₱)
+                    Saved So Far ({CURRENCY_SYMBOLS[form.currency ?? "PHP"] ?? form.currency})
                   </label>
                   <input
                     type="number"

@@ -10,7 +10,13 @@ import {
 import { getCategories } from "../api/categories";
 import type { Category, RecurringExpenseRequest, RecurringExpenseResponse, RecurringFrequency } from "../api/types";
 import CategoryCombobox from "../components/CategoryCombobox";
+import CurrencySelect from "../components/CurrencySelect";
+import { RATE_TTL_MS, rateCache } from "../lib/cache";
 import { formatCurrency } from "../lib/formatters";
+
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  PHP: "₱", USD: "$", EUR: "€", SGD: "S$", JPY: "¥", GBP: "£", AUD: "A$",
+};
 
 const DAY_NAMES: Record<number, string> = {
   1: "Monday",
@@ -54,6 +60,8 @@ const DEFAULT_FORM: RecurringExpenseRequest = {
   dayOfWeek: 1,
   monthOfYear: 1,
   active: true,
+  currency: "PHP",
+  exchangeRate: 1,
 };
 
 function dayInfo(bill: RecurringExpenseResponse): string {
@@ -77,6 +85,8 @@ export default function Recurring() {
   const [deleting, setDeleting] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
+  const [rateFetching, setRateFetching] = useState(false);
+  const [suggestedRate, setSuggestedRate] = useState<number | null>(null);
 
   const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
   const [deletingAll, setDeletingAll] = useState(false);
@@ -101,10 +111,38 @@ export default function Recurring() {
     load();
   }, [load]);
 
+  useEffect(() => {
+    const currency = form.currency ?? "PHP";
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (currency === "PHP") { setSuggestedRate(null); return; }
+    const now = Date.now();
+    const cached = rateCache[currency];
+    if (cached && now - cached.ts < RATE_TTL_MS) {
+      setSuggestedRate(cached.rate);
+      setForm((f) => ({ ...f, exchangeRate: cached.rate }));
+      return;
+    }
+    setRateFetching(true);
+    fetch(`https://open.er-api.com/v6/latest/${currency}`)
+      .then((r) => r.json())
+      .then((data: { rates?: Record<string, number> }) => {
+        const raw = data.rates?.["PHP"];
+        if (raw) {
+          const rate = parseFloat(raw.toFixed(4));
+          rateCache[currency] = { rate, ts: Date.now() };
+          setSuggestedRate(rate);
+          setForm((f) => ({ ...f, exchangeRate: rate }));
+        }
+      })
+      .catch(() => {})
+      .finally(() => setRateFetching(false));
+  }, [form.currency]);
+
   const openAdd = () => {
     setEditTarget(null);
     setForm(DEFAULT_FORM);
     setModalError(null);
+    setSuggestedRate(null);
     setShowModal(true);
   };
 
@@ -119,8 +157,11 @@ export default function Recurring() {
       dayOfWeek: bill.dayOfWeek,
       monthOfYear: bill.monthOfYear,
       active: bill.active,
+      currency: bill.currency ?? "PHP",
+      exchangeRate: bill.exchangeRate ?? 1,
     });
     setModalError(null);
+    setSuggestedRate(null);
     setShowModal(true);
   };
 
@@ -299,7 +340,12 @@ export default function Recurring() {
                     {dayInfo(bill)}
                   </td>
                   <td className="px-6 py-4 text-right font-semibold text-gray-900 dark:text-gray-100">
-                    {formatCurrency(bill.amount)}
+                    {bill.currency !== "PHP" && (
+                      <span className="mr-1.5 text-xs font-medium px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
+                        {bill.currency} {bill.amount.toFixed(2)}
+                      </span>
+                    )}
+                    {formatCurrency(bill.amount * (bill.exchangeRate ?? 1))}
                   </td>
                   <td className="px-6 py-4 text-right">
                     {deleting === bill.id ? (
@@ -367,19 +413,65 @@ export default function Recurring() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                  Amount
+                  Currency
                 </label>
-                <input
-                  type="number"
-                  required
-                  min={0.01}
-                  step={0.01}
-                  value={form.amount}
-                  onChange={(e) => setField("amount", parseFloat(e.target.value))}
-                  placeholder="0.00"
-                  className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-shadow bg-gray-50/50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 dark:placeholder-gray-500"
+                <CurrencySelect
+                  value={form.currency ?? "PHP"}
+                  onChange={(c) => {
+                    setSuggestedRate(null);
+                    setField("currency", c);
+                    if (c === "PHP") setField("exchangeRate", 1);
+                  }}
                 />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  Amount
+                </label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 text-sm font-medium select-none">
+                    {CURRENCY_SYMBOLS[form.currency ?? "PHP"] ?? form.currency}
+                  </span>
+                  <input
+                    type="number"
+                    required
+                    min={0.01}
+                    step={0.01}
+                    value={form.amount || ""}
+                    onChange={(e) => setField("amount", parseFloat(e.target.value) || 0)}
+                    placeholder="0.00"
+                    className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 pl-10 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-shadow bg-gray-50/50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 dark:placeholder-gray-500"
+                  />
+                </div>
+              </div>
+              {form.currency !== "PHP" && (
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Exchange Rate (1 {form.currency} = ? PHP)
+                    </label>
+                    {rateFetching && (
+                      <span className="text-xs text-gray-400 dark:text-gray-500">Fetching rate…</span>
+                    )}
+                    {!rateFetching && suggestedRate !== null && (
+                      <span className="text-xs text-emerald-600 dark:text-emerald-400">
+                        Suggested: {suggestedRate.toFixed(4)}
+                      </span>
+                    )}
+                  </div>
+                  <input
+                    type="number"
+                    step="0.0001"
+                    min="0.0001"
+                    value={form.exchangeRate}
+                    onChange={(e) => setField("exchangeRate", parseFloat(e.target.value) || 1)}
+                    className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-shadow bg-gray-50/50 dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                  />
+                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-1.5">
+                    Rate is suggested and may not reflect real-time market prices. Adjust if needed.
+                  </p>
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                   Category

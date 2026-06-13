@@ -323,7 +323,12 @@ export default function Expenses() {
                         </div>
                       </td>
                       <td className="px-5 py-3.5 text-right font-semibold text-gray-900 dark:text-gray-100 whitespace-nowrap">
-                        {formatCurrency(e.amount)}
+                        {e.currency !== "PHP" && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 mr-1.5">
+                            {e.currency} {e.amount.toFixed(2)}
+                          </span>
+                        )}
+                        {formatCurrency(e.amountInBaseCurrency)}
                       </td>
                       <td className="px-5 py-3.5">
                         <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

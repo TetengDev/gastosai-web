@@ -3,6 +3,15 @@ import { Link } from "react-router-dom";
 import { getGoals, type Goal } from "../api/goals";
 import { formatCurrency } from "../lib/formatters";
 
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  PHP: "₱", USD: "$", EUR: "€", SGD: "S$", JPY: "¥", GBP: "£", AUD: "A$",
+};
+
+function fmtGoal(amount: number, currency: string): string {
+  if (currency === "PHP") return formatCurrency(amount);
+  return `${CURRENCY_SYMBOLS[currency] ?? currency}${amount.toFixed(2)}`;
+}
+
 const STATUS_LABEL: Record<Goal["status"], string> = {
   ON_TRACK: "On Track",
   BEHIND: "Behind",
@@ -107,8 +116,8 @@ export default function GoalProgressCard() {
                 />
               </div>
               <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500">
-                <span>{goal.progressPercent}% of {formatCurrency(goal.targetAmount)}</span>
-                <span>{formatCurrency(goal.savedAmount)} saved</span>
+                <span>{goal.progressPercent}% of {fmtGoal(goal.targetAmount, goal.currency ?? "PHP")}</span>
+                <span>{fmtGoal(goal.savedAmount, goal.currency ?? "PHP")} saved</span>
               </div>
             </div>
           ))}

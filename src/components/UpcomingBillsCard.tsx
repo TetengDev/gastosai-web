@@ -70,7 +70,12 @@ export default function UpcomingBillsCard({ month }: Props) {
                   </span>
                 </div>
               </div>
-              <span className="font-medium text-sm text-gray-900 dark:text-gray-100 flex-shrink-0">
+              <span className="font-medium text-sm text-gray-900 dark:text-gray-100 flex-shrink-0 text-right">
+                {bill.currency !== "PHP" && (
+                  <span className="block text-xs text-indigo-500 dark:text-indigo-400 font-medium">
+                    {bill.currency} {bill.amount.toFixed(2)}
+                  </span>
+                )}
                 {formatCurrency(bill.amount)}
               </span>
             </li>

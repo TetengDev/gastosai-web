@@ -10,6 +10,7 @@ export interface Goal {
   status: "ON_TRACK" | "BEHIND" | "COMPLETED" | "PAUSED";
   paused: boolean;
   createdAt: string;
+  currency: string;
 }
 
 export interface GoalRequest {
@@ -18,6 +19,7 @@ export interface GoalRequest {
   savedAmount: number;
   targetDate: string | null;
   paused: boolean;
+  currency?: string;
 }
 
 export const getGoals = () => api.get<Goal[]>("/goals").then((r) => r.data);

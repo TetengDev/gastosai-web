@@ -3,6 +3,9 @@ export type ExpenseType = "PERSONAL" | "BUSINESS";
 export interface Expense {
   id: number;
   amount: number;
+  currency: string;
+  exchangeRate: number;
+  amountInBaseCurrency: number;
   category: string;
   date: string;
   description: string;
@@ -17,6 +20,8 @@ export interface ExpenseRequest {
   description: string;
   expenseType?: ExpenseType;
   reimbursable?: boolean;
+  currency?: string;
+  exchangeRate?: number;
 }
 
 export interface Category {
@@ -62,6 +67,8 @@ export interface BudgetRequest {
   categoryId: number;
   month: string;
   amountLimit: number;
+  currency?: string;
+  exchangeRate?: number;
 }
 
 export interface BudgetResponse {
@@ -70,6 +77,9 @@ export interface BudgetResponse {
   categoryName: string;
   month: string;
   amountLimit: number;
+  currency: string;
+  exchangeRate: number;
+  amountLimitInBaseCurrency: number;
 }
 
 export interface BudgetSummaryItem {
@@ -119,6 +129,8 @@ export interface RecurringExpenseRequest {
   dayOfWeek?: number | null;
   monthOfYear?: number | null;
   active?: boolean;
+  currency?: string;
+  exchangeRate?: number;
 }
 
 export interface RecurringExpenseResponse {
@@ -131,6 +143,8 @@ export interface RecurringExpenseResponse {
   dayOfWeek: number | null;
   monthOfYear: number | null;
   active: boolean;
+  currency: string;
+  exchangeRate: number;
 }
 
 export interface UpcomingBillResponse {
@@ -140,6 +154,7 @@ export interface UpcomingBillResponse {
   categoryName: string;
   frequency: RecurringFrequency;
   dueDate: string;
+  currency: string;
 }
 
 export interface DailyReport {
