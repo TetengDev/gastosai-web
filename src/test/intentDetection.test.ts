@@ -1,8 +1,11 @@
 import { describe, it, expect } from "vitest";
 import {
   looksLikeExpenseLog,
+  looksLikeNlQuery,
   EXPENSE_LOG_KEYWORDS,
   QUERY_PHRASES,
+  CRUD_WORD_KEYWORDS,
+  CRUD_PHRASE_KEYWORDS,
 } from "../lib/intentDetection";
 
 describe("EXPENSE_LOG_KEYWORDS", () => {
@@ -143,5 +146,81 @@ describe("looksLikeExpenseLog", () => {
 
   it("returns true for 'charged 1200 to credit card'", () => {
     expect(looksLikeExpenseLog("charged 1200 to credit card")).toBe(true);
+  });
+
+  // --- CRUD action keywords must NOT be treated as expense logs ---
+  it("returns false for 'create a budget for food ₱5000'", () => {
+    expect(looksLikeExpenseLog("create a budget for food ₱5000")).toBe(false);
+  });
+
+  it("returns false for 'add a goal for vacation 10000'", () => {
+    expect(looksLikeExpenseLog("add a goal for vacation 10000")).toBe(false);
+  });
+
+  it("returns false for 'set up recurring rent 8000'", () => {
+    expect(looksLikeExpenseLog("set up recurring rent 8000")).toBe(false);
+  });
+
+  it("returns false for 'delete expense 5'", () => {
+    expect(looksLikeExpenseLog("delete expense 5")).toBe(false);
+  });
+
+  it("returns false for 'update my budget for groceries ₱3000'", () => {
+    expect(looksLikeExpenseLog("update my budget for groceries ₱3000")).toBe(false);
+  });
+
+  // --- query with past-tense expense keyword must NOT match (issue: "spent" in query context) ---
+  it("returns false for 'how much did I spent for this month'", () => {
+    expect(looksLikeExpenseLog("how much did I spent for this month")).toBe(false);
+  });
+
+  it("returns false for 'how much did I paid last week'", () => {
+    expect(looksLikeExpenseLog("how much did I paid last week")).toBe(false);
+  });
+});
+
+describe("CRUD_WORD_KEYWORDS", () => {
+  it("is a non-empty array of strings", () => {
+    expect(Array.isArray(CRUD_WORD_KEYWORDS)).toBe(true);
+    expect(CRUD_WORD_KEYWORDS.length).toBeGreaterThan(0);
+    CRUD_WORD_KEYWORDS.forEach((k) => expect(typeof k).toBe("string"));
+  });
+});
+
+describe("CRUD_PHRASE_KEYWORDS", () => {
+  it("is a non-empty array of strings", () => {
+    expect(Array.isArray(CRUD_PHRASE_KEYWORDS)).toBe(true);
+    expect(CRUD_PHRASE_KEYWORDS.length).toBeGreaterThan(0);
+    CRUD_PHRASE_KEYWORDS.forEach((k) => expect(typeof k).toBe("string"));
+  });
+});
+
+describe("looksLikeNlQuery", () => {
+  it("returns true for questions with question mark", () => {
+    expect(looksLikeNlQuery("how much did I spent for this month?")).toBe(true);
+  });
+
+  it("returns true for query phrases without question mark", () => {
+    expect(looksLikeNlQuery("how much did I spent for this month")).toBe(true);
+  });
+
+  it("returns true for 'show my expenses'", () => {
+    expect(looksLikeNlQuery("show my expenses")).toBe(true);
+  });
+
+  it("returns true for 'list all expenses'", () => {
+    expect(looksLikeNlQuery("list all expenses")).toBe(true);
+  });
+
+  it("returns false for CRUD commands even with question mark", () => {
+    expect(looksLikeNlQuery("delete this expense?")).toBe(false);
+  });
+
+  it("returns false for 'create a budget for food'", () => {
+    expect(looksLikeNlQuery("create a budget for food ₱5000")).toBe(false);
+  });
+
+  it("returns false for plain expense log", () => {
+    expect(looksLikeNlQuery("paid 200 for lunch")).toBe(false);
   });
 });

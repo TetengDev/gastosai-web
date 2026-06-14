@@ -9,12 +9,39 @@ export const QUERY_PHRASES = [
   "where", "did i", "have i", "how many", "magkano",
 ];
 
+export const REPORT_PHRASES = [
+  "by category", "by month", "summary", "breakdown", "spending",
+  "expenses this", "expenses last", "expenses in", "expenses by",
+];
+
+export const CRUD_WORD_KEYWORDS = [
+  "budget", "goal", "recurring",
+  "delete", "remove", "update", "edit", "modify",
+];
+
+export const CRUD_PHRASE_KEYWORDS = [
+  "create a", "add a", "set a", "make a", "set up",
+];
+
+export function looksLikeNlQuery(text: string): boolean {
+  const lower = text.toLowerCase();
+  if (CRUD_WORD_KEYWORDS.some((k) => new RegExp(`\\b${k}\\b`).test(lower))) return false;
+  if (CRUD_PHRASE_KEYWORDS.some((k) => lower.includes(k))) return false;
+  if (text.includes("?")) return true;
+  if (QUERY_PHRASES.some((q) => lower.includes(q))) return true;
+  if (REPORT_PHRASES.some((q) => lower.includes(q))) return true;
+  if (/\b(this month|last month|this week|last week)\b/.test(lower) && !/\d/.test(text)) return true;
+  return false;
+}
+
 export function looksLikeExpenseLog(text: string): boolean {
   const lower = text.toLowerCase();
-  if (EXPENSE_LOG_KEYWORDS.some((k) => lower.includes(k))) return true;
-  if (/(pesos?|php|₱)/i.test(text)) return true;
-  if (!/\d/.test(text)) return false;
+  if (CRUD_WORD_KEYWORDS.some((k) => new RegExp(`\\b${k}\\b`).test(lower))) return false;
+  if (CRUD_PHRASE_KEYWORDS.some((k) => lower.includes(k))) return false;
   if (text.includes("?")) return false;
   if (QUERY_PHRASES.some((q) => lower.includes(q))) return false;
+  if (!/\d/.test(text)) return false;
+  if (EXPENSE_LOG_KEYWORDS.some((k) => lower.includes(k))) return true;
+  if (/(pesos?|php|₱)/i.test(text)) return true;
   return true;
 }
