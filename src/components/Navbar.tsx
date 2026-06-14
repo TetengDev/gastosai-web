@@ -1,8 +1,8 @@
 import { LogOut, Moon, Sun } from "lucide-react";
 import { Link, NavLink } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { useUnreadAlertCount } from "../hooks/useUnreadAlertCount";
 import { getAvatarGradient, getInitials } from "../lib/formatters";
+import { NotificationBell } from "./NotificationBell";
 
 interface Props {
   isDark: boolean;
@@ -11,7 +11,6 @@ interface Props {
 
 export default function Navbar({ isDark, onToggleDark }: Props) {
   const { user, logout } = useAuth();
-  const unreadAlerts = useUnreadAlertCount();
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     `px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
@@ -44,17 +43,8 @@ export default function Navbar({ isDark, onToggleDark }: Props) {
         <NavLink to="/goals" className={linkClass}>
           Goals
         </NavLink>
-        <NavLink to="/alerts" className={linkClass}>
-          <span className="relative">
-            Alerts
-            {unreadAlerts > 0 && (
-              <span className="absolute -top-2.5 -right-3 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white leading-none">
-                {unreadAlerts > 9 ? "9+" : unreadAlerts}
-              </span>
-            )}
-          </span>
-        </NavLink>
         <div className="ml-auto flex items-center gap-1">
+          <NotificationBell />
           <button
             onClick={onToggleDark}
             aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}

@@ -1,4 +1,4 @@
-import { BellOff, CheckCheck, X } from "lucide-react";
+import { Bell, BellOff, CheckCheck, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { type Alert, dismissAlert, getAlerts, markAlertRead } from "../api/alerts";
 
@@ -13,6 +13,7 @@ function severityBadge(severity: Alert["severity"]) {
 function typeLabel(type: Alert["type"]) {
   if (type === "BUDGET_WARNING") return "Budget Warning";
   if (type === "BUDGET_EXCEEDED") return "Budget Exceeded";
+  if (type === "RECURRING_DUE") return "Recurring Due";
   return "Spending Spike";
 }
 
@@ -49,10 +50,10 @@ export default function Alerts() {
       <div className="flex flex-wrap justify-between items-center gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            Spending Alerts
+            Notifications
           </h1>
           <p className="text-sm text-gray-400 mt-0.5">
-            {alerts.length} active alert{alerts.length !== 1 ? "s" : ""}
+            Budget alerts and upcoming recurring reminders
           </p>
         </div>
         <input
@@ -79,10 +80,10 @@ export default function Alerts() {
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-16 text-center">
           <BellOff className="w-10 h-10 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
           <p className="font-semibold text-gray-700 dark:text-gray-300">
-            No active alerts for this month
+            No notifications for this month
           </p>
           <p className="text-sm text-gray-400 mt-1">
-            Alerts are generated when spending approaches or exceeds budget limits.
+            Notifications are generated for budget warnings, spending spikes, and upcoming recurring expenses.
           </p>
         </div>
       )}
@@ -125,6 +126,9 @@ export default function Alerts() {
                           : "text-gray-800 dark:text-gray-200"
                       }`}
                     >
+                      {alert.type === "RECURRING_DUE" && (
+                        <Bell className="w-4 h-4 text-indigo-400 inline mr-1" />
+                      )}
                       {alert.message}
                     </p>
                     <p className="text-xs text-gray-300 dark:text-gray-600 mt-1">

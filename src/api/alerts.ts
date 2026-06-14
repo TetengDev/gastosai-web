@@ -2,7 +2,7 @@ import api from "./client";
 
 export interface Alert {
   id: number;
-  type: "BUDGET_WARNING" | "BUDGET_EXCEEDED" | "SPENDING_SPIKE";
+  type: "BUDGET_WARNING" | "BUDGET_EXCEEDED" | "SPENDING_SPIKE" | "RECURRING_DUE";
   severity: "INFO" | "WARNING" | "CRITICAL";
   month: string;
   categoryName: string;
@@ -10,6 +10,7 @@ export interface Alert {
   read: boolean;
   dismissed: boolean;
   createdAt: string;
+  recurringExpenseId: number | null;
 }
 
 export const getAlerts = (month: string) =>
