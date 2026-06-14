@@ -4,15 +4,14 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
-  Pie,
-  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
+import { getBudgetSummary } from "../api/budgets";
 import { getCategoryReport, getExpenses, getMonthlyComparison, getMonthlyReport } from "../api/expenses";
-import type { CategoryReport, Expense, MonthlyComparison, MonthlyReport } from "../api/types";
+import type { BudgetSummaryResponse, CategoryReport, Expense, MonthlyComparison, MonthlyReport } from "../api/types";
 import AiInsightsCard from "../components/AiInsightsCard";
 import AlertsCard from "../components/AlertsCard";
 import BudgetOverviewCard from "../components/BudgetOverviewCard";
@@ -20,11 +19,7 @@ import DailyTrendCard from "../components/DailyTrendCard";
 import GoalProgressCard from "../components/GoalProgressCard";
 import TopExpensesCard from "../components/TopExpensesCard";
 import UpcomingBillsCard from "../components/UpcomingBillsCard";
-import {
-  formatCurrency,
-  formatDate,
-  getCategoryColor,
-} from "../lib/formatters";
+import { formatCurrency, formatDate, getCategoryColor } from "../lib/formatters";
 
 const currentMonth = new Date().toISOString().slice(0, 7);
 
@@ -35,21 +30,20 @@ function formatMonthLabel(yyyyMM: string): string {
 
 function prevMonthLabel(yyyyMM: string): string {
   const [y, m] = yyyyMM.split("-").map(Number);
-  const prev = new Date(y, m - 2, 1);
-  return prev.toLocaleString("default", { month: "short", year: "numeric" });
+  return new Date(y, m - 2, 1).toLocaleString("default", { month: "short", year: "numeric" });
 }
 
 const MAX_SLICES = 8;
 
 function buildChartData(categoryData: CategoryReport[]) {
-  if (categoryData.length <= MAX_SLICES) {
-    return categoryData.map((c) => ({
+  const sorted = [...categoryData].sort((a, b) => Number(b.total) - Number(a.total));
+  if (sorted.length <= MAX_SLICES) {
+    return sorted.map((c) => ({
       name: c.category,
       value: Number(c.total),
       color: getCategoryColor(c.category).chart,
     }));
   }
-  const sorted = [...categoryData].sort((a, b) => Number(b.total) - Number(a.total));
   const top = sorted.slice(0, MAX_SLICES);
   const othersTotal = sorted.slice(MAX_SLICES).reduce((s, c) => s + Number(c.total), 0);
   return [
@@ -62,21 +56,57 @@ function buildChartData(categoryData: CategoryReport[]) {
   ];
 }
 
+function KpiCard({
+  label,
+  value,
+  sub,
+  highlight,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  highlight?: "green" | "red" | "neutral";
+}) {
+  const valueColor =
+    highlight === "green"
+      ? "text-emerald-600 dark:text-emerald-400"
+      : highlight === "red"
+        ? "text-red-600 dark:text-red-400"
+        : "text-gray-900 dark:text-gray-100";
+  return (
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-4">
+      <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">
+        {label}
+      </p>
+      <p className={`text-xl font-extrabold tracking-tight truncate ${valueColor}`}>{value}</p>
+      {sub && <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 truncate">{sub}</p>}
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const [categoryData, setCategoryData] = useState<CategoryReport[]>([]);
   const [recentExpenses, setRecentExpenses] = useState<Expense[]>([]);
   const [monthlyData, setMonthlyData] = useState<MonthlyReport[]>([]);
   const [momData, setMomData] = useState<MonthlyComparison | null>(null);
+  const [budgetSummary, setBudgetSummary] = useState<BudgetSummaryResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(() => {
-    void Promise.all([getCategoryReport(), getExpenses(), getMonthlyReport(), getMonthlyComparison(currentMonth)])
-      .then(([cats, expenses, monthly, mom]) => {
+    void Promise.all([
+      getCategoryReport(),
+      getExpenses(),
+      getMonthlyReport(),
+      getMonthlyComparison(currentMonth),
+      getBudgetSummary(currentMonth).catch(() => null),
+    ])
+      .then(([cats, expenses, monthly, mom, budget]) => {
         setCategoryData(cats);
         setRecentExpenses(expenses.slice(0, 10));
         setMonthlyData(monthly);
         setMomData(mom);
+        setBudgetSummary(budget);
       })
       .catch(() => setError("Failed to load dashboard data."))
       .finally(() => setLoading(false));
@@ -90,247 +120,217 @@ export default function Dashboard() {
 
   const total = categoryData.reduce((sum, c) => sum + Number(c.total), 0);
   const chartData = buildChartData(categoryData);
+  const today = new Date().getDate();
+  const dailyAvg = today > 0 ? total / today : 0;
+  const topCategory = categoryData.length > 0
+    ? [...categoryData].sort((a, b) => Number(b.total) - Number(a.total))[0]
+    : null;
+  const remainingBudget =
+    budgetSummary && budgetSummary.items.length > 0 ? budgetSummary.safeToSpend : null;
+
+  const momPercent = momData?.changePercent ?? null;
+  const momHighlight: "green" | "red" | "neutral" =
+    momPercent === null ? "neutral" : momPercent > 0 ? "red" : "green";
+  const momValue =
+    momPercent === null
+      ? "—"
+      : momPercent === 0
+        ? "±0%"
+        : `${momPercent > 0 ? "+" : ""}${momPercent.toFixed(1)}%`;
 
   if (loading)
     return (
       <div className="space-y-6 animate-pulse">
-        <div className="h-44 bg-gradient-to-r from-violet-200 to-indigo-200 dark:from-violet-900 dark:to-indigo-900 rounded-2xl" />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="h-72 bg-gray-100 dark:bg-gray-800 rounded-2xl" />
-          <div className="h-72 bg-gray-100 dark:bg-gray-800 rounded-2xl" />
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="h-20 bg-gray-100 dark:bg-gray-800 rounded-2xl" />
+          ))}
         </div>
-        <div className="h-64 bg-gray-100 dark:bg-gray-800 rounded-2xl" />
+        <div className="h-44 bg-gray-100 dark:bg-gray-800 rounded-2xl" />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            <div className="h-56 bg-gray-100 dark:bg-gray-800 rounded-2xl" />
+            <div className="h-56 bg-gray-100 dark:bg-gray-800 rounded-2xl" />
+          </div>
+          <div className="space-y-6">
+            <div className="h-56 bg-gray-100 dark:bg-gray-800 rounded-2xl" />
+            <div className="h-36 bg-gray-100 dark:bg-gray-800 rounded-2xl" />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="h-48 bg-gray-100 dark:bg-gray-800 rounded-2xl" />
+          <div className="h-48 bg-gray-100 dark:bg-gray-800 rounded-2xl" />
+        </div>
       </div>
     );
+
   if (error)
     return <p className="text-red-500 text-center py-8">{error}</p>;
 
   return (
     <div className="space-y-6">
-      {/* Hero spending card */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-violet-600 via-indigo-600 to-indigo-700 p-8 shadow-xl shadow-indigo-500/25">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(255,255,255,0.12),_transparent_60%)]" />
-        <div className="relative">
-          <p className="text-xs font-semibold text-indigo-200 uppercase tracking-widest">
-            Total Spending
-          </p>
-          <p className="mt-2 text-5xl font-extrabold text-white tracking-tight">
-            {formatCurrency(total)}
-          </p>
-          <p className="mt-2 text-sm text-indigo-200">
-            across {categoryData.length}{" "}
-            {categoryData.length === 1 ? "category" : "categories"}
-          </p>
-        </div>
-        <div className="absolute -bottom-10 -right-10 w-48 h-48 bg-white/5 rounded-full" />
-        <div className="absolute -top-6 -right-6 w-24 h-24 bg-white/5 rounded-full" />
+      {/* Row 1: KPI mini-cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <KpiCard
+          label="This Month"
+          value={formatCurrency(total)}
+          sub={formatMonthLabel(currentMonth)}
+        />
+        <KpiCard
+          label="vs Last Month"
+          value={momValue}
+          sub={momData ? `vs ${prevMonthLabel(momData.month)}` : "No prior data"}
+          highlight={momHighlight}
+        />
+        <KpiCard
+          label="Daily Average"
+          value={formatCurrency(dailyAvg)}
+          sub={`Day ${today} of month`}
+        />
+        <KpiCard
+          label="Biggest Category"
+          value={topCategory ? topCategory.category : "—"}
+          sub={topCategory ? formatCurrency(Number(topCategory.total)) : "No data yet"}
+        />
+        <KpiCard
+          label="Remaining Budget"
+          value={remainingBudget !== null ? formatCurrency(remainingBudget) : "—"}
+          sub={remainingBudget !== null ? "safe to spend" : "No budget set"}
+          highlight={
+            remainingBudget === null ? "neutral" : remainingBudget >= 0 ? "green" : "red"
+          }
+        />
       </div>
 
-      {/* Month-over-month comparison */}
-      {momData && (
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6">
-          <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-4">
-            Spending Trend
-          </p>
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mb-1">This month</p>
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
-                {formatMonthLabel(momData.month)}
-              </p>
-              <p className="text-2xl font-extrabold text-gray-900 dark:text-gray-100 tracking-tight">
-                {formatCurrency(momData.currentTotal)}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mb-1">Last month</p>
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
-                {prevMonthLabel(momData.month)}
-              </p>
-              <p className="text-2xl font-extrabold text-gray-900 dark:text-gray-100 tracking-tight">
-                {formatCurrency(momData.previousTotal)}
-              </p>
-            </div>
-          </div>
-          <div className={`flex items-center gap-2 text-sm font-medium px-3 py-2 rounded-xl w-fit ${
-            momData.changePercent === null
-              ? "bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-500"
-              : momData.changePercent <= 0
-                ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400"
-                : "bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400"
-          }`}>
-            {momData.changePercent === null ? (
-              <span>No data for {prevMonthLabel(momData.month)} — can&apos;t compare yet</span>
-            ) : momData.changePercent === 0 ? (
-              <span>Same spending as {prevMonthLabel(momData.month)}</span>
-            ) : (
-              <>
-                <span>{momData.changePercent > 0 ? "↑" : "↓"}</span>
-                <span>
-                  You spent{" "}
-                  <strong>{Math.abs(momData.changePercent).toFixed(1)}%</strong>{" "}
-                  {momData.changePercent > 0 ? "more" : "less"} than{" "}
-                  {prevMonthLabel(momData.month)}
-                </span>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Budget overview */}
-      <BudgetOverviewCard month={currentMonth} />
-
-      {/* Daily trend + top expenses */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <DailyTrendCard month={currentMonth} />
-        <TopExpensesCard month={currentMonth} />
-      </div>
-
-      {/* Upcoming bills */}
-      <UpcomingBillsCard month={currentMonth} />
-
-      {/* Savings goals */}
-      <GoalProgressCard />
-
-      {/* Spending alerts */}
-      <AlertsCard />
-
-      {/* AI Insights */}
+      {/* Row 2: AI Insights */}
       <AiInsightsCard month={currentMonth} />
 
-      {/* Chart + breakdown — fixed height so Recent Expenses stays in view */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Donut chart — no built-in Legend; tooltip handles identification */}
-        {chartData.length > 0 ? (
-          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 flex flex-col">
-            <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-4">
-              By Category
-            </p>
-            {categoryData.length > MAX_SLICES && (
-              <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">
-                Top {MAX_SLICES} shown · remaining grouped as Others
-              </p>
-            )}
-            <div className="flex-1">
-              <ResponsiveContainer width="100%" height={220}>
-                <PieChart>
-                  <Pie
-                    data={chartData}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={90}
-                    innerRadius={52}
-                    paddingAngle={2}
-                  >
-                    {chartData.map((entry, i) => (
-                      <Cell key={i} fill={entry.color} />
-                    ))}
-                  </Pie>
+      {/* Row 3: Main 2-panel grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left: daily trend + category breakdown */}
+        <div className="lg:col-span-2 space-y-6">
+          <DailyTrendCard month={currentMonth} />
+
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-sm font-bold text-gray-900 dark:text-gray-100">
+                  Spending by Category
+                </p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                  {formatMonthLabel(currentMonth)}
+                </p>
+              </div>
+              {categoryData.length > 0 && (
+                <span className="text-xs text-gray-400 dark:text-gray-500">
+                  {categoryData.length} {categoryData.length === 1 ? "category" : "categories"}
+                </span>
+              )}
+            </div>
+            {chartData.length === 0 ? (
+              <div className="h-[200px] flex items-center justify-center text-sm text-gray-400 dark:text-gray-500">
+                No category data yet.
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={Math.max(180, chartData.length * 38)}>
+                <BarChart
+                  layout="vertical"
+                  data={chartData}
+                  margin={{ top: 0, right: 16, bottom: 0, left: 0 }}
+                >
+                  <XAxis
+                    type="number"
+                    tickFormatter={(v) => formatCurrency(v as number)}
+                    tick={{ fontSize: 10 }}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    width={110}
+                    tick={{ fontSize: 11 }}
+                    tickLine={false}
+                    axisLine={false}
+                  />
                   <Tooltip
                     formatter={(v) => formatCurrency(v as number)}
                     contentStyle={{
                       borderRadius: "0.75rem",
                       border: "none",
-                      boxShadow:
-                        "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
+                      boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
                     }}
                   />
-                </PieChart>
+                  <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                    {chartData.map((entry, i) => (
+                      <Cell key={i} fill={entry.color} />
+                    ))}
+                  </Bar>
+                </BarChart>
               </ResponsiveContainer>
-            </div>
-          </div>
-        ) : (
-          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 flex items-center justify-center text-gray-400 dark:text-gray-500 text-sm">
-            No category data yet.
-          </div>
-        )}
-
-        {/* Category breakdown — scrollable so it never pushes Recent Expenses off screen */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 flex flex-col">
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest">
-              Category Breakdown
-            </p>
-            {categoryData.length > 0 && (
-              <span className="text-xs text-gray-400 dark:text-gray-500">
-                {categoryData.length} {categoryData.length === 1 ? "category" : "categories"}
-              </span>
             )}
           </div>
-          {categoryData.length === 0 ? (
-            <div className="flex items-center justify-center flex-1 text-gray-400 dark:text-gray-500 text-sm">
-              No categories yet.
+        </div>
+
+        {/* Right: budget + alerts */}
+        <div className="space-y-6">
+          <BudgetOverviewCard month={currentMonth} />
+          <AlertsCard />
+        </div>
+      </div>
+
+      {/* Row 4: Goals + Upcoming bills */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <GoalProgressCard />
+        <UpcomingBillsCard month={currentMonth} />
+      </div>
+
+      {/* Row 5: Top expenses + Monthly trend */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <TopExpensesCard month={currentMonth} />
+
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6">
+          <div className="mb-4">
+            <p className="text-sm font-bold text-gray-900 dark:text-gray-100">Monthly Trend</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Last 6 months</p>
+          </div>
+          {monthlyData.length === 0 ? (
+            <div className="h-[180px] flex items-center justify-center text-sm text-gray-400 dark:text-gray-500">
+              No monthly data yet.
             </div>
           ) : (
-            <div className="overflow-y-auto max-h-[220px] space-y-3 pr-1 scrollbar-thin">
-              {[...categoryData]
-                .sort((a, b) => Number(b.total) - Number(a.total))
-                .map((c) => {
-                  const color = getCategoryColor(c.category);
-                  const pct = total > 0 ? (Number(c.total) / total) * 100 : 0;
-                  return (
-                    <div key={c.category}>
-                      <div className="flex justify-between items-center mb-1.5">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${color.dot}`} />
-                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
-                            {c.category}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                          <span className="text-xs text-gray-400 dark:text-gray-500">
-                            {pct.toFixed(1)}%
-                          </span>
-                          <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                            {formatCurrency(Number(c.total))}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                        <div
-                          className="h-full rounded-full transition-all duration-700"
-                          style={{ width: `${pct}%`, backgroundColor: color.chart }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-            </div>
+            <ResponsiveContainer width="100%" height={180}>
+              <BarChart
+                data={monthlyData.slice(-6)}
+                margin={{ top: 4, right: 4, left: 0, bottom: 0 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis
+                  dataKey="month"
+                  tick={{ fontSize: 11 }}
+                  tickLine={false}
+                  tickFormatter={(v: string) => {
+                    const [y, m] = v.split("-").map(Number);
+                    return new Date(y, m - 1, 1).toLocaleString("default", { month: "short" });
+                  }}
+                />
+                <YAxis
+                  tick={{ fontSize: 11 }}
+                  tickFormatter={(v) => formatCurrency(v as number)}
+                  width={80}
+                />
+                <Tooltip formatter={(v) => formatCurrency(v as number)} />
+                <Bar dataKey="total" fill="#6366f1" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           )}
         </div>
       </div>
 
-      {/* Monthly trend */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6">
-        <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-4">
-          Monthly Trend
-        </p>
-        {monthlyData.length === 0 ? (
-          <p className="text-gray-400 dark:text-gray-500 text-sm text-center py-8">
-            No monthly data yet.
-          </p>
-        ) : (
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={monthlyData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => formatCurrency(v as number)} width={80} />
-              <Tooltip formatter={(v) => formatCurrency(v as number)} />
-              <Bar dataKey="total" fill="#6366f1" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        )}
-      </div>
-
-      {/* Recent expenses */}
+      {/* Row 6: Recent expenses */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
         <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
-          <h2 className="font-semibold text-gray-900 dark:text-gray-100">
-            Recent Expenses
-          </h2>
+          <h2 className="font-semibold text-gray-900 dark:text-gray-100">Recent Expenses</h2>
           <span className="text-xs text-gray-400 dark:text-gray-500">
             {recentExpenses.length} most recent
           </span>
@@ -338,9 +338,7 @@ export default function Dashboard() {
         {recentExpenses.length === 0 ? (
           <div className="p-12 text-center">
             <p className="text-4xl mb-3">💸</p>
-            <p className="text-gray-600 dark:text-gray-400 font-semibold">
-              No expenses yet
-            </p>
+            <p className="text-gray-600 dark:text-gray-400 font-semibold">No expenses yet</p>
             <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">
               Add an expense to see it here
             </p>

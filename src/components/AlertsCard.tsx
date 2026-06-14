@@ -35,6 +35,7 @@ export default function AlertsCard() {
   const handleRead = async (id: number) => {
     const updated = await markAlertRead(id);
     setAlerts((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+    window.dispatchEvent(new Event("gastosai:alert-changed"));
   };
 
   return (

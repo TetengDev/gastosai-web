@@ -27,7 +27,7 @@ function AppShell({ darkMode, onToggleDark, onResetDark }: { darkMode: boolean; 
   }, [user, onResetDark]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-violet-50/30 dark:bg-none dark:bg-gray-950 transition-colors duration-300">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30 dark:bg-none dark:bg-gray-950 transition-colors duration-300">
       <Routes>
         <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
         <Route path="/register" element={user ? <Navigate to="/" replace /> : <RegisterPage />} />
