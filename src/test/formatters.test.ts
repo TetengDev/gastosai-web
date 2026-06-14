@@ -111,7 +111,7 @@ describe("getCategoryColor", () => {
 
   it("returns a valid hex chart color", () => {
     const color = getCategoryColor("Utilities");
-    expect(color.chart).toMatch(/^#[0-9a-f]{6}$/);
+    expect(color.chart).toMatch(/^#[0-9a-f]{6}$/i);
   });
 
   it("returns a color for an unknown category (does not throw)", () => {
