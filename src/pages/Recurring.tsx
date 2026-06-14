@@ -112,6 +112,12 @@ export default function Recurring() {
   }, [load]);
 
   useEffect(() => {
+    const handler = () => { void load(); };
+    window.addEventListener("gastosai:recurring-changed", handler);
+    return () => window.removeEventListener("gastosai:recurring-changed", handler);
+  }, [load]);
+
+  useEffect(() => {
     const currency = form.currency ?? "PHP";
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (currency === "PHP") { setSuggestedRate(null); return; }

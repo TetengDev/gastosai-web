@@ -162,8 +162,13 @@ export interface DailyReport {
   total: number;
 }
 
+export interface ChatPreviewData {
+  toolName: string;
+  params: Record<string, unknown>;
+}
+
 export interface ChatResponse {
-  type: "action" | "text" | "query";
+  type: "action" | "text" | "query" | "preview" | "disambiguate";
   message: string;
   result: unknown;
 }

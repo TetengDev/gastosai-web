@@ -1,13 +1,14 @@
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
-import { askWithAttachment, chatAction, type ChatMode } from "../api/ai";
+import { askQuery, askWithAttachment, chatAction, type ChatMode } from "../api/ai";
+import { updateBudget } from "../api/budgets";
 import { getCategories } from "../api/categories";
-import { createExpense, importExpensesCsv, parseExpense } from "../api/expenses";
-import type { ParsedExpenseResult } from "../api/types";
+import { createExpense, deleteExpense, importExpensesCsv, parseExpense } from "../api/expenses";
+import type { ChatPreviewData, ParsedExpenseResult } from "../api/types";
 import { useAuth } from "../context/AuthContext";
 import { useFeatures } from "../hooks/useFeatures";
 import { formatCurrency, formatDate } from "../lib/formatters";
-import { looksLikeExpenseLog } from "../lib/intentDetection";
+import { looksLikeExpenseLog, looksLikeNlQuery } from "../lib/intentDetection";
 
 interface Message {
   role: "user" | "assistant";
@@ -17,9 +18,16 @@ interface Message {
   attachmentName?: string;
   draft?: ParsedExpenseResult;
   draftSaved?: boolean;
+  draftEdits?: { amount?: number; date?: string; time?: string; description?: string };
   categoryOverride?: string;
   actionType?: "success" | "error";
   actionResult?: unknown;
+  actionPreview?: ChatPreviewData & { originalMessage: string };
+  actionPreviewConfirmed?: boolean;
+  editedParams?: Record<string, unknown>;
+  disambiguateItems?: Array<{ id: number; description: string; amount: number; date: string }>;
+  selectedDisambiguateIds?: number[];
+  draftCancelled?: boolean;
 }
 
 interface ModeTheme {
@@ -260,14 +268,107 @@ function renderAnswer(answer: unknown, accentText: string): ReactNode {
 }
 
 function renderActionResult(msg: Message) {
+  const isDelete = typeof msg.content === "string" && msg.content.toLowerCase().includes("deleted");
   return (
-    <div className="mt-2 border-l-2 border-green-500 dark:border-green-400 pl-3">
-      <p className="text-sm text-green-700 dark:text-green-300 font-medium">{msg.content as string}</p>
+    <div className={`mt-2 border-l-2 ${isDelete ? "border-red-500 dark:border-red-400" : "border-green-500 dark:border-green-400"} pl-3`}>
+      <p className={`text-sm font-medium ${isDelete ? "text-red-700 dark:text-red-300" : "text-green-700 dark:text-green-300"}`}>{msg.content as string}</p>
       {Boolean(msg.actionResult && typeof msg.actionResult === "object" && "id" in (msg.actionResult as object)) && (
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">ID: #{(msg.actionResult as { id: number }).id}</p>
       )}
     </div>
   );
+}
+
+function actionLabel(toolName: string): string {
+  const labels: Record<string, string> = {
+    create_budget: "New budget",
+    create_goal: "New savings goal",
+    create_recurring: "New recurring expense",
+    create_expense: "New expense",
+    update_budget: "Update budget",
+  };
+  return labels[toolName] ?? "Confirm action";
+}
+
+function savedLabel(toolName: string): string {
+  const labels: Record<string, string> = {
+    create_budget: "Saved to budgets",
+    create_goal: "Saved to goals",
+    create_recurring: "Saved to recurring",
+    create_expense: "Saved to expenses",
+    update_budget: "Budget updated",
+  };
+  return labels[toolName] ?? "Saved";
+}
+
+interface PreviewField {
+  field: string;
+  label: string;
+  value: string;
+  inputType: "text" | "number" | "month" | "date" | "select" | "freq-select";
+}
+
+function buildPreviewFields(toolName: string, params: Record<string, unknown>, editedParams: Record<string, unknown>): PreviewField[] {
+  const p = { ...params, ...editedParams };
+  switch (toolName) {
+    case "create_budget":
+      return [
+        { field: "categoryName", label: "Category", value: String(p.categoryName ?? ""), inputType: "select" },
+        { field: "amountLimit", label: "Amount Limit (₱)", value: String(p.amountLimit ?? 0), inputType: "number" },
+        { field: "month", label: "Month", value: String(p.month ?? new Date().toISOString().slice(0, 7)), inputType: "month" },
+      ];
+    case "create_goal":
+      return [
+        { field: "name", label: "Goal Name", value: String(p.name ?? ""), inputType: "text" },
+        { field: "targetAmount", label: "Target Amount (₱)", value: String(p.targetAmount ?? 0), inputType: "number" },
+        { field: "savedAmount", label: "Already Saved (₱)", value: String(p.savedAmount ?? 0), inputType: "number" },
+        ...(p.targetDate ? [{ field: "targetDate", label: "Target Date", value: String(p.targetDate), inputType: "date" as const }] : []),
+      ];
+    case "create_recurring":
+      return [
+        { field: "name", label: "Name", value: String(p.name ?? ""), inputType: "text" },
+        { field: "amount", label: "Amount (₱)", value: String(p.amount ?? 0), inputType: "number" },
+        { field: "frequency", label: "Frequency", value: String(p.frequency ?? "MONTHLY"), inputType: "freq-select" },
+        { field: "categoryName", label: "Category", value: String(p.categoryName ?? ""), inputType: "select" },
+      ];
+    case "create_expense":
+      return [
+        { field: "amount", label: "Amount (₱)", value: String(p.amount ?? 0), inputType: "number" },
+        { field: "description", label: "Description", value: String(p.description ?? ""), inputType: "text" },
+        { field: "category", label: "Category", value: String(p.category ?? ""), inputType: "select" },
+        ...(p.date ? [{ field: "date", label: "Date", value: String(p.date), inputType: "date" as const }] : []),
+      ];
+    case "update_budget":
+      return [
+        { field: "categoryName", label: "Category", value: String(p.categoryName ?? ""), inputType: "text" },
+        { field: "month", label: "Month", value: String(p.month ?? new Date().toISOString().slice(0, 7)), inputType: "month" },
+        { field: "amountLimit", label: "New Amount (₱)", value: String(p.amountLimit ?? 0), inputType: "number" },
+      ];
+    default:
+      return [];
+  }
+}
+
+function buildConfirmMessage(toolName: string, params: Record<string, unknown>): string {
+  switch (toolName) {
+    case "create_budget":
+      return `create a budget for ${params.categoryName} ₱${params.amountLimit} month ${params.month}`;
+    case "create_goal":
+      return `create a goal called ${params.name} target ₱${params.targetAmount}${params.savedAmount ? ` saved ₱${params.savedAmount}` : ""}`;
+    case "create_recurring":
+      return `create recurring ${params.name} ₱${params.amount} ${params.frequency}${params.categoryName ? ` ${params.categoryName}` : ""}`;
+    case "create_expense":
+      return `₱${params.amount} ${params.description}${params.category ? ` ${params.category}` : ""}`;
+    default:
+      return "";
+  }
+}
+
+function dispatchDataEvents(toolName: string) {
+  window.dispatchEvent(new CustomEvent("gastosai:expense-changed"));
+  if (toolName.includes("budget")) window.dispatchEvent(new CustomEvent("gastosai:budget-changed"));
+  if (toolName.includes("goal")) window.dispatchEvent(new CustomEvent("gastosai:goal-changed"));
+  if (toolName.includes("recurring")) window.dispatchEvent(new CustomEvent("gastosai:recurring-changed"));
 }
 
 function TypingDots({ dotClass }: { dotClass: string }) {
@@ -326,14 +427,17 @@ export default function ChatWidget() {
   const theme = MODE_THEMES[mode];
 
   useEffect(() => {
+    if (open) bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, open]);
+
+  useEffect(() => {
     if (open) {
-      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
       setTimeout(() => inputRef.current?.focus(), 50);
       if (categoryNames.length === 0) {
         void getCategories().then((cats) => setCategoryNames(cats.map((c) => c.name)));
       }
     }
-  }, [messages, loading, open, categoryNames.length]);
+  }, [open, categoryNames.length]);
 
   const clearPendingFile = () => {
     if (pendingFileUrl) URL.revokeObjectURL(pendingFileUrl);
@@ -420,18 +524,55 @@ export default function ChatWidget() {
           ]);
         }
       } else if (!file) {
-        const res = await chatAction(trimmed, mode);
-        if (res.type === "action") {
-          setMessages((prev) => [
-            ...prev,
-            { role: "assistant", content: res.message, timestamp: new Date(), actionType: "success", actionResult: res.result },
-          ]);
-          window.dispatchEvent(new CustomEvent("gastosai:expense-changed"));
+        if (looksLikeNlQuery(trimmed)) {
+          try {
+            const queryRes = await askQuery(trimmed, mode);
+            setMessages((prev) => [
+              ...prev,
+              { role: "assistant", content: queryRes.answer ?? "No results found.", timestamp: new Date() },
+            ]);
+          } catch {
+            setMessages((prev) => [
+              ...prev,
+              { role: "assistant", content: "I couldn't run that query right now. Try rephrasing — e.g. 'total spent this month' or 'expenses by category this month'.", timestamp: new Date() },
+            ]);
+          }
         } else {
-          setMessages((prev) => [
-            ...prev,
-            { role: "assistant", content: res.message, timestamp: new Date() },
-          ]);
+          const res = await chatAction(trimmed, mode);
+          if (res.type === "preview") {
+            const previewData = res.result as { toolName: string; params: Record<string, unknown> };
+            setMessages((prev) => [
+              ...prev,
+              {
+                role: "assistant",
+                content: res.message,
+                timestamp: new Date(),
+                actionPreview: { toolName: previewData.toolName, params: previewData.params, originalMessage: trimmed },
+                editedParams: {},
+              },
+            ]);
+          } else if (res.type === "disambiguate") {
+            setMessages((prev) => [
+              ...prev,
+              {
+                role: "assistant",
+                content: res.message,
+                timestamp: new Date(),
+                disambiguateItems: res.result as Array<{ id: number; description: string; amount: number; date: string }>,
+              },
+            ]);
+          } else if (res.type === "action") {
+            setMessages((prev) => [
+              ...prev,
+              { role: "assistant", content: res.message, timestamp: new Date(), actionType: "success", actionResult: res.result },
+            ]);
+            dispatchDataEvents(trimmed);
+          } else {
+            setMessages((prev) => [
+              ...prev,
+              { role: "assistant", content: res.message, timestamp: new Date() },
+            ]);
+          }
         }
       } else {
         setMessages((prev) => [
@@ -465,13 +606,150 @@ export default function ChatWidget() {
     inputRef.current?.focus();
   };
 
-  const saveDraft = async (msgIndex: number, draft: ParsedExpenseResult, categoryOverride?: string) => {
+  const confirmPreview = async (msgIndex: number, toolName: string, params: Record<string, unknown>, editedParams: Record<string, unknown>) => {
+    setLoading(true);
+    const mergedParams = { ...params, ...editedParams };
+
+    if (toolName === "update_budget") {
+      const id = Number(mergedParams.id);
+      const categoryId = Number(mergedParams.categoryId);
+      const month = String(mergedParams.month ?? new Date().toISOString().slice(0, 7));
+      const amountLimit = Number(mergedParams.amountLimit);
+      const categoryName = String(mergedParams.categoryName ?? "budget");
+      try {
+        const result = await updateBudget(id, { categoryId, month, amountLimit });
+        setMessages((prev) =>
+          prev.map((m, i) =>
+            i === msgIndex
+              ? { ...m, content: `Budget for ${categoryName} updated to ₱${amountLimit.toFixed(2)}.`, actionPreviewConfirmed: true, actionType: "success", actionResult: result }
+              : m
+          )
+        );
+        dispatchDataEvents("update_budget");
+      } catch {
+        setMessages((prev) =>
+          prev.map((m, i) =>
+            i === msgIndex ? { ...m, content: "Failed to update budget. Please try again.", actionPreviewConfirmed: true } : m
+          )
+        );
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    const confirmMsg = buildConfirmMessage(toolName, mergedParams);
     try {
+      const res = await chatAction(confirmMsg, "execute");
+      if (res.type === "action") {
+        setMessages((prev) =>
+          prev.map((m, i) =>
+            i === msgIndex
+              ? { ...m, content: res.message, actionPreviewConfirmed: true, actionType: "success", actionResult: res.result }
+              : m
+          )
+        );
+        dispatchDataEvents(toolName);
+      } else if (res.type === "preview") {
+        const newPreviewData = res.result as { toolName: string; params: Record<string, unknown> };
+        setMessages((prev) => [
+          ...prev.map((m, i) =>
+            i === msgIndex ? { ...m, actionPreviewConfirmed: true } : m
+          ),
+          {
+            role: "assistant" as const,
+            content: res.message,
+            timestamp: new Date(),
+            actionPreview: { toolName: newPreviewData.toolName, params: newPreviewData.params, originalMessage: "" },
+            editedParams: {},
+          },
+        ]);
+      } else {
+        setMessages((prev) =>
+          prev.map((m, i) =>
+            i === msgIndex ? { ...m, content: res.message, actionPreviewConfirmed: true } : m
+          )
+        );
+      }
+    } catch {
+      setMessages((prev) =>
+        prev.map((m, i) =>
+          i === msgIndex ? { ...m, content: "Failed to confirm action.", actionPreviewConfirmed: true } : m
+        )
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteDisambiguatedExpenses = async (
+    items: Array<{ id: number; description: string; amount: number }>,
+    msgIndex: number,
+  ) => {
+    setLoading(true);
+    try {
+      await Promise.all(items.map((it) => deleteExpense(it.id)));
+      const summary =
+        items.length === 1
+          ? `"${items[0].description}" (${formatCurrency(items[0].amount)}) has been deleted from your expenses.`
+          : `${items.length} expenses deleted: ${items.map((it) => `"${it.description}"`).join(", ")}.`;
+      setMessages((prev) =>
+        prev.map((m, i) =>
+          i === msgIndex
+            ? { ...m, content: summary, actionType: "success", disambiguateItems: undefined, selectedDisambiguateIds: undefined }
+            : m
+        )
+      );
+      dispatchDataEvents("expense");
+    } catch {
+      setMessages((prev) =>
+        prev.map((m, i) =>
+          i === msgIndex ? { ...m, content: "Failed to delete. Please try again." } : m
+        )
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleDisambiguateSelect = (msgIndex: number, id: number) => {
+    setMessages((prev) =>
+      prev.map((m, i) => {
+        if (i !== msgIndex) return m;
+        const current = m.selectedDisambiguateIds ?? [];
+        const updated = current.includes(id) ? current.filter((x) => x !== id) : [...current, id];
+        return { ...m, selectedDisambiguateIds: updated };
+      })
+    );
+  };
+
+  const cancelPreview = (msgIndex: number) => {
+    setMessages((prev) =>
+      prev.map((m, i) =>
+        i === msgIndex ? { ...m, content: "Action cancelled.", actionPreview: undefined } : m
+      )
+    );
+  };
+
+  const saveDraft = async (
+    msgIndex: number,
+    draft: ParsedExpenseResult,
+    draftEdits?: { amount?: number; date?: string; time?: string; description?: string },
+    categoryOverride?: string,
+  ) => {
+    try {
+      const now = new Date();
+      const pad = (n: number) => String(n).padStart(2, "0");
+      const nowDate = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+      const nowTime = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+      const datePart = draftEdits?.date ?? draft.date?.slice(0, 10) ?? nowDate;
+      const timePart = draftEdits?.time ?? (datePart === nowDate ? nowTime : "00:00");
+      const resolvedDate = `${datePart}T${timePart}:00`;
       await createExpense({
-        amount: draft.amount ?? 0,
+        amount: draftEdits?.amount ?? draft.amount ?? 0,
         category: categoryOverride ?? draft.category ?? undefined,
-        date: draft.date ?? undefined,
-        description: draft.description ?? "",
+        date: resolvedDate,
+        description: draftEdits?.description ?? draft.description ?? "",
       });
       setMessages((prev) =>
         prev.map((m, i) => (i === msgIndex ? { ...m, draftSaved: true } : m))
@@ -590,56 +868,251 @@ export default function ChatWidget() {
                           <span>{m.content as string}</span>
                         ) : null}
                       </div>
-                    ) : m.draft ? (
+                    ) : m.actionPreview && m.actionPreviewConfirmed ? (
                       <div className="space-y-2">
-                        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Draft expense</p>
-                        <div className="space-y-1">
-                          <div className="flex justify-between items-center">
-                            <span className="text-xs text-gray-500 dark:text-gray-400">Amount</span>
-                            <span className={`text-sm font-semibold ${theme.accentText}`}>{formatCurrency(m.draft.amount ?? 0)}</span>
-                          </div>
-                          <div className="flex justify-between items-start gap-2">
-                            <span className="text-xs text-gray-500 dark:text-gray-400 pt-1 shrink-0">Category</span>
-                            {m.draftSaved ? (
-                              <span className="text-sm dark:text-gray-200">{m.categoryOverride ?? m.draft.category ?? ""}</span>
-                            ) : categoryNames.length > 0 && !categoryNames.includes(m.categoryOverride ?? m.draft.category ?? "") ? (
-                              <div className="flex flex-col items-end gap-1 min-w-0">
-                                <span className="text-xs text-amber-600 dark:text-amber-400">New category</span>
-                                <select
-                                  value={m.categoryOverride ?? m.draft.category ?? ""}
-                                  onChange={(e) => setMessages((prev) => prev.map((msg, idx) => idx === i ? { ...msg, categoryOverride: e.target.value } : msg))}
-                                  className="text-xs border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 max-w-[140px]"
-                                >
-                                  <option value={m.draft.category ?? ""}>{m.draft.category ?? ""} (create new)</option>
-                                  {categoryNames.map((n) => <option key={n} value={n}>{n}</option>)}
-                                </select>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                          {actionLabel(m.actionPreview.toolName)}
+                        </p>
+                        <div className="space-y-1.5">
+                          {buildPreviewFields(m.actionPreview.toolName, m.actionPreview.params, m.editedParams ?? {}).map(({ field, label, value }) => {
+                            const displayVal = String(m.editedParams?.[field] ?? value);
+                            return (
+                              <div key={field} className="flex justify-between items-center gap-2">
+                                <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">{label}</span>
+                                <span className="text-sm font-medium dark:text-gray-200 text-right">{displayVal}</span>
                               </div>
+                            );
+                          })}
+                        </div>
+                        {m.actionType === "success" ? (
+                          <p className="text-xs text-green-600 dark:text-green-400 font-medium pt-1">
+                            {savedLabel(m.actionPreview.toolName)}
+                          </p>
+                        ) : m.actionType === "error" ? (
+                          <p className="text-xs text-red-500 dark:text-red-400 font-medium pt-1">
+                            {typeof m.content === "string" ? m.content : "Action failed."}
+                          </p>
+                        ) : (
+                          <p className="text-xs text-gray-400 dark:text-gray-500 pt-1">Dismissed.</p>
+                        )}
+                      </div>
+                    ) : m.actionPreview && !m.actionPreviewConfirmed ? (
+                      <div className="space-y-2">
+                        {typeof m.content === "string" && m.content && (
+                          <p className="text-sm text-gray-700 dark:text-gray-200">{m.content}</p>
+                        )}
+                        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                          {actionLabel(m.actionPreview.toolName)}
+                        </p>
+                        <div className="space-y-1.5">
+                          {buildPreviewFields(m.actionPreview.toolName, m.actionPreview.params, m.editedParams ?? {}).map(({ field, label, value, inputType }) => {
+                            const fieldVal = String(m.editedParams?.[field] ?? value);
+                            const onFieldChange = (val: string) =>
+                              setMessages((prev) =>
+                                prev.map((msg, idx) =>
+                                  idx === i ? { ...msg, editedParams: { ...(msg.editedParams ?? {}), [field]: val } } : msg
+                                )
+                              );
+                            return (
+                              <div key={field} className="flex justify-between items-center gap-2">
+                                <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">{label}</span>
+                                {inputType === "select" ? (
+                                  <>
+                                    <input
+                                      type="text"
+                                      list={`cat-${i}-${field}`}
+                                      value={fieldVal}
+                                      onChange={(e) => onFieldChange(e.target.value)}
+                                      placeholder="Type or pick..."
+                                      className="text-sm font-medium text-right bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-0.5 w-36 focus:outline-none focus:ring-1 focus:ring-indigo-400 dark:text-gray-200"
+                                    />
+                                    <datalist id={`cat-${i}-${field}`}>
+                                      {categoryNames.map((n) => <option key={n} value={n} />)}
+                                    </datalist>
+                                  </>
+                                ) : inputType === "freq-select" ? (
+                                  <select
+                                    value={fieldVal}
+                                    onChange={(e) => onFieldChange(e.target.value)}
+                                    className="text-sm font-medium bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-0.5 w-36 focus:outline-none focus:ring-1 focus:ring-indigo-400 dark:text-gray-200"
+                                  >
+                                    <option value="MONTHLY">Monthly</option>
+                                    <option value="WEEKLY">Weekly</option>
+                                    <option value="YEARLY">Yearly</option>
+                                  </select>
+                                ) : (
+                                  <input
+                                    type={inputType}
+                                    defaultValue={value}
+                                    onChange={(e) => onFieldChange(e.target.value)}
+                                    className="text-sm font-medium text-right bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-0.5 w-36 focus:outline-none focus:ring-1 focus:ring-indigo-400 dark:text-gray-200"
+                                  />
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <div className="flex gap-2 mt-1">
+                          <button
+                            onClick={() => void confirmPreview(i, m.actionPreview!.toolName, m.actionPreview!.params, m.editedParams ?? {})}
+                            disabled={loading}
+                            className={`flex-1 text-xs font-medium py-1.5 rounded-lg bg-gradient-to-r ${theme.sendBtn} text-white disabled:opacity-40 transition-all`}
+                          >
+                            Confirm
+                          </button>
+                          <button
+                            onClick={() => cancelPreview(i)}
+                            disabled={loading}
+                            className="flex-1 text-xs font-medium py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : m.disambiguateItems && m.disambiguateItems.length > 0 ? (
+                      <div className="space-y-2">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{m.content as string}</p>
+                        <div className="space-y-1.5">
+                          {m.disambiguateItems.map((item) => {
+                            const selected = m.selectedDisambiguateIds?.includes(item.id) ?? false;
+                            return (
+                              <label
+                                key={item.id}
+                                className={`flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 border cursor-pointer transition-colors ${
+                                  selected
+                                    ? "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700"
+                                    : "bg-gray-50 dark:bg-gray-700/50 border-gray-100 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                }`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={selected}
+                                  onChange={() => toggleDisambiguateSelect(i, item.id)}
+                                  className="w-3.5 h-3.5 rounded accent-red-500 shrink-0"
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs font-medium text-gray-800 dark:text-gray-200 truncate">{item.description}</p>
+                                  <p className="text-xs text-gray-400">{formatCurrency(item.amount)} · {formatDate(item.date)}</p>
+                                </div>
+                              </label>
+                            );
+                          })}
+                        </div>
+                        {(m.selectedDisambiguateIds?.length ?? 0) > 0 && (
+                          <button
+                            onClick={() => {
+                              const selected = m.disambiguateItems!.filter((it) => m.selectedDisambiguateIds!.includes(it.id));
+                              void deleteDisambiguatedExpenses(selected, i);
+                            }}
+                            disabled={loading}
+                            className="w-full text-xs font-medium py-1.5 rounded-lg bg-red-500 hover:bg-red-600 text-white disabled:opacity-40 transition-colors"
+                          >
+                            Delete Selected ({m.selectedDisambiguateIds!.length})
+                          </button>
+                        )}
+                      </div>
+                    ) : m.draft && !m.draftCancelled ? (
+                      <div className="space-y-2">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">New expense</p>
+                        <div className="space-y-1.5">
+                          <div className="flex justify-between items-center gap-2">
+                            <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">Amount (₱)</span>
+                            {m.draftSaved ? (
+                              <span className={`text-sm font-semibold ${theme.accentText}`}>{formatCurrency(m.draftEdits?.amount ?? m.draft.amount ?? 0)}</span>
                             ) : (
-                              <span className="text-sm dark:text-gray-200">{m.categoryOverride ?? m.draft.category ?? ""}</span>
+                              <input
+                                type="number"
+                                defaultValue={m.draft.amount ?? 0}
+                                min={0}
+                                step={0.01}
+                                onChange={(e) => setMessages((prev) => prev.map((msg, idx) => idx === i ? { ...msg, draftEdits: { ...(msg.draftEdits ?? {}), amount: parseFloat(e.target.value) || 0 } } : msg))}
+                                className="text-sm font-semibold text-right bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-0.5 w-32 focus:outline-none focus:ring-1 focus:ring-indigo-400 dark:text-gray-200"
+                              />
                             )}
                           </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-xs text-gray-500 dark:text-gray-400">Date</span>
-                            <span className="text-sm dark:text-gray-200">{formatDate(m.draft.date)}</span>
+                          <div className="flex justify-between items-center gap-2">
+                            <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">Description</span>
+                            {m.draftSaved ? (
+                              <span className="text-sm dark:text-gray-200 text-right">{m.draftEdits?.description ?? m.draft.description ?? ""}</span>
+                            ) : (
+                              <input
+                                type="text"
+                                defaultValue={m.draft.description ?? ""}
+                                onChange={(e) => setMessages((prev) => prev.map((msg, idx) => idx === i ? { ...msg, draftEdits: { ...(msg.draftEdits ?? {}), description: e.target.value } } : msg))}
+                                className="text-sm text-right bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-0.5 w-32 focus:outline-none focus:ring-1 focus:ring-indigo-400 dark:text-gray-200"
+                              />
+                            )}
                           </div>
-                          {m.draft.description && (
-                            <div className="flex justify-between items-center gap-3">
-                              <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">Note</span>
-                              <span className="text-sm dark:text-gray-200 text-right">{m.draft.description}</span>
-                            </div>
-                          )}
+                          <div className="flex justify-between items-center gap-2">
+                            <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">Category</span>
+                            {m.draftSaved ? (
+                              <span className="text-sm dark:text-gray-200">{m.categoryOverride ?? m.draft.category ?? ""}</span>
+                            ) : (
+                              <>
+                                <input
+                                  type="text"
+                                  list={`cat-draft-${i}`}
+                                  value={m.categoryOverride ?? m.draft.category ?? ""}
+                                  onChange={(e) => setMessages((prev) => prev.map((msg, idx) => idx === i ? { ...msg, categoryOverride: e.target.value } : msg))}
+                                  placeholder="Type or pick..."
+                                  className="text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-0.5 w-32 focus:outline-none focus:ring-1 focus:ring-indigo-400 dark:text-gray-200"
+                                />
+                                <datalist id={`cat-draft-${i}`}>
+                                  {categoryNames.map((n) => <option key={n} value={n} />)}
+                                </datalist>
+                              </>
+                            )}
+                          </div>
+                          <div className="flex justify-between items-center gap-2">
+                            <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">Date</span>
+                            {m.draftSaved ? (
+                              <span className="text-sm dark:text-gray-200">{formatDate(m.draftEdits?.date ?? m.draft.date)}</span>
+                            ) : (
+                              <input
+                                type="date"
+                                defaultValue={m.draft.date ? m.draft.date.slice(0, 10) : (() => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}`; })()}
+                                onChange={(e) => setMessages((prev) => prev.map((msg, idx) => idx === i ? { ...msg, draftEdits: { ...(msg.draftEdits ?? {}), date: e.target.value } } : msg))}
+                                className="text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-0.5 w-32 focus:outline-none focus:ring-1 focus:ring-indigo-400 dark:text-gray-200"
+                              />
+                            )}
+                          </div>
+                          <div className="flex justify-between items-center gap-2">
+                            <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">Time</span>
+                            {m.draftSaved ? (
+                              <span className="text-sm dark:text-gray-200">{m.draftEdits?.time ?? (() => { const n = new Date(); return `${String(n.getHours()).padStart(2,"0")}:${String(n.getMinutes()).padStart(2,"0")}`; })()}</span>
+                            ) : (
+                              <input
+                                type="time"
+                                defaultValue={(() => { const n = new Date(); return `${String(n.getHours()).padStart(2,"0")}:${String(n.getMinutes()).padStart(2,"0")}`; })()}
+                                onChange={(e) => setMessages((prev) => prev.map((msg, idx) => idx === i ? { ...msg, draftEdits: { ...(msg.draftEdits ?? {}), time: e.target.value } } : msg))}
+                                className="text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-0.5 w-32 focus:outline-none focus:ring-1 focus:ring-indigo-400 dark:text-gray-200"
+                              />
+                            )}
+                          </div>
                         </div>
                         {m.draftSaved ? (
                           <p className="text-xs text-green-600 dark:text-green-400 font-medium pt-1">Saved to expenses</p>
                         ) : (
-                          <button
-                            onClick={() => void saveDraft(i, m.draft!, m.categoryOverride)}
-                            className={`mt-1 w-full text-xs font-medium py-1.5 rounded-lg bg-gradient-to-r ${theme.sendBtn} text-white transition-all`}
-                          >
-                            Save expense
-                          </button>
+                          <div className="flex gap-2 mt-1">
+                            <button
+                              onClick={() => void saveDraft(i, m.draft!, m.draftEdits, m.categoryOverride)}
+                              disabled={loading}
+                              className={`flex-1 text-xs font-medium py-1.5 rounded-lg bg-gradient-to-r ${theme.sendBtn} text-white disabled:opacity-40 transition-all`}
+                            >
+                              Save expense
+                            </button>
+                            <button
+                              onClick={() => setMessages((prev) => prev.map((msg, idx) => idx === i ? { ...msg, draftCancelled: true } : msg))}
+                              disabled={loading}
+                              className="flex-1 text-xs font-medium py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                            >
+                              Cancel
+                            </button>
+                          </div>
                         )}
                       </div>
+                    ) : m.draftCancelled ? (
+                      <span className="text-sm text-gray-400 dark:text-gray-500 italic">Draft discarded.</span>
                     ) : m.actionType === "success" ? (
                       renderActionResult(m)
                     ) : (
