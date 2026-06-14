@@ -13,6 +13,7 @@ import { getBudgetSummary } from "../api/budgets";
 import { getCategoryReport, getExpenses, getMonthlyComparison, getMonthlyReport } from "../api/expenses";
 import type { BudgetSummaryResponse, CategoryReport, Expense, MonthlyComparison, MonthlyReport } from "../api/types";
 import AiInsightsCard from "../components/AiInsightsCard";
+import FeatureGate from "../components/FeatureGate";
 import AlertsCard from "../components/AlertsCard";
 import BudgetOverviewCard from "../components/BudgetOverviewCard";
 import DailyTrendCard from "../components/DailyTrendCard";
@@ -202,8 +203,10 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* Row 2: AI Insights */}
-      <AiInsightsCard month={currentMonth} />
+      {/* Row 2: AI Insights (premium) */}
+      <FeatureGate feature="ADVANCED_INSIGHTS">
+        <AiInsightsCard month={currentMonth} />
+      </FeatureGate>
 
       {/* Row 3: Main 2-panel grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
