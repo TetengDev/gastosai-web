@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
-import { askQuery, askWithAttachment, type ChatMode } from "../api/ai";
+import { askWithAttachment, chatAction, type ChatMode } from "../api/ai";
 import { getCategories } from "../api/categories";
 import { createExpense, importExpensesCsv, parseExpense } from "../api/expenses";
 import type { ParsedExpenseResult } from "../api/types";
@@ -18,6 +18,8 @@ interface Message {
   draft?: ParsedExpenseResult;
   draftSaved?: boolean;
   categoryOverride?: string;
+  actionType?: "success" | "error";
+  actionResult?: unknown;
 }
 
 interface ModeTheme {
@@ -95,11 +97,10 @@ const MODES: { value: ChatMode; label: string; emoji: string }[] = [
 ];
 
 const SUGGESTED_PROMPTS = [
-  "What did I spend most on?",
-  "Total expenses this month",
-  "List all expenses over ₱500",
-  "How much did I spend last week?",
-  "spent 250 on Jollibee lunch",
+  "create a budget for food ₱5000",
+  "add 250 expense for lunch",
+  "create goal Emergency Fund 10000",
+  "add recurring Netflix 499 monthly",
 ];
 
 function makeWelcomeMessage(displayName?: string | null): Message {
@@ -258,6 +259,17 @@ function renderAnswer(answer: unknown, accentText: string): ReactNode {
   return <span>{String(answer)}</span>;
 }
 
+function renderActionResult(msg: Message) {
+  return (
+    <div className="mt-2 border-l-2 border-green-500 dark:border-green-400 pl-3">
+      <p className="text-sm text-green-700 dark:text-green-300 font-medium">{msg.content as string}</p>
+      {Boolean(msg.actionResult && typeof msg.actionResult === "object" && "id" in (msg.actionResult as object)) && (
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">ID: #{(msg.actionResult as { id: number }).id}</p>
+      )}
+    </div>
+  );
+}
+
 function TypingDots({ dotClass }: { dotClass: string }) {
   return (
     <div className="flex gap-1 items-center py-0.5">
@@ -408,11 +420,19 @@ export default function ChatWidget() {
           ]);
         }
       } else if (!file) {
-        const res = await askQuery(trimmed, mode);
-        setMessages((prev) => [
-          ...prev,
-          { role: "assistant", content: res.answer, timestamp: new Date() },
-        ]);
+        const res = await chatAction(trimmed, mode);
+        if (res.type === "action") {
+          setMessages((prev) => [
+            ...prev,
+            { role: "assistant", content: res.message, timestamp: new Date(), actionType: "success", actionResult: res.result },
+          ]);
+          window.dispatchEvent(new CustomEvent("gastosai:expense-changed"));
+        } else {
+          setMessages((prev) => [
+            ...prev,
+            { role: "assistant", content: res.message, timestamp: new Date() },
+          ]);
+        }
       } else {
         setMessages((prev) => [
           ...prev,
@@ -423,12 +443,11 @@ export default function ChatWidget() {
           },
         ]);
       }
-    } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message ??
-        "Failed to get a response. Make sure the backend is running.";
-      setError(msg);
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: "Sorry, something went wrong.", timestamp: new Date(), actionType: "error" },
+      ]);
     } finally {
       setLoading(false);
       inputRef.current?.focus();
@@ -621,6 +640,8 @@ export default function ChatWidget() {
                           </button>
                         )}
                       </div>
+                    ) : m.actionType === "success" ? (
+                      renderActionResult(m)
                     ) : (
                       renderAnswer(m.content, theme.accentText)
                     )}
@@ -722,7 +743,7 @@ export default function ChatWidget() {
                 type="text"
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
-                placeholder={pendingFile ? "Ask about this image…" : "Ask about your expenses…"}
+                placeholder={pendingFile ? "Ask about this image…" : "Ask or tell me what to do…"}
                 className={`flex-1 border border-gray-200 dark:border-gray-700 rounded-full px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:border-transparent transition-all bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 ${theme.inputRing}`}
               />
               <button

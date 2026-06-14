@@ -161,3 +161,9 @@ export interface DailyReport {
   date: string;
   total: number;
 }
+
+export interface ChatResponse {
+  type: "action" | "text" | "query";
+  message: string;
+  result: unknown;
+}
