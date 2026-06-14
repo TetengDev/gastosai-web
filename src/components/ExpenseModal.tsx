@@ -249,7 +249,7 @@ export default function ExpenseModal({ expense, onSave, onClose }: Props) {
             <button
               type="submit"
               disabled={saving}
-              className="flex-1 px-4 py-2.5 text-sm bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-xl hover:from-violet-700 hover:to-indigo-700 disabled:opacity-50 transition-all font-semibold shadow-md shadow-indigo-500/25"
+              className="flex-1 px-4 py-2.5 text-sm bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-xl hover:from-indigo-700 hover:to-blue-700 disabled:opacity-50 transition-all font-semibold shadow-md shadow-indigo-500/25"
             >
               {saving ? "Saving..." : "Save"}
             </button>

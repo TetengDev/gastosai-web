@@ -1,6 +1,7 @@
 import { LogOut, Moon, Sun } from "lucide-react";
-import { NavLink } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useUnreadAlertCount } from "../hooks/useUnreadAlertCount";
 import { getAvatarGradient, getInitials } from "../lib/formatters";
 
 interface Props {
@@ -10,6 +11,7 @@ interface Props {
 
 export default function Navbar({ isDark, onToggleDark }: Props) {
   const { user, logout } = useAuth();
+  const unreadAlerts = useUnreadAlertCount();
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     `px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
@@ -19,16 +21,11 @@ export default function Navbar({ isDark, onToggleDark }: Props) {
     }`;
 
   return (
-    <nav className="sticky top-0 z-10 bg-gradient-to-r from-violet-600 via-indigo-600 to-indigo-700 shadow-lg shadow-indigo-500/20">
+    <nav className="sticky top-0 z-10 bg-gradient-to-r from-indigo-600 via-indigo-700 to-blue-700 shadow-lg shadow-indigo-600/20">
       <div className="max-w-5xl mx-auto px-4 py-3 flex items-center gap-2">
-        <div className="mr-4 flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-white/15 rounded-xl flex items-center justify-center backdrop-blur-sm border border-white/20">
-            <span className="text-white text-sm font-black">G</span>
-          </div>
-          <span className="font-extrabold text-white text-lg tracking-tight">
-            GastosAI
-          </span>
-        </div>
+        <Link to="/" className="mr-4 shrink-0 text-white font-extrabold text-lg tracking-tight select-none">
+          Gastos<span className="text-indigo-300">AI</span>
+        </Link>
         <NavLink to="/" end className={linkClass}>
           Dashboard
         </NavLink>
@@ -48,7 +45,14 @@ export default function Navbar({ isDark, onToggleDark }: Props) {
           Goals
         </NavLink>
         <NavLink to="/alerts" className={linkClass}>
-          Alerts
+          <span className="relative">
+            Alerts
+            {unreadAlerts > 0 && (
+              <span className="absolute -top-2.5 -right-3 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white leading-none">
+                {unreadAlerts > 9 ? "9+" : unreadAlerts}
+              </span>
+            )}
+          </span>
         </NavLink>
         <div className="ml-auto flex items-center gap-1">
           <button

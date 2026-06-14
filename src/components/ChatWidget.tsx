@@ -39,14 +39,14 @@ interface ModeTheme {
 
 const MODE_THEMES: Record<ChatMode, ModeTheme> = {
   plain: {
-    headerGradient: "from-violet-600 to-indigo-700",
-    avatarGradient: "from-violet-600 to-indigo-600",
-    userBubble: "from-violet-600 to-indigo-600",
+    headerGradient: "from-indigo-600 to-blue-700",
+    avatarGradient: "from-indigo-600 to-blue-600",
+    userBubble: "from-indigo-600 to-blue-600",
     botBubble: "bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700",
     activePill: "bg-white/25 text-white shadow-sm",
     inactivePill: "text-white/70 hover:text-white hover:bg-white/15",
-    sendBtn: "from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700",
-    fabGradient: "from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700",
+    sendBtn: "from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700",
+    fabGradient: "from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700",
     fabShadow: "shadow-indigo-500/40 hover:shadow-indigo-500/50",
     chip: "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-700 hover:bg-indigo-100 dark:hover:bg-indigo-800/50",
     inputRing: "focus:ring-indigo-500",

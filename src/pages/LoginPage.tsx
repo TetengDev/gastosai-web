@@ -28,14 +28,13 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-violet-600 via-indigo-600 to-indigo-700 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-blue-700 to-indigo-700 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 bg-white/15 rounded-2xl border border-white/20 mb-4">
-            <span className="text-white text-2xl font-black">G</span>
-          </div>
-          <h1 className="text-3xl font-extrabold text-white tracking-tight">GastosAI</h1>
-          <p className="text-indigo-200 mt-1 text-sm">Sign in to your account</p>
+          <h1 className="text-white text-4xl font-extrabold tracking-tight mb-2 select-none">
+            Gastos<span className="text-indigo-300">AI</span>
+          </h1>
+          <p className="text-indigo-200 text-sm">Sign in to your account</p>
         </div>
 
         <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl shadow-black/20 p-8">
@@ -76,7 +75,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 px-4 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-semibold rounded-xl transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-indigo-500/25 disabled:opacity-60 disabled:cursor-not-allowed disabled:translate-y-0 cursor-pointer"
+              className="w-full py-2.5 px-4 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-semibold rounded-xl transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-indigo-500/25 disabled:opacity-60 disabled:cursor-not-allowed disabled:translate-y-0 cursor-pointer"
             >
               {loading ? "Signing in…" : "Sign in"}
             </button>

@@ -35,11 +35,13 @@ export default function Alerts() {
   const handleRead = async (id: number) => {
     const updated = await markAlertRead(id);
     setAlerts((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+    window.dispatchEvent(new Event("gastosai:alert-changed"));
   };
 
   const handleDismiss = async (id: number) => {
     await dismissAlert(id);
     setAlerts((prev) => prev.filter((a) => a.id !== id));
+    window.dispatchEvent(new Event("gastosai:alert-changed"));
   };
 
   return (
