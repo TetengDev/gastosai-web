@@ -4,8 +4,8 @@ import type { BudgetRequest, BudgetResponse, BudgetSummaryResponse } from "./typ
 export const getBudgets = (month: string): Promise<BudgetResponse[]> =>
   api.get<BudgetResponse[]>("/budgets", { params: { month } }).then((r) => r.data);
 
-export const createBudget = (data: BudgetRequest): Promise<BudgetResponse> =>
-  api.post<BudgetResponse>("/budgets", data).then((r) => r.data);
+export const createBudget = (data: BudgetRequest, force = false): Promise<BudgetResponse> =>
+  api.post<BudgetResponse>("/budgets", data, { params: force ? { force: true } : {} }).then((r) => r.data);
 
 export const updateBudget = (id: number, data: BudgetRequest): Promise<BudgetResponse> =>
   api.put<BudgetResponse>(`/budgets/${id}`, data).then((r) => r.data);
