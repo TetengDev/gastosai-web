@@ -8,7 +8,7 @@ import {
   updateBudget,
 } from "../api/budgets";
 import { createCategory, getCategories } from "../api/categories";
-import type { BudgetResponse } from "../api/types";
+import type { BudgetRequest, BudgetResponse } from "../api/types";
 import type { Category } from "../api/types";
 import CategoryCombobox from "../components/CategoryCombobox";
 import CurrencySelect from "../components/CurrencySelect";
@@ -40,6 +40,7 @@ export default function Budget() {
   const [suggestedRate, setSuggestedRate] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
+  const [conflict, setConflict] = useState<BudgetResponse | null>(null);
 
   const [confirmDelete, setConfirmDelete] = useState<BudgetResponse | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -95,6 +96,7 @@ export default function Budget() {
 
   const openAdd = () => {
     setEditing(null);
+    setConflict(null);
     setSelectedCategoryName("");
     setCategoryId("");
     setAmountLimit("");
@@ -108,6 +110,7 @@ export default function Budget() {
 
   const openEdit = (budget: BudgetResponse) => {
     setEditing(budget);
+    setConflict(null);
     setSelectedCategoryName(budget.categoryName);
     setCategoryId(budget.categoryId);
     setAmountLimit(String(budget.amountLimit));
@@ -122,6 +125,7 @@ export default function Budget() {
   const closeModal = () => {
     setModalOpen(false);
     setEditing(null);
+    setConflict(null);
     setSelectedCategoryName("");
     setCategoryId("");
     setAmountLimit("");
@@ -145,6 +149,14 @@ export default function Budget() {
     }
   };
 
+  const buildPayload = (): BudgetRequest => ({
+    categoryId: Number(categoryId),
+    month: modalMonth,
+    amountLimit: parseFloat(amountLimit),
+    currency: budgetCurrency,
+    exchangeRate: budgetExchangeRate,
+  });
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (categoryId === "") {
@@ -154,13 +166,7 @@ export default function Budget() {
     setSaving(true);
     setModalError(null);
     try {
-      const payload = {
-        categoryId: Number(categoryId),
-        month: modalMonth,
-        amountLimit: parseFloat(amountLimit),
-        currency: budgetCurrency,
-        exchangeRate: budgetExchangeRate,
-      };
+      const payload = buildPayload();
       if (editing) {
         const updated = await updateBudget(editing.id, payload);
         setBudgets((prev) => prev.map((b) => (b.id === updated.id ? updated : b)));
@@ -172,21 +178,35 @@ export default function Budget() {
       window.dispatchEvent(new CustomEvent("gastosai:budget-changed"));
     } catch (err: unknown) {
       const response = (err as { response?: { status?: number; data?: { message?: string; detail?: string } } })?.response;
-      // Duplicate (409): a budget for this category+month already exists. Switch the modal into
-      // update mode on the existing budget so the user can review and Save to update it.
+      // Duplicate (409): a budget for this category+month already exists. Offer to overwrite it.
       if (response?.status === 409 && !editing) {
         const existing = budgets.find(
           (b) => b.categoryId === Number(categoryId) && b.month === modalMonth
-        );
-        if (existing) {
-          setEditing(existing);
-          setModalError("A budget for this category already exists this month. Review the amount and Save to update it.");
-        } else {
-          setModalError("A budget for this category already exists this month.");
-        }
+        ) ?? null;
+        setConflict(existing);
+        setModalError("A budget for this category and month already exists. Overwrite it with the new amount?");
       } else {
         setModalError(response?.data?.message ?? response?.data?.detail ?? "Failed to save. Check your input.");
       }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleOverwrite = async () => {
+    setSaving(true);
+    setModalError(null);
+    try {
+      const saved = await createBudget(buildPayload(), true);
+      setBudgets((prev) =>
+        prev.some((b) => b.id === saved.id)
+          ? prev.map((b) => (b.id === saved.id ? saved : b))
+          : [...prev, saved]
+      );
+      closeModal();
+      window.dispatchEvent(new CustomEvent("gastosai:budget-changed"));
+    } catch {
+      setModalError("Failed to overwrite budget.");
     } finally {
       setSaving(false);
     }
@@ -469,13 +489,24 @@ export default function Budget() {
                 >
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="flex-1 px-4 py-2.5 text-sm bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-xl hover:from-indigo-700 hover:to-blue-700 disabled:opacity-50 transition-all font-semibold"
-                >
-                  {saving ? "Saving..." : "Save"}
-                </button>
+                {conflict !== null && !editing ? (
+                  <button
+                    type="button"
+                    onClick={handleOverwrite}
+                    disabled={saving}
+                    className="flex-1 px-4 py-2.5 text-sm bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-xl hover:from-amber-700 hover:to-orange-700 disabled:opacity-50 transition-all font-semibold"
+                  >
+                    {saving ? "Overwriting..." : "Overwrite existing"}
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="flex-1 px-4 py-2.5 text-sm bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-xl hover:from-indigo-700 hover:to-blue-700 disabled:opacity-50 transition-all font-semibold"
+                  >
+                    {saving ? "Saving..." : "Save"}
+                  </button>
+                )}
               </div>
             </form>
           </div>
