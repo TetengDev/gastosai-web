@@ -59,6 +59,7 @@ export default function Goals() {
   const [form, setForm] = useState<GoalRequest>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
+  const [conflict, setConflict] = useState<Goal | null>(null);
 
   const [confirmDelete, setConfirmDelete] = useState<Goal | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -106,6 +107,7 @@ export default function Goals() {
     setEditing(null);
     setForm(EMPTY_FORM);
     setModalError(null);
+    setConflict(null);
   };
 
   const handleSave = async () => {
@@ -123,8 +125,46 @@ export default function Goals() {
       }
       closeModal();
       window.dispatchEvent(new CustomEvent("gastosai:goal-changed"));
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      if (status === 409 && !editing) {
+        const existing = goals.find((g) => g.name.trim().toLowerCase() === form.name.trim().toLowerCase()) ?? null;
+        setConflict(existing);
+        setModalError(`A goal named "${form.name.trim()}" already exists.`);
+      } else {
+        setModalError("Failed to save goal.");
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCreateAnyway = async () => {
+    setSaving(true);
+    setModalError(null);
+    try {
+      const created = await createGoal(form, true);
+      setGoals((prev) => [created, ...prev]);
+      closeModal();
+      window.dispatchEvent(new CustomEvent("gastosai:goal-changed"));
     } catch {
       setModalError("Failed to save goal.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUpdateExisting = async () => {
+    if (!conflict) return;
+    setSaving(true);
+    setModalError(null);
+    try {
+      const updated = await updateGoal(conflict.id, form);
+      setGoals((prev) => prev.map((g) => (g.id === conflict.id ? updated : g)));
+      closeModal();
+      window.dispatchEvent(new CustomEvent("gastosai:goal-changed"));
+    } catch {
+      setModalError("Failed to update goal.");
     } finally {
       setSaving(false);
     }
@@ -360,13 +400,32 @@ export default function Goals() {
               >
                 Cancel
               </button>
-              <button
-                disabled={saving}
-                onClick={handleSave}
-                className="flex-1 px-4 py-2.5 text-sm bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-xl hover:from-indigo-700 hover:to-blue-700 disabled:opacity-50 font-semibold transition-all"
-              >
-                {saving ? "Saving…" : editing ? "Save Changes" : "Add Goal"}
-              </button>
+              {modalError && conflict !== null && !editing ? (
+                <>
+                  <button
+                    disabled={saving}
+                    onClick={handleUpdateExisting}
+                    className="flex-1 px-4 py-2.5 text-sm bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-xl hover:from-indigo-700 hover:to-blue-700 disabled:opacity-50 font-semibold transition-all"
+                  >
+                    {saving ? "…" : "Update existing"}
+                  </button>
+                  <button
+                    disabled={saving}
+                    onClick={handleCreateAnyway}
+                    className="flex-1 px-4 py-2.5 text-sm border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 font-semibold transition-all"
+                  >
+                    Create anyway
+                  </button>
+                </>
+              ) : (
+                <button
+                  disabled={saving}
+                  onClick={handleSave}
+                  className="flex-1 px-4 py-2.5 text-sm bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-xl hover:from-indigo-700 hover:to-blue-700 disabled:opacity-50 font-semibold transition-all"
+                >
+                  {saving ? "Saving…" : editing ? "Save Changes" : "Add Goal"}
+                </button>
+              )}
             </div>
           </div>
         </div>

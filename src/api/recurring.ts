@@ -4,8 +4,8 @@ import type { RecurringExpenseRequest, RecurringExpenseResponse, UpcomingBillRes
 export const getRecurring = () =>
   api.get<RecurringExpenseResponse[]>("/recurring").then((r) => r.data);
 
-export const createRecurring = (data: RecurringExpenseRequest) =>
-  api.post<RecurringExpenseResponse>("/recurring", data).then((r) => r.data);
+export const createRecurring = (data: RecurringExpenseRequest, force = false) =>
+  api.post<RecurringExpenseResponse>("/recurring", data, { params: force ? { force: true } : {} }).then((r) => r.data);
 
 export const updateRecurring = (id: number, data: RecurringExpenseRequest) =>
   api.put<RecurringExpenseResponse>(`/recurring/${id}`, data).then((r) => r.data);

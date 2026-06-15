@@ -1,7 +1,7 @@
 import { Download, Loader2, Pencil, Trash2, Upload } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import ExpenseModal from "../components/ExpenseModal";
-import { exportExpenses, getExpenses, importExpensesCsv, type ImportResult } from "../api/expenses";
+import { deleteExpense, exportExpenses, getExpenses, importExpensesCsv, type ImportResult } from "../api/expenses";
 import type { Expense } from "../api/types";
 import { useExpenses } from "../hooks/useExpenses";
 import { useFeatures } from "../hooks/useFeatures";
@@ -25,6 +25,30 @@ export default function Expenses() {
 
   const [exporting, setExporting] = useState(false);
   const [isFetchingFilter, setIsFetchingFilter] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [deletingSelected, setDeletingSelected] = useState(false);
+
+  const toggleSelect = (id: number) =>
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+
+  const deleteSelected = async () => {
+    if (selectedIds.size === 0) return;
+    setDeletingSelected(true);
+    try {
+      await Promise.all([...selectedIds].map((id) => deleteExpense(id)));
+      setSelectedIds(new Set());
+      await refresh();
+      window.dispatchEvent(new CustomEvent("gastosai:expense-changed"));
+    } catch {
+      // leave selection; user can retry
+    } finally {
+      setDeletingSelected(false);
+    }
+  };
 
   useEffect(() => {
     let active = true;
@@ -259,9 +283,33 @@ export default function Expenses() {
           </div>
         ) : (
           <div className="overflow-x-auto">
+            {selectedIds.size > 0 && (
+              <div className="flex items-center justify-between px-5 py-2.5 bg-red-50/60 dark:bg-red-900/10 border-b border-red-100 dark:border-red-900/30">
+                <span className="text-sm text-gray-600 dark:text-gray-300">{selectedIds.size} selected</span>
+                <button
+                  onClick={deleteSelected}
+                  disabled={deletingSelected}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg disabled:opacity-50 transition-colors"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  {deletingSelected ? "Deleting…" : `Delete Selected (${selectedIds.size})`}
+                </button>
+              </div>
+            )}
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50/80 dark:bg-gray-800/60 border-b border-gray-100 dark:border-gray-800">
+                  <th className="px-5 py-3.5 w-10">
+                    <input
+                      type="checkbox"
+                      aria-label="Select all"
+                      checked={displayExpenses.length > 0 && displayExpenses.every((e) => selectedIds.has(e.id))}
+                      onChange={(ev) =>
+                        setSelectedIds(ev.target.checked ? new Set(displayExpenses.map((e) => e.id)) : new Set())
+                      }
+                      className="rounded border-gray-300 dark:border-gray-600"
+                    />
+                  </th>
                   <th className="px-5 py-3.5 text-left font-semibold text-gray-400 dark:text-gray-500 text-xs uppercase tracking-wide">
                     Date & Time
                   </th>
@@ -288,6 +336,15 @@ export default function Expenses() {
                       key={e.id}
                       className="hover:bg-gray-50/60 dark:hover:bg-gray-800/40 transition-colors group"
                     >
+                      <td className="px-5 py-3.5">
+                        <input
+                          type="checkbox"
+                          aria-label={`Select ${e.description || "expense"}`}
+                          checked={selectedIds.has(e.id)}
+                          onChange={() => toggleSelect(e.id)}
+                          className="rounded border-gray-300 dark:border-gray-600"
+                        />
+                      </td>
                       <td className="px-5 py-3.5 text-gray-500 dark:text-gray-400 whitespace-nowrap text-xs">
                         {formatDate(e.date)}
                       </td>

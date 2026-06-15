@@ -119,7 +119,9 @@ export default function Dashboard() {
     return () => window.removeEventListener("gastosai:expense-changed", fetchData);
   }, [fetchData]);
 
-  const total = categoryData.reduce((sum, c) => sum + Number(c.total), 0);
+  // "This Month" must be the current-month total (momData), not the all-time category report.
+  // momData is refetched on gastosai:expense-changed, so editing a current-month expense updates this.
+  const total = momData?.currentTotal ?? 0;
   const chartData = buildChartData(categoryData);
   const today = new Date().getDate();
   const dailyAvg = today > 0 ? total / today : 0;

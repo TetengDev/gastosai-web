@@ -85,6 +85,7 @@ export default function Recurring() {
   const [deleting, setDeleting] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
+  const [conflict, setConflict] = useState<RecurringExpenseResponse | null>(null);
   const [rateFetching, setRateFetching] = useState(false);
   const [suggestedRate, setSuggestedRate] = useState<number | null>(null);
 
@@ -176,6 +177,13 @@ export default function Recurring() {
     setEditTarget(null);
     setForm(DEFAULT_FORM);
     setModalError(null);
+    setConflict(null);
+  };
+
+  const finishSave = () => {
+    closeModal();
+    void load();
+    window.dispatchEvent(new CustomEvent("gastosai:recurring-changed"));
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -188,14 +196,45 @@ export default function Recurring() {
       } else {
         await createRecurring(form);
       }
-      closeModal();
-      void load();
-      window.dispatchEvent(new CustomEvent("gastosai:recurring-changed"));
+      finishSave();
     } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { message?: string; detail?: string } } })
-          ?.response?.data?.message ?? "Failed to save. Check your input.";
-      setModalError(msg);
+      const response = (err as { response?: { status?: number; data?: { message?: string; detail?: string } } })?.response;
+      if (response?.status === 409 && !editTarget) {
+        const existing = bills.find(
+          (b) => b.name.trim().toLowerCase() === form.name.trim().toLowerCase() && b.frequency === form.frequency
+        ) ?? null;
+        setConflict(existing);
+        setModalError(`A ${String(form.frequency).toLowerCase()} recurring expense named "${form.name.trim()}" already exists.`);
+      } else {
+        setModalError(response?.data?.message ?? response?.data?.detail ?? "Failed to save. Check your input.");
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCreateAnyway = async () => {
+    setSaving(true);
+    setModalError(null);
+    try {
+      await createRecurring(form, true);
+      finishSave();
+    } catch {
+      setModalError("Failed to save. Check your input.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUpdateExisting = async () => {
+    if (!conflict) return;
+    setSaving(true);
+    setModalError(null);
+    try {
+      await updateRecurring(conflict.id, form);
+      finishSave();
+    } catch {
+      setModalError("Failed to update.");
     } finally {
       setSaving(false);
     }
@@ -597,13 +636,34 @@ export default function Recurring() {
                 >
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="flex-1 px-4 py-2.5 text-sm bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-xl hover:from-indigo-700 hover:to-blue-700 disabled:opacity-50 transition-all font-semibold"
-                >
-                  {saving ? "Saving..." : "Save"}
-                </button>
+                {modalError && conflict !== null && !editTarget ? (
+                  <>
+                    <button
+                      type="button"
+                      disabled={saving}
+                      onClick={handleUpdateExisting}
+                      className="flex-1 px-4 py-2.5 text-sm bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-xl hover:from-indigo-700 hover:to-blue-700 disabled:opacity-50 transition-all font-semibold"
+                    >
+                      {saving ? "…" : "Update existing"}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={saving}
+                      onClick={handleCreateAnyway}
+                      className="flex-1 px-4 py-2.5 text-sm border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 transition-all font-semibold"
+                    >
+                      Create anyway
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="flex-1 px-4 py-2.5 text-sm bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-xl hover:from-indigo-700 hover:to-blue-700 disabled:opacity-50 transition-all font-semibold"
+                  >
+                    {saving ? "Saving..." : "Save"}
+                  </button>
+                )}
               </div>
             </form>
           </div>

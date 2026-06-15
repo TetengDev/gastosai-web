@@ -24,8 +24,8 @@ export interface GoalRequest {
 
 export const getGoals = () => api.get<Goal[]>("/goals").then((r) => r.data);
 
-export const createGoal = (data: GoalRequest) =>
-  api.post<Goal>("/goals", data).then((r) => r.data);
+export const createGoal = (data: GoalRequest, force = false) =>
+  api.post<Goal>("/goals", data, { params: force ? { force: true } : {} }).then((r) => r.data);
 
 export const updateGoal = (id: number, data: GoalRequest) =>
   api.put<Goal>(`/goals/${id}`, data).then((r) => r.data);

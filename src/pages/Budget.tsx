@@ -171,10 +171,22 @@ export default function Budget() {
       closeModal();
       window.dispatchEvent(new CustomEvent("gastosai:budget-changed"));
     } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { message?: string; detail?: string } } })
-          ?.response?.data?.message ?? "Failed to save. Check your input.";
-      setModalError(msg);
+      const response = (err as { response?: { status?: number; data?: { message?: string; detail?: string } } })?.response;
+      // Duplicate (409): a budget for this category+month already exists. Switch the modal into
+      // update mode on the existing budget so the user can review and Save to update it.
+      if (response?.status === 409 && !editing) {
+        const existing = budgets.find(
+          (b) => b.categoryId === Number(categoryId) && b.month === modalMonth
+        );
+        if (existing) {
+          setEditing(existing);
+          setModalError("A budget for this category already exists this month. Review the amount and Save to update it.");
+        } else {
+          setModalError("A budget for this category already exists this month.");
+        }
+      } else {
+        setModalError(response?.data?.message ?? response?.data?.detail ?? "Failed to save. Check your input.");
+      }
     } finally {
       setSaving(false);
     }
