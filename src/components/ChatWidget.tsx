@@ -9,6 +9,8 @@ import { useAuth } from "../context/AuthContext";
 import { useFeatures } from "../hooks/useFeatures";
 import { formatCurrency, formatDate } from "../lib/formatters";
 import { looksLikeExpenseLog, looksLikeNlQuery } from "../lib/intentDetection";
+import { TypingDots, BotAvatar, ExpandIcon, CollapseIcon } from "./chat/ChatChrome";
+import { actionLabel, savedLabel, buildPreviewFields, buildConfirmMessage, dispatchDataEvents } from "./chat/chatActions";
 
 interface Message {
   role: "user" | "assistant";
@@ -276,132 +278,6 @@ function renderActionResult(msg: Message) {
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">ID: #{(msg.actionResult as { id: number }).id}</p>
       )}
     </div>
-  );
-}
-
-function actionLabel(toolName: string): string {
-  const labels: Record<string, string> = {
-    create_budget: "New budget",
-    create_goal: "New savings goal",
-    create_recurring: "New recurring expense",
-    create_expense: "New expense",
-    update_budget: "Update budget",
-  };
-  return labels[toolName] ?? "Confirm action";
-}
-
-function savedLabel(toolName: string): string {
-  const labels: Record<string, string> = {
-    create_budget: "Saved to budgets",
-    create_goal: "Saved to goals",
-    create_recurring: "Saved to recurring",
-    create_expense: "Saved to expenses",
-    update_budget: "Budget updated",
-  };
-  return labels[toolName] ?? "Saved";
-}
-
-interface PreviewField {
-  field: string;
-  label: string;
-  value: string;
-  inputType: "text" | "number" | "month" | "date" | "select" | "freq-select";
-}
-
-function buildPreviewFields(toolName: string, params: Record<string, unknown>, editedParams: Record<string, unknown>): PreviewField[] {
-  const p = { ...params, ...editedParams };
-  switch (toolName) {
-    case "create_budget":
-      return [
-        { field: "categoryName", label: "Category", value: String(p.categoryName ?? ""), inputType: "select" },
-        { field: "amountLimit", label: "Amount Limit (₱)", value: String(p.amountLimit ?? 0), inputType: "number" },
-        { field: "month", label: "Month", value: String(p.month ?? new Date().toISOString().slice(0, 7)), inputType: "month" },
-      ];
-    case "create_goal":
-      return [
-        { field: "name", label: "Goal Name", value: String(p.name ?? ""), inputType: "text" },
-        { field: "targetAmount", label: "Target Amount (₱)", value: String(p.targetAmount ?? 0), inputType: "number" },
-        { field: "savedAmount", label: "Already Saved (₱)", value: String(p.savedAmount ?? 0), inputType: "number" },
-        ...(p.targetDate ? [{ field: "targetDate", label: "Target Date", value: String(p.targetDate), inputType: "date" as const }] : []),
-      ];
-    case "create_recurring":
-      return [
-        { field: "name", label: "Name", value: String(p.name ?? ""), inputType: "text" },
-        { field: "amount", label: "Amount (₱)", value: String(p.amount ?? 0), inputType: "number" },
-        { field: "frequency", label: "Frequency", value: String(p.frequency ?? "MONTHLY"), inputType: "freq-select" },
-        { field: "categoryName", label: "Category", value: String(p.categoryName ?? ""), inputType: "select" },
-      ];
-    case "create_expense":
-      return [
-        { field: "amount", label: "Amount (₱)", value: String(p.amount ?? 0), inputType: "number" },
-        { field: "description", label: "Description", value: String(p.description ?? ""), inputType: "text" },
-        { field: "category", label: "Category", value: String(p.category ?? ""), inputType: "select" },
-        ...(p.date ? [{ field: "date", label: "Date", value: String(p.date), inputType: "date" as const }] : []),
-      ];
-    case "update_budget":
-      return [
-        { field: "categoryName", label: "Category", value: String(p.categoryName ?? ""), inputType: "text" },
-        { field: "month", label: "Month", value: String(p.month ?? new Date().toISOString().slice(0, 7)), inputType: "month" },
-        { field: "amountLimit", label: "New Amount (₱)", value: String(p.amountLimit ?? 0), inputType: "number" },
-      ];
-    default:
-      return [];
-  }
-}
-
-function buildConfirmMessage(toolName: string, params: Record<string, unknown>): string {
-  switch (toolName) {
-    case "create_budget":
-      return `create a budget for ${params.categoryName} ₱${params.amountLimit} month ${params.month}`;
-    case "create_goal":
-      return `create a goal called ${params.name} target ₱${params.targetAmount}${params.savedAmount ? ` saved ₱${params.savedAmount}` : ""}`;
-    case "create_recurring":
-      return `create recurring ${params.name} ₱${params.amount} ${params.frequency}${params.categoryName ? ` ${params.categoryName}` : ""}`;
-    case "create_expense":
-      return `₱${params.amount} ${params.description}${params.category ? ` ${params.category}` : ""}`;
-    default:
-      return "";
-  }
-}
-
-function dispatchDataEvents(toolName: string) {
-  window.dispatchEvent(new CustomEvent("gastosai:expense-changed"));
-  if (toolName.includes("budget")) window.dispatchEvent(new CustomEvent("gastosai:budget-changed"));
-  if (toolName.includes("goal")) window.dispatchEvent(new CustomEvent("gastosai:goal-changed"));
-  if (toolName.includes("recurring")) window.dispatchEvent(new CustomEvent("gastosai:recurring-changed"));
-}
-
-function TypingDots({ dotClass }: { dotClass: string }) {
-  return (
-    <div className="flex gap-1 items-center py-0.5">
-      <span className={`w-2 h-2 rounded-full animate-bounce [animation-delay:-0.3s] ${dotClass}`} />
-      <span className={`w-2 h-2 rounded-full animate-bounce [animation-delay:-0.15s] ${dotClass}`} />
-      <span className={`w-2 h-2 rounded-full animate-bounce ${dotClass}`} />
-    </div>
-  );
-}
-
-function BotAvatar({ gradient }: { gradient: string }) {
-  return (
-    <div className={`w-7 h-7 rounded-full bg-gradient-to-br flex items-center justify-center text-white text-xs font-bold flex-shrink-0 select-none ${gradient}`}>
-      G
-    </div>
-  );
-}
-
-function ExpandIcon() {
-  return (
-    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
-    </svg>
-  );
-}
-
-function CollapseIcon() {
-  return (
-    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15v4.5M15 15h4.5M15 15l5.25 5.25M9 15H4.5M9 15v4.5M9 15l-5.25 5.25" />
-    </svg>
   );
 }
 
