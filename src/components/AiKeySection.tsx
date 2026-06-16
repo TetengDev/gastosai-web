@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { clearAiKey, getAiSettings, updateAiSettings } from "../api/aiSettings";
+import { AI_SETTINGS_CHANGED_EVENT, clearAiKey, getAiSettings, updateAiSettings } from "../api/aiSettings";
 
 export default function AiKeySection() {
   const [openaiKeySet, setOpenaiKeySet] = useState(false);
@@ -32,6 +32,7 @@ export default function AiKeySection() {
       const s = await updateAiSettings({ openaiApiKey: keyInput.trim() });
       setOpenaiKeySet(s.openaiKeySet);
       setKeyInput("");
+      window.dispatchEvent(new CustomEvent(AI_SETTINGS_CHANGED_EVENT));
     } catch {
       setError("Failed to save key.");
     } finally {
@@ -45,6 +46,7 @@ export default function AiKeySection() {
     try {
       const s = await clearAiKey("openai");
       setOpenaiKeySet(s.openaiKeySet);
+      window.dispatchEvent(new CustomEvent(AI_SETTINGS_CHANGED_EVENT));
     } catch {
       setError("Failed to remove key.");
     } finally {

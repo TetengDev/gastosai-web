@@ -3,7 +3,10 @@ import api from "./client";
 export interface AiSettings {
   openaiKeySet: boolean;
   claudeKeySet: boolean;
+  aiAvailable: boolean;
 }
+
+export const AI_SETTINGS_CHANGED_EVENT = "gastosai:ai-settings-changed";
 
 export const getAiSettings = () =>
   api.get<AiSettings>("/user/ai-settings").then((r) => r.data);

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { askQuery, askWithAttachment, chatAction, type ChatMode } from "../api/ai";
 import { updateBudget } from "../api/budgets";
 import { getCategories } from "../api/categories";
@@ -7,6 +8,7 @@ import { createExpense, deleteExpense, importExpensesCsv, parseExpense } from ".
 import type { ChatPreviewData, ParsedExpenseResult } from "../api/types";
 import { useAuth } from "../context/AuthContext";
 import { useFeatures } from "../hooks/useFeatures";
+import { useAiAvailability } from "../hooks/useAiAvailability";
 import { formatCurrency, formatDate } from "../lib/formatters";
 import { looksLikeExpenseLog, looksLikeNlQuery } from "../lib/intentDetection";
 import { TypingDots, BotAvatar, ExpandIcon, CollapseIcon } from "./chat/ChatChrome";
@@ -283,6 +285,7 @@ function renderActionResult(msg: Message) {
 
 export default function ChatWidget() {
   const features = useFeatures();
+  const aiAvailable = useAiAvailability();
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
@@ -1039,6 +1042,15 @@ export default function ChatWidget() {
           {/* Input */}
           <div className="border-t border-gray-100 dark:border-gray-800 px-3 py-3 flex-shrink-0 bg-white dark:bg-gray-900">
             {error && <p className="text-red-500 text-xs mb-2">{error}</p>}
+            {aiAvailable === false && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-1">
+                Add your OpenAI key in{" "}
+                <Link to="/settings" className="text-indigo-600 dark:text-indigo-400 font-medium hover:underline">
+                  Settings
+                </Link>{" "}
+                to use AI chat.
+              </p>
+            )}
             {pendingFile && pendingFileUrl && (
               <div className="flex items-center gap-2 mb-2">
                 <div className="relative inline-block">
@@ -1092,12 +1104,13 @@ export default function ChatWidget() {
                 type="text"
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
-                placeholder={pendingFile ? "Ask about this image…" : "Ask or tell me what to do…"}
-                className={`flex-1 border border-gray-200 dark:border-gray-700 rounded-full px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:border-transparent transition-all bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 ${theme.inputRing}`}
+                disabled={aiAvailable === false}
+                placeholder={aiAvailable === false ? "Add your OpenAI key in Settings…" : pendingFile ? "Ask about this image…" : "Ask or tell me what to do…"}
+                className={`flex-1 border border-gray-200 dark:border-gray-700 rounded-full px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:border-transparent transition-all bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 disabled:opacity-60 ${theme.inputRing}`}
               />
               <button
                 type="submit"
-                disabled={loading || (!question.trim() && !pendingFile)}
+                disabled={loading || aiAvailable === false || (!question.trim() && !pendingFile)}
                 aria-label="Send"
                 className={`w-8 h-8 bg-gradient-to-br text-white rounded-full flex items-center justify-center disabled:opacity-40 transition-all flex-shrink-0 ${theme.sendBtn}`}
               >
