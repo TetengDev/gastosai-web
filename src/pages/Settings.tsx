@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { AVATAR_COLORS, getAvatarGradient, getInitials } from "../lib/formatters";
+import AiKeySection from "../components/AiKeySection";
 
 export default function Settings() {
   const { user, updateProfile } = useAuth();
@@ -157,6 +158,8 @@ export default function Settings() {
           </div>
         </form>
       </section>
+
+      <AiKeySection />
     </div>
   );
 }
