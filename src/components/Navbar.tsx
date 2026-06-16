@@ -2,6 +2,7 @@ import { LogOut, Moon, Sun } from "lucide-react";
 import { Link, NavLink } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { getAvatarGradient, getInitials } from "../lib/formatters";
+import AdminViewAsToggle from "./AdminViewAsToggle";
 import { NotificationBell } from "./NotificationBell";
 
 interface Props {
@@ -10,7 +11,7 @@ interface Props {
 }
 
 export default function Navbar({ isDark, onToggleDark }: Props) {
-  const { user, logout } = useAuth();
+  const { user, isAdmin, logout } = useAuth();
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     `px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
@@ -44,6 +45,7 @@ export default function Navbar({ isDark, onToggleDark }: Props) {
           Goals
         </NavLink>
         <div className="ml-auto flex items-center gap-1">
+          {isAdmin && <AdminViewAsToggle />}
           <NotificationBell />
           <button
             onClick={onToggleDark}
