@@ -52,6 +52,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = async (data: RegisterRequest) => {
     const res = await apiRegister(data);
     localStorage.setItem("token", res.token);
+    if (res.firstLogin) {
+      localStorage.setItem("gastosai:tour:run", "1");
+      localStorage.removeItem("gastosai:tour:completed");
+    }
     persistUser({ email: res.email, name: res.name, nickname: res.nickname ?? null, avatarColor: res.avatarColor ?? null });
   };
 

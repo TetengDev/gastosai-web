@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import ChatWidget from "./components/ChatWidget";
+import FirstRunTour from "./components/FirstRunTour";
 import Navbar from "./components/Navbar";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider, useAuth } from "./context/AuthContext";
@@ -56,6 +57,7 @@ function AppShell({ darkMode, onToggleDark, onResetDark }: { darkMode: boolean; 
                   </span>
                 </footer>
                 <ChatWidget />
+                <FirstRunTour />
               </>
             </ProtectedRoute>
           }
