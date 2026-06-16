@@ -83,7 +83,7 @@ const CATEGORY_NAME_ICON_MAP: Record<string, LucideIcon> = {
 };
 
 function isDefaultCategory(name: string): boolean {
-  return name in CATEGORY_NAME_ICON_MAP;
+  return name === "Uncategorized";
 }
 
 function getCategoryIcon(cat: Category): LucideIcon {
