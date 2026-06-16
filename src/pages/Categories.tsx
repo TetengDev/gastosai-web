@@ -82,6 +82,10 @@ const CATEGORY_NAME_ICON_MAP: Record<string, LucideIcon> = {
   "Vacation": Plane,
 };
 
+function isDefaultCategory(name: string): boolean {
+  return name === "Uncategorized";
+}
+
 function getCategoryIcon(cat: Category): LucideIcon {
   if (cat.icon && cat.icon in AVAILABLE_ICONS) {
     return AVAILABLE_ICONS[cat.icon];
@@ -226,7 +230,7 @@ export default function Categories() {
               <p className="text-sm text-gray-400 dark:text-gray-500">
                 {categories.length} categories
               </p>
-              {categories.filter((c) => c.name !== "Uncategorized").length > 0 && (
+              {categories.filter((c) => !isDefaultCategory(c.name)).length > 0 && (
                 <button
                   onClick={() => setConfirmDeleteAll(true)}
                   className="inline-flex items-center gap-1 text-xs text-red-400 dark:text-red-500 hover:text-red-600 dark:hover:text-red-400 transition-colors cursor-pointer"
@@ -268,7 +272,7 @@ export default function Categories() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {categories.map((cat) => {
             const color = getCategoryColor(cat.name);
-            const isDefault = cat.name === "Uncategorized";
+            const isDefault = isDefaultCategory(cat.name);
             const Icon = getCategoryIcon(cat);
             return (
               <div
@@ -425,7 +429,7 @@ export default function Categories() {
               Delete all categories?
             </h3>
             <p className="text-gray-500 dark:text-gray-400 text-sm mb-4 text-center">
-              All {categories.filter((c) => c.name !== "Uncategorized").length} categories will be removed.
+              All {categories.filter((c) => !isDefaultCategory(c.name)).length} custom categories will be removed.
               Expenses will be moved to Uncategorized. This cannot be undone.
             </p>
             {deleteAllError && (
@@ -447,7 +451,7 @@ export default function Categories() {
                   setDeleteAllError(null);
                   try {
                     await deleteAllCategories();
-                    setCategories((prev) => prev.filter((c) => c.name === "Uncategorized"));
+                    setCategories((prev) => prev.filter((c) => isDefaultCategory(c.name)));
                     setConfirmDeleteAll(false);
                     invalidateCategoryCache();
                     window.dispatchEvent(new CustomEvent("gastosai:expense-changed"));
