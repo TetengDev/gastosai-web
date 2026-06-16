@@ -22,8 +22,8 @@ const steps: Step[] = [
   },
   { target: "[data-tour='nav-expenses']", content: "Log and review every expense here." },
   { target: "[data-tour='nav-budget']", content: "Set monthly budgets and see what's safe to spend." },
-  { target: "[data-tour='nav-goals']", content: "Save toward goals and track progress." },
   { target: "[data-tour='nav-recurring']", content: "Manage recurring bills and subscriptions." },
+  { target: "[data-tour='nav-goals']", content: "Save toward goals and track progress." },
   { target: "[data-tour='chat']", content: "Ask the AI assistant in plain language — log expenses, run reports, scan receipts." },
   {
     target: "[data-tour='nav-settings']",
@@ -62,8 +62,16 @@ export default function FirstRunTour() {
       options={{
         showProgress: true,
         skipBeacon: true,
+        skipScroll: true,
         closeButtonAction: "skip",
         primaryColor: "#4f46e5",
+        textColor: "#1f2937",
+        backgroundColor: "#ffffff",
+        arrowColor: "#ffffff",
+        overlayColor: "rgba(15, 23, 42, 0.55)",
+        spotlightPadding: 8,
+        spotlightRadius: 12,
+        width: 340,
         zIndex: 10000,
       }}
     />
