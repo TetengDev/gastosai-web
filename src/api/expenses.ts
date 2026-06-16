@@ -22,14 +22,25 @@ export const deleteExpense = (id: number) =>
 export const deleteAllExpenses = () =>
   api.delete("/expenses");
 
-export const importExpensesCsv = (file: File) => {
+export const importExpensesCsv = (file: File, strict = false) => {
   const form = new FormData();
   form.append("file", file);
   return api
     .post<ImportResult>("/expenses/import", form, {
+      params: strict ? { strict: true } : {},
       headers: { "Content-Type": "multipart/form-data" },
     })
     .then((r) => r.data);
+};
+
+export const downloadImportTemplate = async (): Promise<void> => {
+  const res = await api.get<Blob>("/expenses/import/template", { responseType: "blob" });
+  const url = URL.createObjectURL(res.data);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "gastosai-import-template.csv";
+  a.click();
+  URL.revokeObjectURL(url);
 };
 
 export const parseExpense = (text: string) =>
