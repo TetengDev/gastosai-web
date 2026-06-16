@@ -10,10 +10,12 @@ interface AuthUser {
   name: string;
   nickname: string | null;
   avatarColor: string | null;
+  role: string;
 }
 
 interface AuthContextValue {
   user: AuthUser | null;
+  isAdmin: boolean;
   isLoading: boolean;
   login: (data: LoginRequest) => Promise<void>;
   register: (data: RegisterRequest) => Promise<void>;
@@ -46,7 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (data: LoginRequest) => {
     const res = await apiLogin(data);
     localStorage.setItem("token", res.token);
-    persistUser({ email: res.email, name: res.name, nickname: res.nickname ?? null, avatarColor: res.avatarColor ?? null });
+    persistUser({ email: res.email, name: res.name, nickname: res.nickname ?? null, avatarColor: res.avatarColor ?? null, role: res.role });
   };
 
   const register = async (data: RegisterRequest) => {
@@ -56,7 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem("gastosai:tour:run", "1");
       localStorage.removeItem("gastosai:tour:completed");
     }
-    persistUser({ email: res.email, name: res.name, nickname: res.nickname ?? null, avatarColor: res.avatarColor ?? null });
+    persistUser({ email: res.email, name: res.name, nickname: res.nickname ?? null, avatarColor: res.avatarColor ?? null, role: res.role });
   };
 
   const logout = () => {
@@ -68,11 +70,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const updateProfile = async (data: UpdateProfileRequest) => {
     const res = await apiUpdateProfile(data);
     localStorage.setItem("token", res.token);
-    persistUser({ email: res.email, name: res.name, nickname: res.nickname ?? null, avatarColor: res.avatarColor ?? null });
+    persistUser({ email: res.email, name: res.name, nickname: res.nickname ?? null, avatarColor: res.avatarColor ?? null, role: user?.role ?? "USER" });
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading: false, login, register, logout, updateProfile }}>
+    <AuthContext.Provider value={{ user, isAdmin: user?.role === "ADMIN", isLoading: false, login, register, logout, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );
