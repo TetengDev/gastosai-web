@@ -1,7 +1,7 @@
-import { Download, Loader2, Pencil, Trash2, Upload } from "lucide-react";
+import { Download, HelpCircle, Loader2, Pencil, Trash2, Upload } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import ExpenseModal from "../components/ExpenseModal";
-import { deleteExpense, exportExpenses, getExpenses, importExpensesCsv, type ImportResult } from "../api/expenses";
+import { deleteExpense, downloadImportTemplate, exportExpenses, getExpenses, importExpensesCsv, type ImportResult } from "../api/expenses";
 import type { Expense } from "../api/types";
 import { useExpenses } from "../hooks/useExpenses";
 import { useFeatures } from "../hooks/useFeatures";
@@ -21,6 +21,8 @@ export default function Expenses() {
   const [deletingAll, setDeletingAll] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
+  const [strictImport, setStrictImport] = useState(false);
+  const [showFormatHelp, setShowFormatHelp] = useState(false);
   const csvInputRef = useRef<HTMLInputElement>(null);
 
   const [exporting, setExporting] = useState(false);
@@ -76,7 +78,7 @@ export default function Expenses() {
     setImporting(true);
     setImportResult(null);
     try {
-      const result = await importExpensesCsv(file);
+      const result = await importExpensesCsv(file, strictImport);
       setImportResult(result);
       if (result.imported > 0) await refresh();
     } catch {
@@ -147,6 +149,24 @@ export default function Expenses() {
                     Import CSV
                   </>
                 )}
+              </button>
+              <label className="inline-flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400 cursor-pointer select-none" title="Reject the whole file if any row is invalid">
+                <input
+                  type="checkbox"
+                  checked={strictImport}
+                  onChange={(e) => setStrictImport(e.target.checked)}
+                  className="w-3.5 h-3.5 rounded accent-indigo-600"
+                />
+                Strict
+              </label>
+              <button
+                type="button"
+                onClick={() => setShowFormatHelp(true)}
+                aria-label="CSV format help"
+                title="CSV format help"
+                className="text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+              >
+                <HelpCircle className="w-4 h-4" />
               </button>
             </>
           )}
@@ -413,6 +433,38 @@ export default function Expenses() {
           </div>
         )}
       </div>
+
+      {showFormatHelp && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setShowFormatHelp(false)}>
+          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-2xl max-w-md w-full mx-4 border border-gray-100 dark:border-gray-800" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-3">CSV import format</h3>
+            <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1.5 mb-4 list-disc pl-5">
+              <li><b>amount</b> — required, greater than 0 (currency symbols/commas are stripped).</li>
+              <li><b>category</b> — optional; defaults to "Uncategorized".</li>
+              <li><b>description</b> — optional.</li>
+              <li><b>date</b> — optional; accepts <code>YYYY-MM-DD</code>, <code>MM/DD/YYYY</code>, <code>DD/MM/YYYY</code>, with or without time; defaults to now.</li>
+              <li>Column order doesn't matter; the header row is required.</li>
+              <li><b>Strict</b> mode: if any row is missing/invalid, the whole file is rejected and nothing is imported.</li>
+            </ul>
+            <div className="flex items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={() => void downloadImportTemplate()}
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-xl transition-colors"
+              >
+                <Download className="w-4 h-4" /> Download template
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowFormatHelp(false)}
+                className="px-4 py-2 text-sm bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-xl font-semibold"
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {confirmDelete !== null && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
