@@ -1138,6 +1138,7 @@ export default function ChatWidget() {
         <button
           onClick={() => setOpen((o) => !o)}
           aria-label={open ? "Close chat" : "Open chat"}
+          data-tour="chat"
           className={`w-14 h-14 bg-gradient-to-br text-white rounded-full shadow-lg flex items-center justify-center transition-all duration-300 hover:scale-105 hover:shadow-xl active:scale-95 ${theme.fabGradient} ${theme.fabShadow}`}
         >
           {open ? (
