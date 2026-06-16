@@ -20,7 +20,10 @@ export interface Entitlements {
   plan: PlanKey;
   status: SubscriptionStatus;
   features: FeatureKey[];
+  admin: boolean;
 }
+
+export const VIEW_AS_CHANGED_EVENT = "gastosai:viewas-changed";
 
 export const getEntitlements = () =>
   api.get<Entitlements>("/user/entitlements").then((r) => r.data);
