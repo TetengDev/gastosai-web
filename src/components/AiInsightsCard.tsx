@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { getTopCategoryInsight, getMonthSummaryInsight, getRecommendationsInsight } from "../api/insights";
 import type { TopCategoryInsight, MonthSummaryInsight, RecommendationsInsight } from "../api/types";
+import { useAiAvailability } from "../hooks/useAiAvailability";
 
 interface Props {
   month: string;
@@ -17,6 +19,7 @@ function MiniSkeleton({ lines = 1 }: { lines?: number }) {
 }
 
 export default function AiInsightsCard({ month }: Props) {
+  const aiAvailable = useAiAvailability();
   const [topCategory, setTopCategory] = useState<TopCategoryInsight | null>(null);
   const [summary, setSummary] = useState<MonthSummaryInsight | null>(null);
   const [recommendations, setRecommendations] = useState<RecommendationsInsight | null>(null);
@@ -25,6 +28,7 @@ export default function AiInsightsCard({ month }: Props) {
   const [recLoading, setRecLoading] = useState(true);
 
   useEffect(() => {
+    if (!aiAvailable) return;
     // Each insight is an independent LLM call. Render each as soon as it resolves instead of
     // waiting for the slowest (Promise.all) — the card fills in progressively.
     let active = true;
@@ -37,7 +41,7 @@ export default function AiInsightsCard({ month }: Props) {
     getRecommendationsInsight(month).then((d) => { if (active) setRecommendations(d); }).catch(() => {}).finally(() => { if (active) setRecLoading(false); });
 
     return () => { active = false; };
-  }, [month]);
+  }, [month, aiAvailable]);
 
   const allDone = !topLoading && !sumLoading && !recLoading;
   const allFailed = allDone && !topCategory && !summary && !recommendations;
@@ -48,7 +52,14 @@ export default function AiInsightsCard({ month }: Props) {
         AI Insights
       </p>
 
-      {allFailed ? (
+      {aiAvailable === false ? (
+        <div className="text-sm text-gray-600 dark:text-gray-300">
+          <p className="mb-2">AI insights need your OpenAI key.</p>
+          <Link to="/settings" className="text-indigo-600 dark:text-indigo-400 font-medium hover:underline">
+            Connect your key in Settings →
+          </Link>
+        </div>
+      ) : allFailed ? (
         <p className="text-sm text-red-500">Unable to load AI insights.</p>
       ) : (
         <div className="space-y-4">
