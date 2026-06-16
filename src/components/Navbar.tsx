@@ -28,19 +28,19 @@ export default function Navbar({ isDark, onToggleDark }: Props) {
         <NavLink to="/" end className={linkClass}>
           Dashboard
         </NavLink>
-        <NavLink to="/expenses" className={linkClass}>
+        <NavLink to="/expenses" className={linkClass} data-tour="nav-expenses">
           Expenses
         </NavLink>
         <NavLink to="/categories" className={linkClass}>
           Categories
         </NavLink>
-        <NavLink to="/budget" className={linkClass}>
+        <NavLink to="/budget" className={linkClass} data-tour="nav-budget">
           Budget
         </NavLink>
-        <NavLink to="/recurring" className={linkClass}>
+        <NavLink to="/recurring" className={linkClass} data-tour="nav-recurring">
           Recurring
         </NavLink>
-        <NavLink to="/goals" className={linkClass}>
+        <NavLink to="/goals" className={linkClass} data-tour="nav-goals">
           Goals
         </NavLink>
         <div className="ml-auto flex items-center gap-1">
@@ -58,6 +58,7 @@ export default function Navbar({ isDark, onToggleDark }: Props) {
               <NavLink
                 to="/settings"
                 title="Profile settings"
+                data-tour="nav-settings"
                 className={({ isActive }) =>
                   `flex items-center gap-2 px-2 py-1 rounded-xl transition-all duration-200 ${
                     isActive ? "bg-white/20" : "hover:bg-white/15"

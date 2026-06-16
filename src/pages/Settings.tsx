@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { AVATAR_COLORS, getAvatarGradient, getInitials } from "../lib/formatters";
 import AiKeySection from "../components/AiKeySection";
+import { startTour } from "../components/FirstRunTour";
 
 export default function Settings() {
   const { user, updateProfile } = useAuth();
@@ -160,6 +161,20 @@ export default function Settings() {
       </section>
 
       <AiKeySection />
+
+      <section className="mt-6 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex items-center justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Product tour</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Replay the quick walkthrough of the app.</p>
+        </div>
+        <button
+          type="button"
+          onClick={startTour}
+          className="px-4 py-2 rounded-xl border border-indigo-300 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 text-sm font-semibold hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors shrink-0"
+        >
+          Replay tour
+        </button>
+      </section>
     </div>
   );
 }
