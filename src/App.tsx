@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import AnnouncementBar from "./components/AnnouncementBar";
 import ChatWidget from "./components/ChatWidget";
 import FirstRunTour from "./components/FirstRunTour";
 import Navbar from "./components/Navbar";
@@ -28,7 +29,7 @@ function AppShell({ darkMode, onToggleDark, onResetDark }: { darkMode: boolean; 
   }, [user, onResetDark]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30 dark:bg-none dark:bg-gray-950 transition-colors duration-300">
+    <div className="min-h-screen bg-page transition-colors duration-300">
       <Routes>
         <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
         <Route path="/register" element={user ? <Navigate to="/" replace /> : <RegisterPage />} />
@@ -37,8 +38,9 @@ function AppShell({ darkMode, onToggleDark, onResetDark }: { darkMode: boolean; 
           element={
             <ProtectedRoute>
               <>
+                <AnnouncementBar />
                 <Navbar isDark={darkMode} onToggleDark={onToggleDark} />
-                <main className="max-w-5xl mx-auto px-4 py-8">
+                <main className="max-w-[1240px] mx-auto px-6 md:px-10 py-12">
                   <Routes>
                     <Route path="/" element={<Dashboard />} />
                     <Route path="/expenses" element={<Expenses />} />
@@ -51,8 +53,8 @@ function AppShell({ darkMode, onToggleDark, onResetDark }: { darkMode: boolean; 
                     <Route path="*" element={<Navigate to="/" replace />} />
                   </Routes>
                 </main>
-                <footer className="max-w-5xl mx-auto px-4 pb-6 flex justify-end">
-                  <span className="text-xs text-gray-300 dark:text-gray-700 select-none">
+                <footer className="max-w-[1240px] mx-auto px-6 md:px-10 pb-6 flex justify-end">
+                  <span className="text-xs text-ink-3 select-none">
                     v{__APP_VERSION__}
                   </span>
                 </footer>

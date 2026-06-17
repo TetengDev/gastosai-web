@@ -10,83 +10,92 @@ interface Props {
   onToggleDark: () => void;
 }
 
+const NAV_ITEMS = [
+  { to: "/", label: "Dashboard", end: true, tour: undefined },
+  { to: "/expenses", label: "Expenses", end: false, tour: "nav-expenses" },
+  { to: "/categories", label: "Categories", end: false, tour: undefined },
+  { to: "/budget", label: "Budget", end: false, tour: "nav-budget" },
+  { to: "/recurring", label: "Recurring", end: false, tour: "nav-recurring" },
+  { to: "/goals", label: "Goals", end: false, tour: "nav-goals" },
+] as const;
+
 export default function Navbar({ isDark, onToggleDark }: Props) {
   const { user, isAdmin, logout } = useAuth();
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
-    `px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
+    `rounded-full px-4 py-2 text-[15px] font-medium transition-colors ${
       isActive
-        ? "bg-white/20 text-white backdrop-blur-sm shadow-inner"
-        : "text-white/70 hover:text-white hover:bg-white/10"
+        ? "bg-cta text-cta-fg"
+        : "text-ink-2 hover:text-ink-hi hover:bg-surface-2"
     }`;
 
   return (
-    <nav className="sticky top-0 z-10 bg-gradient-to-r from-indigo-600 via-indigo-700 to-blue-700 shadow-lg shadow-indigo-600/20">
-      <div className="max-w-5xl mx-auto px-4 py-3 flex items-center gap-2">
-        <Link to="/" className="mr-4 shrink-0 text-white font-extrabold text-lg tracking-tight select-none">
-          Gastos<span className="text-indigo-300">AI</span>
-        </Link>
-        <NavLink to="/" end className={linkClass}>
-          Dashboard
-        </NavLink>
-        <NavLink to="/expenses" className={linkClass} data-tour="nav-expenses">
-          Expenses
-        </NavLink>
-        <NavLink to="/categories" className={linkClass}>
-          Categories
-        </NavLink>
-        <NavLink to="/budget" className={linkClass} data-tour="nav-budget">
-          Budget
-        </NavLink>
-        <NavLink to="/recurring" className={linkClass} data-tour="nav-recurring">
-          Recurring
-        </NavLink>
-        <NavLink to="/goals" className={linkClass} data-tour="nav-goals">
-          Goals
-        </NavLink>
-        <div className="ml-auto flex items-center gap-1">
-          {isAdmin && <AdminViewAsToggle />}
-          <NotificationBell />
-          <button
-            onClick={onToggleDark}
-            aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
-            title={isDark ? "Light mode" : "Dark mode"}
-            className="p-2 rounded-full text-white/70 hover:text-white hover:bg-white/15 transition-colors"
+    <nav className="sticky top-0 z-40 flex h-[72px] items-center justify-between border-b border-edge-2 bg-nav px-5 backdrop-blur-md md:px-10">
+      <Link
+        to="/"
+        className="flex flex-1 select-none items-center gap-2 font-display text-[21px] font-bold tracking-tight text-ink-hi"
+      >
+        Gastos<span className="text-brand">AI</span>
+      </Link>
+
+      <div className="hidden items-center gap-1 md:flex">
+        {NAV_ITEMS.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.end}
+            data-tour={item.tour}
+            className={linkClass}
           >
-            {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-          </button>
-          {user && (
-            <>
-              <NavLink
-                to="/settings"
-                title="Profile settings"
-                data-tour="nav-settings"
-                className={({ isActive }) =>
-                  `flex items-center gap-2 px-2 py-1 rounded-xl transition-all duration-200 ${
-                    isActive ? "bg-white/20" : "hover:bg-white/15"
-                  }`
-                }
+            {item.label}
+          </NavLink>
+        ))}
+      </div>
+
+      <div className="flex flex-1 items-center justify-end gap-2.5">
+        {isAdmin && <AdminViewAsToggle />}
+        <NotificationBell />
+        <button
+          onClick={onToggleDark}
+          aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+          title={isDark ? "Light mode" : "Dark mode"}
+          className="flex rounded-full p-2 text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink-hi"
+        >
+          {isDark ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
+        </button>
+        {user && (
+          <>
+            <NavLink
+              to="/settings"
+              title="Profile settings"
+              data-tour="nav-settings"
+              className={({ isActive }) =>
+                `flex items-center gap-2 rounded-full p-1 pr-1 transition-colors ${
+                  isActive ? "bg-surface-2" : "hover:bg-surface-2"
+                }`
+              }
+            >
+              <span
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${getAvatarGradient(user.avatarColor)}`}
               >
-                <div className={`w-7 h-7 rounded-full bg-gradient-to-br ${getAvatarGradient(user.avatarColor)} border border-white/50 flex items-center justify-center shrink-0`}>
-                  <span className="text-white text-xs font-bold leading-none select-none">
-                    {getInitials(user.name)}
-                  </span>
-                </div>
-                <span className="hidden sm:block text-xs text-white/90 font-medium max-w-[100px] truncate">
-                  {user.nickname || user.name}
+                <span className="select-none text-xs font-semibold leading-none text-white">
+                  {getInitials(user.name)}
                 </span>
-              </NavLink>
-              <button
-                onClick={logout}
-                aria-label="Sign out"
-                title="Sign out"
-                className="p-2 rounded-full text-white/70 hover:text-white hover:bg-white/15 transition-colors cursor-pointer"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
-            </>
-          )}
-        </div>
+              </span>
+              <span className="hidden max-w-[100px] truncate pr-2 text-[15px] font-medium text-ink-hi lg:block">
+                {user.nickname || user.name}
+              </span>
+            </NavLink>
+            <button
+              onClick={logout}
+              aria-label="Sign out"
+              title="Sign out"
+              className="flex cursor-pointer rounded-full p-2 text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink-hi"
+            >
+              <LogOut className="h-[18px] w-[18px]" />
+            </button>
+          </>
+        )}
       </div>
     </nav>
   );
