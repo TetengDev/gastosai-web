@@ -14,6 +14,7 @@ import CurrencySelect from "../components/CurrencySelect";
 import { Button, ConfirmDialog, IconButton, Modal, PageHeader, SelectionBar } from "../components/ui";
 import { useMultiSelect } from "../hooks/useMultiSelect";
 import { RATE_TTL_MS, rateCache } from "../lib/cache";
+import { categoryIcon } from "../lib/categoryIcon";
 import { formatCurrency } from "../lib/formatters";
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
@@ -362,7 +363,12 @@ export default function Recurring() {
                       </div>
                     </div>
                   </td>
-                  <td className="hidden px-6 py-5 text-ink-2 sm:table-cell">{bill.categoryName}</td>
+                  <td className="hidden px-6 py-5 text-ink-2 sm:table-cell">
+                    <span className="inline-flex items-center gap-1.5">
+                      {(() => { const Ic = categoryIcon(bill.categoryName); return <Ic className="h-3.5 w-3.5 shrink-0 text-ink-3" />; })()}
+                      {bill.categoryName}
+                    </span>
+                  </td>
                   <td className="hidden px-6 py-5 text-ink-2 md:table-cell">{dayInfo(bill)}</td>
                   <td className="px-6 py-5 text-right">
                     <span className="inline-flex items-center justify-end gap-2">

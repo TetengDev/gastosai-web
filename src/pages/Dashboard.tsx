@@ -21,7 +21,9 @@ import GoalProgressCard from "../components/GoalProgressCard";
 import TopExpensesCard from "../components/TopExpensesCard";
 import UpcomingBillsCard from "../components/UpcomingBillsCard";
 import { Card, InfoTip } from "../components/ui";
-import { formatCurrency, formatDate, getCategoryColor } from "../lib/formatters";
+import { formatCurrency, formatDate } from "../lib/formatters";
+import { categoryIcon } from "../lib/categoryIcon";
+import CategoryChip from "../components/CategoryChip";
 
 const currentMonth = new Date().toISOString().slice(0, 7);
 
@@ -191,7 +193,10 @@ export default function Dashboard() {
                     key={c.name}
                     className="grid grid-cols-[110px_1fr_72px] items-center gap-4 sm:grid-cols-[140px_1fr_78px]"
                   >
-                    <div className="truncate text-right text-sm text-ink">{c.name}</div>
+                    <div className="flex min-w-0 items-center justify-end gap-1.5 text-sm text-ink">
+                      {(() => { const Ic = categoryIcon(c.name); return <Ic className="h-3.5 w-3.5 shrink-0 text-ink-3" />; })()}
+                      <span className="truncate">{c.name}</span>
+                    </div>
                     <div className="h-2.5 overflow-hidden rounded-full bg-track">
                       <div
                         className="h-full rounded-full bg-[#003c33]"
@@ -287,20 +292,14 @@ export default function Dashboard() {
         ) : (
           <ul>
             {recentExpenses.map((e) => {
-              const color = getCategoryColor(e.category ?? "");
               return (
                 <li
                   key={e.id}
                   className="flex items-center justify-between border-b border-edge-3 px-7 py-3.5 transition-colors last:border-0 hover:bg-surface-2"
                 >
                   <div className="flex min-w-0 items-center gap-3">
-                    <span className={`h-2 w-2 flex-shrink-0 rounded-full ${color.dot}`} />
                     <div className="min-w-0">
-                      <span
-                        className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${color.bg} ${color.darkBg} ${color.text} ${color.darkText}`}
-                      >
-                        {e.category}
-                      </span>
+                      <CategoryChip name={e.category ?? "Uncategorized"} />
                       {e.description && (
                         <p className="mt-0.5 truncate text-sm text-ink-2">{e.description}</p>
                       )}
