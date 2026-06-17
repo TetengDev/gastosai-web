@@ -149,8 +149,133 @@ export default function Dashboard() {
   if (error)
     return <p className="py-8 text-center text-[#b30000]">{error}</p>;
 
+  const recentExpensesCard = (
+    <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-edge bg-surface">
+      <div className="flex items-center justify-between border-b border-edge-2 px-6 py-4">
+        <div className="flex items-center gap-1.5">
+          <h2 className="font-display text-[19px] font-medium text-ink-hi">Recent Expenses</h2>
+          <InfoTip text="Your most recently added expenses across all categories." />
+        </div>
+      </div>
+      {recentExpenses.length === 0 ? (
+        <div className="flex flex-1 flex-col items-center justify-center p-10 text-center">
+          <p className="mb-3 text-4xl">💸</p>
+          <p className="font-semibold text-ink">No expenses yet</p>
+          <p className="mt-1 text-sm text-ink-3">Add an expense to see it here</p>
+        </div>
+      ) : (
+        <ul className="flex-1 overflow-y-auto">
+          {recentExpenses.slice(0, 6).map((e) => (
+            <li
+              key={e.id}
+              className="flex items-center justify-between gap-3 border-b border-edge-3 px-6 py-3 transition-colors last:border-0 hover:bg-surface-2"
+            >
+              <div className="min-w-0">
+                <CategoryChip name={e.category ?? "Uncategorized"} />
+                {e.description && (
+                  <p className="mt-0.5 truncate text-sm text-ink-2">{e.description}</p>
+                )}
+              </div>
+              <div className="flex-shrink-0 text-right">
+                <div className="font-display font-medium text-ink-hi">{formatCurrency(e.amount)}</div>
+                <div className="text-xs text-ink-3">{formatDate(e.date)}</div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+
+  const spendingByCategoryCard = (
+    <Card>
+      <div className="flex items-baseline justify-between">
+        <div className="flex items-center gap-1.5">
+          <div className="font-display text-[22px] font-medium tracking-tight text-ink-hi">
+            Spending by Category
+          </div>
+          <InfoTip text="Your total spend per category (all time), longest bar = highest spend." />
+        </div>
+        {categoryData.length > 0 && (
+          <div className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
+            {categoryData.length} {categoryData.length === 1 ? "category" : "categories"}
+          </div>
+        )}
+      </div>
+      {chartData.length === 0 ? (
+        <div className="flex h-[200px] items-center justify-center text-sm text-ink-3">
+          No category data yet.
+        </div>
+      ) : (
+        <div className="mt-6 flex flex-col gap-4">
+          {chartData.map((c) => (
+            <div
+              key={c.name}
+              className="grid grid-cols-[110px_1fr_72px] items-center gap-4 sm:grid-cols-[140px_1fr_78px]"
+            >
+              <div className="flex min-w-0 items-center justify-end gap-1.5 text-sm text-ink">
+                {(() => { const Ic = categoryIcon(c.name); return <Ic className="h-3.5 w-3.5 shrink-0 text-ink-3" />; })()}
+                <span className="truncate">{c.name}</span>
+              </div>
+              <div className="h-2.5 overflow-hidden rounded-full bg-track">
+                <div
+                  className="h-full rounded-full bg-[#003c33]"
+                  style={{ width: `${chartMax > 0 ? (c.value / chartMax) * 100 : 0}%` }}
+                />
+              </div>
+              <div className="text-right font-mono text-[12.5px] text-ink-2">
+                {formatCurrency(c.value)}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </Card>
+  );
+
+  const monthlyTrendCard = (
+    <Card>
+      <div className="flex items-center gap-1.5">
+        <div className="font-display text-[22px] font-medium tracking-tight text-ink-hi">
+          Monthly Trend
+        </div>
+        <InfoTip text="Total spend per month over the last 6 months." />
+      </div>
+      <div className="mt-0.5 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
+        Last 6 months
+      </div>
+      {monthlyData.length === 0 ? (
+        <div className="flex h-[180px] items-center justify-center text-sm text-ink-3">
+          No monthly data yet.
+        </div>
+      ) : (
+        <ResponsiveContainer width="100%" height={180} className="mt-4">
+          <BarChart data={monthlyData.slice(-6)} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--ga-border)" />
+            <XAxis
+              dataKey="month"
+              tick={{ fontSize: 11, fill: "var(--ga-text3)" }}
+              tickLine={false}
+              tickFormatter={(v: string) => {
+                const [y, m] = v.split("-").map(Number);
+                return new Date(y, m - 1, 1).toLocaleString("default", { month: "short" });
+              }}
+            />
+            <YAxis
+              tick={{ fontSize: 11, fill: "var(--ga-text3)" }}
+              tickFormatter={(v) => abbrevCurrency(v as number)}
+              width={56}
+            />
+            <Tooltip formatter={(v) => formatCurrency(v as number)} />
+            <Bar dataKey="total" fill="#1f8a5b" radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      )}
+    </Card>
+  );
+
   return (
-    <div className="space-y-9">
+    <div className="space-y-7">
       <DashboardHero
         monthLabel={formatMonthLabel(currentMonth)}
         total={total}
@@ -159,164 +284,46 @@ export default function Dashboard() {
         stats={heroStats}
       />
 
+      {/* Current-month activity */}
+      <div className="grid grid-cols-1 gap-7 lg:grid-cols-[1.7fr_1fr]">
+        <DailyTrendCard month={currentMonth} />
+        {recentExpensesCard}
+      </div>
+
+      {/* AI interpretation of the data above */}
       <FeatureGate feature="ADVANCED_INSIGHTS">
         <AiInsightsCard month={currentMonth} />
       </FeatureGate>
 
+      {/* Spending breakdown vs budget */}
       <div className="grid grid-cols-1 gap-7 lg:grid-cols-[1.7fr_1fr]">
-        {/* Left: daily trend + category breakdown */}
-        <div className="space-y-7">
-          <DailyTrendCard month={currentMonth} />
-
-          <Card>
-            <div className="flex items-baseline justify-between">
-              <div className="flex items-center gap-1.5">
-                <div className="font-display text-[22px] font-medium tracking-tight text-ink-hi">
-                  Spending by Category
-                </div>
-                <InfoTip text="Your total spend per category (all time), longest bar = highest spend." />
-              </div>
-              {categoryData.length > 0 && (
-                <div className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
-                  {categoryData.length} {categoryData.length === 1 ? "category" : "categories"}
-                </div>
-              )}
-            </div>
-            {chartData.length === 0 ? (
-              <div className="flex h-[200px] items-center justify-center text-sm text-ink-3">
-                No category data yet.
-              </div>
-            ) : (
-              <div className="mt-6 flex flex-col gap-4">
-                {chartData.map((c) => (
-                  <div
-                    key={c.name}
-                    className="grid grid-cols-[110px_1fr_72px] items-center gap-4 sm:grid-cols-[140px_1fr_78px]"
-                  >
-                    <div className="flex min-w-0 items-center justify-end gap-1.5 text-sm text-ink">
-                      {(() => { const Ic = categoryIcon(c.name); return <Ic className="h-3.5 w-3.5 shrink-0 text-ink-3" />; })()}
-                      <span className="truncate">{c.name}</span>
-                    </div>
-                    <div className="h-2.5 overflow-hidden rounded-full bg-track">
-                      <div
-                        className="h-full rounded-full bg-[#003c33]"
-                        style={{ width: `${chartMax > 0 ? (c.value / chartMax) * 100 : 0}%` }}
-                      />
-                    </div>
-                    <div className="text-right font-mono text-[12.5px] text-ink-2">
-                      {formatCurrency(c.value)}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Card>
-        </div>
-
-        {/* Right: budget + alerts */}
-        <div className="space-y-7">
-          <BudgetOverviewCard month={currentMonth} />
-          <AlertsCard />
-        </div>
+        {spendingByCategoryCard}
+        <BudgetOverviewCard month={currentMonth} />
       </div>
 
-      {/* Extras (not in the mock) kept below, restyled */}
+      {/* Action items */}
+      <div className="grid grid-cols-1 gap-7 md:grid-cols-2">
+        <AlertsCard />
+        <TopExpensesCard month={currentMonth} />
+      </div>
+
+      {/* Planning / forward-looking */}
       <div className="grid grid-cols-1 gap-7 md:grid-cols-2">
         <GoalProgressCard />
         <UpcomingBillsCard month={currentMonth} />
       </div>
 
-      <div className="grid grid-cols-1 gap-7 md:grid-cols-2">
-        <TopExpensesCard month={currentMonth} />
-
-        <Card>
-          <div className="flex items-center gap-1.5">
-            <div className="font-display text-[22px] font-medium tracking-tight text-ink-hi">
-              Monthly Trend
-            </div>
-            <InfoTip text="Total spend per month over the last 6 months." />
-          </div>
-          <div className="mt-0.5 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
-            Last 6 months
-          </div>
-          {monthlyData.length === 0 ? (
-            <div className="flex h-[180px] items-center justify-center text-sm text-ink-3">
-              No monthly data yet.
-            </div>
-          ) : (
-            <ResponsiveContainer width="100%" height={180} className="mt-4">
-              <BarChart
-                data={monthlyData.slice(-6)}
-                margin={{ top: 4, right: 4, left: 0, bottom: 0 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--ga-border)" />
-                <XAxis
-                  dataKey="month"
-                  tick={{ fontSize: 11, fill: "var(--ga-text3)" }}
-                  tickLine={false}
-                  tickFormatter={(v: string) => {
-                    const [y, m] = v.split("-").map(Number);
-                    return new Date(y, m - 1, 1).toLocaleString("default", { month: "short" });
-                  }}
-                />
-                <YAxis
-                  tick={{ fontSize: 11, fill: "var(--ga-text3)" }}
-                  tickFormatter={(v) => formatCurrency(v as number)}
-                  width={80}
-                />
-                <Tooltip formatter={(v) => formatCurrency(v as number)} />
-                <Bar dataKey="total" fill="#1f8a5b" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </Card>
-      </div>
-
-      {/* Recent expenses */}
-      <div className="overflow-hidden rounded-2xl border border-edge bg-surface">
-        <div className="flex items-center justify-between border-b border-edge-2 px-7 py-4">
-          <div className="flex items-center gap-1.5">
-            <h2 className="font-display text-lg font-medium text-ink-hi">Recent Expenses</h2>
-            <InfoTip text="Your 10 most recently added expenses across all categories." />
-          </div>
-          <span className="font-mono text-[11px] uppercase tracking-[0.1em] text-ink-3">
-            {recentExpenses.length} most recent
-          </span>
-        </div>
-        {recentExpenses.length === 0 ? (
-          <div className="p-12 text-center">
-            <p className="mb-3 text-4xl">💸</p>
-            <p className="font-semibold text-ink">No expenses yet</p>
-            <p className="mt-1 text-sm text-ink-3">Add an expense to see it here</p>
-          </div>
-        ) : (
-          <ul>
-            {recentExpenses.map((e) => {
-              return (
-                <li
-                  key={e.id}
-                  className="flex items-center justify-between border-b border-edge-3 px-7 py-3.5 transition-colors last:border-0 hover:bg-surface-2"
-                >
-                  <div className="flex min-w-0 items-center gap-3">
-                    <div className="min-w-0">
-                      <CategoryChip name={e.category ?? "Uncategorized"} />
-                      {e.description && (
-                        <p className="mt-0.5 truncate text-sm text-ink-2">{e.description}</p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="ml-3 flex-shrink-0 text-right">
-                    <div className="font-display font-medium text-ink-hi">
-                      {formatCurrency(e.amount)}
-                    </div>
-                    <div className="text-xs text-ink-3">{formatDate(e.date)}</div>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
+      {/* Long-horizon context */}
+      {monthlyTrendCard}
     </div>
   );
+}
+
+/** Compact peso label for chart axes (₱12.5k); full precision stays in tooltips. */
+function abbrevCurrency(n: number): string {
+  if (Math.abs(n) >= 1000) {
+    const k = n / 1000;
+    return `₱${k % 1 === 0 ? k.toFixed(0) : k.toFixed(1)}k`;
+  }
+  return `₱${n}`;
 }
