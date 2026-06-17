@@ -1,36 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { invalidateCategoryCache } from "../lib/cache";
-import {
-  Briefcase,
-  Car,
-  Coffee,
-  CreditCard,
-  Droplets,
-  Dumbbell,
-  Film,
-  Gift,
-  Globe,
-  GraduationCap,
-  Heart,
-  Home,
-  Monitor,
-  Music,
-  Package,
-  Pencil,
-  Phone,
-  Plane,
-  Plus,
-  ShoppingBag,
-  Sparkles,
-  Star,
-  Tag,
-  Trash2,
-  Utensils,
-  Users,
-  Wallet,
-  Zap,
-} from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { Pencil, Plus, Star, Trash2 } from "lucide-react";
 import {
   createCategory,
   deleteAllCategories,
@@ -42,60 +12,15 @@ import type { Category } from "../api/types";
 import { useAuth } from "../context/AuthContext";
 import { Button, ConfirmDialog, IconButton, Modal, PageHeader, SelectionBar } from "../components/ui";
 import { useMultiSelect } from "../hooks/useMultiSelect";
+import { AVAILABLE_ICONS, categoryIcon } from "../lib/categoryIcon";
 import { getCategoryColor } from "../lib/formatters";
-
-const AVAILABLE_ICONS: Record<string, LucideIcon> = {
-  Briefcase,
-  Car,
-  Coffee,
-  CreditCard,
-  Droplets,
-  Dumbbell,
-  Film,
-  Gift,
-  Globe,
-  GraduationCap,
-  Heart,
-  Home,
-  Monitor,
-  Music,
-  Package,
-  Phone,
-  Plane,
-  ShoppingBag,
-  Sparkles,
-  Tag,
-  Utensils,
-  Users,
-  Wallet,
-  Zap,
-};
-
-const CATEGORY_NAME_ICON_MAP: Record<string, LucideIcon> = {
-  "Cleaning Essentials": Sparkles,
-  "Date": Heart,
-  "Extras": Package,
-  "Family Contributions": Users,
-  "Hygiene Essentials": Droplets,
-  "Meal Plan": Utensils,
-  "Monthly Personal": Wallet,
-  "Monthly Utilities": Zap,
-  "Training/Upskilling": GraduationCap,
-  "Transaction Fees": CreditCard,
-  "Transportation": Car,
-  "Uncategorized": Tag,
-  "Vacation": Plane,
-};
 
 function isDefaultCategory(name: string): boolean {
   return name === "Uncategorized";
 }
 
-function getCategoryIcon(cat: Category): LucideIcon {
-  if (cat.icon && cat.icon in AVAILABLE_ICONS) {
-    return AVAILABLE_ICONS[cat.icon];
-  }
-  return CATEGORY_NAME_ICON_MAP[cat.name] ?? Tag;
+function getCategoryIcon(cat: Category) {
+  return categoryIcon(cat.name, cat.icon);
 }
 
 /** rgba tint (0.12) from a #rrggbb hex, matching the mock's icon tiles. */

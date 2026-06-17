@@ -15,6 +15,7 @@ import CurrencySelect from "../components/CurrencySelect";
 import { Button, ConfirmDialog, IconButton, Modal, PageHeader, SelectionBar } from "../components/ui";
 import { useMultiSelect } from "../hooks/useMultiSelect";
 import { RATE_TTL_MS, rateCache } from "../lib/cache";
+import { categoryIcon } from "../lib/categoryIcon";
 import { formatCurrency, formatMonth } from "../lib/formatters";
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
@@ -325,7 +326,12 @@ export default function Budget() {
                   <td className="px-6 py-5">
                     <input type="checkbox" aria-label={`Select ${b.categoryName}`} checked={sel.selected.has(b.id)} onChange={() => sel.toggle(b.id)} className="rounded accent-[#1f8a5b]" />
                   </td>
-                  <td className="px-6 py-5 font-medium text-ink-hi">{b.categoryName}</td>
+                  <td className="px-6 py-5 font-medium text-ink-hi">
+                    <span className="inline-flex items-center gap-2">
+                      {(() => { const Ic = categoryIcon(b.categoryName); return <Ic className="h-4 w-4 shrink-0 text-ink-3" />; })()}
+                      {b.categoryName}
+                    </span>
+                  </td>
                   <td className="px-6 py-5 text-right">
                     <span className="inline-flex items-center justify-end gap-2">
                       {b.currency !== "PHP" && (

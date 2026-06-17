@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { getUpcomingBills } from "../api/recurring";
 import type { UpcomingBillResponse } from "../api/types";
 import { Card, InfoTip } from "./ui";
+import CategoryChip from "./CategoryChip";
 import { formatCurrency } from "../lib/formatters";
 
 interface Props {
@@ -62,9 +63,7 @@ export default function UpcomingBillsCard({ month }: Props) {
                   {bill.name}
                 </span>
                 <div className="mt-0.5 flex items-center gap-2">
-                  <span className="rounded-full bg-surface-4 px-2 py-0.5 text-xs text-ink-2">
-                    {bill.categoryName}
-                  </span>
+                  <CategoryChip name={bill.categoryName} className="px-2 py-0.5 text-xs" />
                   <span className="text-xs text-ink-3">{formatDueDate(bill.dueDate)}</span>
                 </div>
               </div>

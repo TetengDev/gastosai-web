@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { getTopTransactions } from "../api/expenses";
 import type { Expense } from "../api/types";
 import { Card, InfoTip } from "./ui";
-import { formatCurrency, getCategoryColor } from "../lib/formatters";
+import CategoryChip from "./CategoryChip";
+import { formatCurrency } from "../lib/formatters";
 
 interface Props {
   month: string;
@@ -55,7 +56,6 @@ export default function TopExpensesCard({ month }: Props) {
       ) : (
         <ul className="mt-2">
           {expenses.map((e, index) => {
-            const color = getCategoryColor(e.category ?? "");
             return (
               <li
                 key={e.id}
@@ -65,11 +65,7 @@ export default function TopExpensesCard({ month }: Props) {
                   <span className="w-4 flex-shrink-0 text-right text-xs font-semibold text-ink-3">
                     {index + 1}
                   </span>
-                  <span
-                    className={`flex-shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${color.bg} ${color.darkBg} ${color.text} ${color.darkText}`}
-                  >
-                    {e.category}
-                  </span>
+                  <CategoryChip name={e.category ?? "Uncategorized"} className="shrink-0" />
                   <span className="truncate text-sm text-ink-2">{e.description}</span>
                 </div>
                 <div className="flex-shrink-0 text-right">
