@@ -2,13 +2,136 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-*, *::before, *::after {
+/* Design tokens — ported from the Claude Design handoff (GastosAI.dc.html). */
+:root {
+  --ga-page: #ffffff;
+  --ga-nav: rgba(255, 255, 255, 0.9);
+  --ga-surface: #ffffff;
+  --ga-surface2: #fafafa;
+  --ga-surface3: #eeece7;
+  --ga-surface4: #f7f7f5;
+  --ga-track: #f1f1ef;
+  --ga-border: #e5e7eb;
+  --ga-border2: #ededed;
+  --ga-border3: #f2f2f2;
+  --ga-border-input: #d9d9dd;
+  --ga-text-hi: #17171c;
+  --ga-text: #212121;
+  --ga-text2: #75758a;
+  --ga-text3: #93939f;
+  --ga-input-bg: #ffffff;
+  --ga-cta-bg: #17171c;
+  --ga-cta-text: #ffffff;
+  --ga-green-hi: #003c33;
+  --ga-warn-bg: #fff8ea;
+  --ga-warn-border: #f0dca0;
+  --ga-warn-text: #8a6a00;
+}
+
+.dark {
+  --ga-page: #0f0f13;
+  --ga-nav: rgba(15, 15, 19, 0.92);
+  --ga-surface: #17171c;
+  --ga-surface2: #1e1e24;
+  --ga-surface3: #0d1f1a;
+  --ga-surface4: #1a1a1f;
+  --ga-track: rgba(255, 255, 255, 0.07);
+  --ga-border: rgba(255, 255, 255, 0.09);
+  --ga-border2: rgba(255, 255, 255, 0.07);
+  --ga-border3: rgba(255, 255, 255, 0.05);
+  --ga-border-input: rgba(255, 255, 255, 0.15);
+  --ga-text-hi: #f0f0f0;
+  --ga-text: #e0e0e8;
+  --ga-text2: #8b8b9e;
+  --ga-text3: #6b6b7a;
+  --ga-input-bg: #1e1e24;
+  --ga-cta-bg: #f0f0f0;
+  --ga-cta-text: #17171c;
+  --ga-green-hi: #7fd6b8;
+  --ga-warn-bg: rgba(240, 220, 160, 0.07);
+  --ga-warn-border: rgba(240, 220, 160, 0.2);
+  --ga-warn-text: #d4b060;
+}
+
+/* Expose tokens as Tailwind utilities. `inline` keeps the var() reference so
+   utilities flip automatically when `.dark` toggles on <html>. */
+@theme inline {
+  --font-display: "Space Grotesk", system-ui, sans-serif;
+  --font-sans: "Hanken Grotesk", system-ui, sans-serif;
+  --font-mono: "Space Mono", ui-monospace, monospace;
+
+  --color-page: var(--ga-page);
+  --color-nav: var(--ga-nav);
+  --color-surface: var(--ga-surface);
+  --color-surface-2: var(--ga-surface2);
+  --color-surface-3: var(--ga-surface3);
+  --color-surface-4: var(--ga-surface4);
+  --color-track: var(--ga-track);
+  --color-input: var(--ga-input-bg);
+
+  --color-ink: var(--ga-text);
+  --color-ink-hi: var(--ga-text-hi);
+  --color-ink-2: var(--ga-text2);
+  --color-ink-3: var(--ga-text3);
+
+  --color-edge: var(--ga-border);
+  --color-edge-2: var(--ga-border2);
+  --color-edge-3: var(--ga-border3);
+  --color-edge-input: var(--ga-border-input);
+
+  --color-cta: var(--ga-cta-bg);
+  --color-cta-fg: var(--ga-cta-text);
+  --color-deep: var(--ga-green-hi);
+
+  --color-warn-bg: var(--ga-warn-bg);
+  --color-warn-edge: var(--ga-warn-border);
+  --color-warn-ink: var(--ga-warn-text);
+
+  --color-brand: #1f8a5b;
+  --color-hero: #003c33;
+  --color-link: #1863dc;
+  --color-alert: #ff7759;
+  --color-amber: #e8590c;
+}
+
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: "Hanken Grotesk", system-ui, -apple-system, sans-serif;
+  background: var(--ga-page);
+  color: var(--ga-text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: #9b60aa;
+  box-shadow: 0 0 0 3px rgba(155, 96, 170, 0.12);
+}
+
+::placeholder {
+  color: var(--ga-text3);
+}
+
+@keyframes gaPop {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-pop {
+  animation: gaPop 0.25s ease forwards;
 }
