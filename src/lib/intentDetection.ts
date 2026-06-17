@@ -17,10 +17,15 @@ export const REPORT_PHRASES = [
 export const CRUD_WORD_KEYWORDS = [
   "budget", "goal", "recurring",
   "delete", "remove", "update", "edit", "modify",
+  "rename", "category", "categories",
+  "subscription", "plan", "profile",
+  "nickname", "avatar",
 ];
 
 export const CRUD_PHRASE_KEYWORDS = [
   "create a", "add a", "set a", "make a", "set up",
+  "list my", "show my categories", "list categories",
+  "what plan", "my plan", "my subscription",
 ];
 
 export function looksLikeNlQuery(text: string): boolean {
