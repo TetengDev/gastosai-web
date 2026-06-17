@@ -1,7 +1,8 @@
-import { Pencil, RotateCcw, Trash2 } from "lucide-react";
+import { Pencil, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { createGoal, deleteGoal, getGoals, updateGoal, type Goal, type GoalRequest } from "../api/goals";
 import CurrencySelect from "../components/CurrencySelect";
+import { Button, ConfirmDialog, IconButton, Modal, PageHeader, ProgressBar } from "../components/ui";
 import { formatCurrency } from "../lib/formatters";
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
@@ -22,17 +23,17 @@ const STATUS_LABEL: Record<Goal["status"], string> = {
 };
 
 const STATUS_BADGE: Record<Goal["status"], string> = {
-  ON_TRACK: "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400",
-  BEHIND: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400",
-  COMPLETED: "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400",
-  PAUSED: "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400",
+  ON_TRACK: "bg-[#e7f6ee] text-[#1f8a5b] dark:bg-[#1f8a5b]/20 dark:text-[#7fd6b8]",
+  BEHIND: "bg-warn-bg text-warn-ink",
+  COMPLETED: "bg-[#e7f6ee] text-[#1f8a5b] dark:bg-[#1f8a5b]/20 dark:text-[#7fd6b8]",
+  PAUSED: "bg-surface-2 text-ink-3",
 };
 
-const STATUS_BAR: Record<Goal["status"], string> = {
-  ON_TRACK: "bg-emerald-500",
-  BEHIND: "bg-amber-500",
-  COMPLETED: "bg-indigo-500",
-  PAUSED: "bg-gray-400",
+const STATUS_COLOR: Record<Goal["status"], string> = {
+  ON_TRACK: "#1f8a5b",
+  BEHIND: "#e8590c",
+  COMPLETED: "#1f8a5b",
+  PAUSED: "#c4c4cc",
 };
 
 function formatTargetDate(dateStr: string): string {
@@ -85,6 +86,7 @@ export default function Goals() {
     setEditing(null);
     setForm(EMPTY_FORM);
     setModalError(null);
+    setConflict(null);
     setModalOpen(true);
   };
 
@@ -99,6 +101,7 @@ export default function Goals() {
       currency: goal.currency ?? "PHP",
     });
     setModalError(null);
+    setConflict(null);
     setModalOpen(true);
   };
 
@@ -185,282 +188,215 @@ export default function Goals() {
     }
   };
 
+  const inputClass = "w-full rounded-xl border border-edge-input bg-input px-3 py-2.5 text-sm text-ink";
+  const labelClass = "mb-1.5 block text-sm font-medium text-ink";
+
   if (loading)
     return (
-      <div className="space-y-5 animate-pulse">
-        <div className="flex justify-between items-center">
-          <div className="h-8 w-28 bg-gray-200 dark:bg-gray-800 rounded-lg" />
-          <div className="h-10 w-32 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl" />
+      <div className="animate-pulse space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="h-10 w-28 rounded-lg bg-surface-2" />
+          <div className="h-11 w-32 rounded-full bg-surface-2" />
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-[22px] md:grid-cols-2">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-36 bg-gray-100 dark:bg-gray-800 rounded-2xl" />
+            <div key={i} className="h-40 rounded-2xl bg-surface-2" />
           ))}
         </div>
       </div>
     );
-  if (error)
-    return <p className="text-red-500 text-center py-8">{error}</p>;
+  if (error) return <p className="py-8 text-center text-[#b30000]">{error}</p>;
 
   const activeCount = goals.filter((g) => g.status !== "COMPLETED" && g.status !== "PAUSED").length;
 
   return (
-    <div className="space-y-5">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Goals</h1>
-          {goals.length > 0 && (
-            <p className="text-sm text-gray-400 dark:text-gray-500 mt-0.5">
+    <div className="space-y-8">
+      <PageHeader
+        title="Goals"
+        subtitle={
+          goals.length > 0 ? (
+            <span>
               {activeCount} active · {goals.filter((g) => g.status === "COMPLETED").length} completed
-            </p>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => void load()}
-            title="Reload"
-            className="p-2 text-gray-400 dark:text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-xl transition-colors"
-          >
-            <RotateCcw className="w-4 h-4" />
-          </button>
-          <button
-            onClick={openAdd}
-            className="px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-xl text-sm font-semibold hover:from-indigo-700 hover:to-blue-700 transition-all shadow-md shadow-indigo-500/25 hover:shadow-lg hover:shadow-indigo-500/30 hover:-translate-y-0.5 active:translate-y-0"
-          >
-            + Add Goal
-          </button>
-        </div>
-      </div>
+            </span>
+          ) : undefined
+        }
+        actions={
+          <>
+            <IconButton onClick={() => void load()} title="Reload">
+              <RotateCcw className="h-4 w-4" />
+            </IconButton>
+            <Button onClick={openAdd}>
+              <Plus className="h-[15px] w-[15px]" />
+              Add Goal
+            </Button>
+          </>
+        }
+      />
 
       {goals.length === 0 ? (
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-16 text-center">
-          <p className="text-4xl mb-3">🎯</p>
-          <p className="text-gray-700 dark:text-gray-300 font-semibold text-lg">No goals yet</p>
-          <p className="text-gray-400 dark:text-gray-500 text-sm mt-1 mb-5">
-            Set a savings goal and track your progress
-          </p>
-          <button
-            onClick={openAdd}
-            className="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-xl text-sm font-semibold hover:from-indigo-700 hover:to-blue-700 transition-all shadow-md shadow-indigo-500/25"
-          >
-            + Add your first goal
-          </button>
+        <div className="rounded-2xl border border-edge bg-surface p-16 text-center">
+          <p className="mb-3 text-4xl">🎯</p>
+          <p className="text-lg font-semibold text-ink-hi">No goals yet</p>
+          <p className="mb-5 mt-1 text-sm text-ink-3">Set a savings goal and track your progress</p>
+          <Button onClick={openAdd}>
+            <Plus className="h-[15px] w-[15px]" />
+            Add your first goal
+          </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-[22px] md:grid-cols-2">
           {goals.map((goal) => (
             <div
               key={goal.id}
-              className="group bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-5 hover:shadow-md transition-shadow"
+              className="group rounded-2xl border border-edge bg-surface p-7 transition-shadow hover:shadow-md"
             >
-              <div className="flex items-start justify-between gap-2 mb-3">
-                <h3 className="font-semibold text-gray-900 dark:text-gray-100 truncate flex-1">
+              <div className="flex items-start justify-between gap-3">
+                <h3 className="flex-1 truncate font-display text-[23px] font-medium tracking-tight text-ink-hi">
                   {goal.name}
                 </h3>
-                <div className="flex items-center gap-1 flex-shrink-0">
-                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${STATUS_BADGE[goal.status]}`}>
+                <div className="flex flex-shrink-0 items-center gap-1">
+                  <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12.5px] font-medium ${STATUS_BADGE[goal.status]}`}>
+                    <span className="h-1.5 w-1.5 rounded-full" style={{ background: STATUS_COLOR[goal.status] }} />
                     {STATUS_LABEL[goal.status]}
                   </span>
-                  <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      onClick={() => openEdit(goal)}
-                      title="Edit"
-                      className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={() => setConfirmDelete(goal)}
-                      title="Delete"
-                      className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                  <div className="flex gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+                    <IconButton onClick={() => openEdit(goal)} title="Edit">
+                      <Pencil className="h-3.5 w-3.5" />
+                    </IconButton>
+                    <IconButton onClick={() => setConfirmDelete(goal)} title="Delete" className="hover:text-[#b30000]">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </IconButton>
                   </div>
                 </div>
               </div>
 
-              <div className="mb-2">
-                <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1.5">
-                  <span>{formatGoalAmount(goal.savedAmount, goal.currency ?? "PHP")} saved</span>
-                  <span>{goal.progressPercent}%</span>
-                </div>
-                <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all duration-700 ${STATUS_BAR[goal.status]}`}
-                    style={{ width: `${Math.min(100, goal.progressPercent)}%` }}
-                  />
-                </div>
+              <div className="mt-6 flex items-baseline justify-between">
+                <span className="font-display text-[18px] font-medium text-deep">
+                  {formatGoalAmount(goal.savedAmount, goal.currency ?? "PHP")}{" "}
+                  <span className="text-sm font-normal text-ink-2">saved</span>
+                </span>
+                <span className="font-mono text-sm text-ink-2">{goal.progressPercent}%</span>
               </div>
-
-              <div className="flex items-center justify-between text-xs text-gray-400 dark:text-gray-500 mt-2">
+              <ProgressBar
+                percent={goal.progressPercent}
+                color={STATUS_COLOR[goal.status]}
+                className="mt-3"
+              />
+              <div className="mt-4 flex items-center justify-between text-[13.5px] text-ink-2">
                 <span>Target: {formatGoalAmount(goal.targetAmount, goal.currency ?? "PHP")}</span>
-                {goal.targetDate && (
-                  <span>By {formatTargetDate(goal.targetDate)}</span>
-                )}
+                {goal.targetDate && <span>By {formatTargetDate(goal.targetDate)}</span>}
               </div>
             </div>
           ))}
         </div>
       )}
 
-      {modalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-2xl w-full max-w-md mx-4 border border-gray-100 dark:border-gray-800">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-5">
-              {editing ? "Edit Goal" : "Add Goal"}
-            </h2>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                  Goal Name
-                </label>
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                  placeholder="e.g. Emergency Fund"
-                  className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 text-sm bg-gray-50/50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                  Currency
-                </label>
-                <CurrencySelect
-                  value={form.currency ?? "PHP"}
-                  onChange={(c) => setForm((f) => ({ ...f, currency: c }))}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                    Target Amount ({CURRENCY_SYMBOLS[form.currency ?? "PHP"] ?? form.currency})
-                  </label>
-                  <input
-                    type="number"
-                    min="0.01"
-                    step="0.01"
-                    value={form.targetAmount || ""}
-                    onChange={(e) => setForm((f) => ({ ...f, targetAmount: parseFloat(e.target.value) || 0 }))}
-                    className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 text-sm bg-gray-50/50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                    Saved So Far ({CURRENCY_SYMBOLS[form.currency ?? "PHP"] ?? form.currency})
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={form.savedAmount || ""}
-                    onChange={(e) => setForm((f) => ({ ...f, savedAmount: parseFloat(e.target.value) || 0 }))}
-                    className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 text-sm bg-gray-50/50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                  Target Date <span className="text-gray-400 font-normal">(optional)</span>
-                </label>
-                <input
-                  type="date"
-                  value={form.targetDate ?? ""}
-                  onChange={(e) => setForm((f) => ({ ...f, targetDate: e.target.value || null }))}
-                  className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 text-sm bg-gray-50/50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                />
-              </div>
-
-              {editing && (
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={form.paused}
-                    onChange={(e) => setForm((f) => ({ ...f, paused: e.target.checked }))}
-                    className="w-4 h-4 rounded accent-indigo-600"
-                  />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">Pause this goal</span>
-                </label>
-              )}
+      <Modal open={modalOpen} onClose={closeModal} title={editing ? "Edit Goal" : "Add Goal"}>
+        <div className="space-y-4">
+          <div>
+            <label className={labelClass}>Goal Name</label>
+            <input
+              type="text"
+              value={form.name}
+              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+              placeholder="e.g. Emergency Fund"
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label className={labelClass}>Currency</label>
+            <CurrencySelect value={form.currency ?? "PHP"} onChange={(c) => setForm((f) => ({ ...f, currency: c }))} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelClass}>
+                Target Amount ({CURRENCY_SYMBOLS[form.currency ?? "PHP"] ?? form.currency})
+              </label>
+              <input
+                type="number"
+                min="0.01"
+                step="0.01"
+                value={form.targetAmount || ""}
+                onChange={(e) => setForm((f) => ({ ...f, targetAmount: parseFloat(e.target.value) || 0 }))}
+                className={inputClass}
+              />
             </div>
-
-            {modalError && (
-              <p className="mt-4 text-sm text-red-600 dark:text-red-400">{modalError}</p>
-            )}
-
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={closeModal}
-                className="flex-1 px-4 py-2.5 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors font-medium"
-              >
-                Cancel
-              </button>
-              {modalError && conflict !== null && !editing ? (
-                <>
-                  <button
-                    disabled={saving}
-                    onClick={handleUpdateExisting}
-                    className="flex-1 px-4 py-2.5 text-sm bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-xl hover:from-indigo-700 hover:to-blue-700 disabled:opacity-50 font-semibold transition-all"
-                  >
-                    {saving ? "…" : "Update existing"}
-                  </button>
-                  <button
-                    disabled={saving}
-                    onClick={handleCreateAnyway}
-                    className="flex-1 px-4 py-2.5 text-sm border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 font-semibold transition-all"
-                  >
-                    Create anyway
-                  </button>
-                </>
-              ) : (
-                <button
-                  disabled={saving}
-                  onClick={handleSave}
-                  className="flex-1 px-4 py-2.5 text-sm bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-xl hover:from-indigo-700 hover:to-blue-700 disabled:opacity-50 font-semibold transition-all"
-                >
-                  {saving ? "Saving…" : editing ? "Save Changes" : "Add Goal"}
-                </button>
-              )}
+            <div>
+              <label className={labelClass}>
+                Saved So Far ({CURRENCY_SYMBOLS[form.currency ?? "PHP"] ?? form.currency})
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={form.savedAmount || ""}
+                onChange={(e) => setForm((f) => ({ ...f, savedAmount: parseFloat(e.target.value) || 0 }))}
+                className={inputClass}
+              />
             </div>
           </div>
-        </div>
-      )}
-
-      {confirmDelete && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-2xl max-w-sm w-full mx-4 border border-gray-100 dark:border-gray-800">
-            <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500">
-              <Trash2 className="w-5 h-5" />
-            </div>
-            <h3 className="font-bold text-gray-900 dark:text-gray-100 text-center mb-1">
-              Delete goal?
-            </h3>
-            <p className="text-gray-500 dark:text-gray-400 text-sm mb-6 text-center">
-              <strong>{confirmDelete.name}</strong> will be permanently removed.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setConfirmDelete(null)}
-                className="flex-1 px-4 py-2.5 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors font-medium"
-              >
-                Cancel
-              </button>
-              <button
-                disabled={deleting}
-                onClick={handleDelete}
-                className="flex-1 px-4 py-2.5 text-sm bg-red-600 text-white rounded-xl hover:bg-red-700 disabled:opacity-50 font-semibold transition-colors"
-              >
-                {deleting ? "Deleting…" : "Delete"}
-              </button>
-            </div>
+          <div>
+            <label className={labelClass}>
+              Target Date <span className="font-normal text-ink-3">(optional)</span>
+            </label>
+            <input
+              type="date"
+              value={form.targetDate ?? ""}
+              onChange={(e) => setForm((f) => ({ ...f, targetDate: e.target.value || null }))}
+              className={inputClass}
+            />
           </div>
+          {editing && (
+            <label className="flex cursor-pointer items-center gap-3">
+              <input
+                type="checkbox"
+                checked={form.paused}
+                onChange={(e) => setForm((f) => ({ ...f, paused: e.target.checked }))}
+                className="h-4 w-4 rounded accent-[#1f8a5b]"
+              />
+              <span className="text-sm text-ink">Pause this goal</span>
+            </label>
+          )}
         </div>
-      )}
+
+        {modalError && <p className="mt-4 text-sm text-[#b30000]">{modalError}</p>}
+
+        <div className="mt-6 flex gap-3">
+          <Button variant="secondary" className="flex-1" onClick={closeModal}>
+            Cancel
+          </Button>
+          {modalError && conflict !== null && !editing ? (
+            <>
+              <Button className="flex-1" disabled={saving} onClick={handleUpdateExisting}>
+                {saving ? "…" : "Update existing"}
+              </Button>
+              <Button variant="secondary" className="flex-1" disabled={saving} onClick={handleCreateAnyway}>
+                Create anyway
+              </Button>
+            </>
+          ) : (
+            <Button className="flex-1" disabled={saving} onClick={handleSave}>
+              {saving ? "Saving…" : editing ? "Save Changes" : "Add Goal"}
+            </Button>
+          )}
+        </div>
+      </Modal>
+
+      <ConfirmDialog
+        open={confirmDelete !== null}
+        title="Delete goal?"
+        message={
+          confirmDelete ? (
+            <>
+              <span className="font-medium text-ink">{confirmDelete.name}</span> will be permanently removed.
+            </>
+          ) : ""
+        }
+        confirmLabel="Delete"
+        loading={deleting}
+        onCancel={() => setConfirmDelete(null)}
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }
