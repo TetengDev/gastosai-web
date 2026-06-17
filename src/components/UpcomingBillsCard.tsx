@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getUpcomingBills } from "../api/recurring";
 import type { UpcomingBillResponse } from "../api/types";
+import { Card } from "./ui";
 import { formatCurrency } from "../lib/formatters";
 
 interface Props {
@@ -32,47 +33,43 @@ export default function UpcomingBillsCard({ month }: Props) {
   }, [fetchData]);
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6">
-      <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-4">
+    <Card>
+      <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
         Upcoming Bills
       </p>
 
       {loading && (
-        <div className="animate-pulse space-y-3">
+        <div className="mt-4 animate-pulse space-y-3">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-8 bg-gray-100 dark:bg-gray-800 rounded-lg" />
+            <div key={i} className="h-8 rounded-lg bg-surface-2" />
           ))}
         </div>
       )}
 
-      {!loading && error && (
-        <p className="text-sm text-gray-400 dark:text-gray-500">{error}</p>
-      )}
+      {!loading && error && <p className="mt-4 text-sm text-ink-3">{error}</p>}
 
       {!loading && !error && bills.length === 0 && (
-        <p className="text-sm text-gray-400 dark:text-gray-500">No upcoming bills this month.</p>
+        <p className="mt-4 text-sm text-ink-3">No upcoming bills this month.</p>
       )}
 
       {!loading && !error && bills.length > 0 && (
-        <ul className="space-y-2">
+        <ul className="mt-4 space-y-2.5">
           {bills.slice(0, 5).map((bill) => (
             <li key={bill.id} className="flex items-center gap-3">
-              <div className="flex-1 min-w-0">
-                <span className="font-medium text-sm text-gray-800 dark:text-gray-200 truncate block">
+              <div className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-medium text-ink-hi">
                   {bill.name}
                 </span>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded-full">
+                <div className="mt-0.5 flex items-center gap-2">
+                  <span className="rounded-full bg-surface-4 px-2 py-0.5 text-xs text-ink-2">
                     {bill.categoryName}
                   </span>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                    {formatDueDate(bill.dueDate)}
-                  </span>
+                  <span className="text-xs text-ink-3">{formatDueDate(bill.dueDate)}</span>
                 </div>
               </div>
-              <span className="font-medium text-sm text-gray-900 dark:text-gray-100 flex-shrink-0 text-right">
+              <span className="flex-shrink-0 text-right text-sm font-medium text-ink-hi">
                 {bill.currency !== "PHP" && (
-                  <span className="block text-xs text-indigo-500 dark:text-indigo-400 font-medium">
+                  <span className="block text-xs font-medium text-link">
                     {bill.currency} {bill.amount.toFixed(2)}
                   </span>
                 )}
@@ -84,13 +81,10 @@ export default function UpcomingBillsCard({ month }: Props) {
       )}
 
       <div className="mt-4">
-        <Link
-          to="/recurring"
-          className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
-        >
+        <Link to="/recurring" className="text-sm font-medium text-link hover:underline">
           View all →
         </Link>
       </div>
-    </div>
+    </Card>
   );
 }

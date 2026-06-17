@@ -2,11 +2,12 @@ import { CheckCheck } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { type Alert, getAlerts, markAlertRead } from "../api/alerts";
+import { Card, IconButton } from "./ui";
 
-function severityDot(severity: Alert["severity"]) {
-  if (severity === "CRITICAL") return "bg-red-500";
-  if (severity === "WARNING") return "bg-amber-400";
-  return "bg-blue-400";
+function severityColor(severity: Alert["severity"]): string {
+  if (severity === "CRITICAL") return "#ff7759";
+  if (severity === "WARNING") return "#e8590c";
+  return "#1863dc";
 }
 
 export default function AlertsCard() {
@@ -39,74 +40,51 @@ export default function AlertsCard() {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6">
-      <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-4">
-        Spending Alerts
+    <Card>
+      <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
+        Spending alerts
       </p>
 
       {loading && (
-        <div className="space-y-3 animate-pulse">
+        <div className="mt-4 animate-pulse space-y-3">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="h-8 bg-gray-100 dark:bg-gray-800 rounded-lg" />
+            <div key={i} className="h-8 rounded-lg bg-surface-2" />
           ))}
         </div>
       )}
 
-      {!loading && error && (
-        <p className="text-sm text-red-500">{error}</p>
-      )}
+      {!loading && error && <p className="mt-4 text-sm text-[#b30000]">{error}</p>}
 
       {!loading && !error && alerts.length === 0 && (
-        <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-4">
-          No active alerts
-        </p>
+        <p className="py-4 text-center text-sm text-ink-3">No active alerts</p>
       )}
 
       {!loading && !error && alerts.length > 0 && (
-        <div className="space-y-3">
+        <div className="mt-4 space-y-3">
           {alerts.map((alert) => (
-            <div
-              key={alert.id}
-              className={`flex items-start gap-3 p-3 rounded-xl border transition-colors ${
-                alert.read
-                  ? "bg-gray-50 dark:bg-gray-800/50 border-gray-100 dark:border-gray-800"
-                  : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700"
-              }`}
-            >
+            <div key={alert.id} className="flex items-start gap-3">
               <span
-                className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${severityDot(alert.severity)}`}
+                className="mt-1.5 h-2 w-2 shrink-0 rounded-full"
+                style={{ background: severityColor(alert.severity), opacity: alert.read ? 0.4 : 1 }}
               />
-              <p
-                className={`text-sm flex-1 ${
-                  alert.read
-                    ? "text-gray-400 dark:text-gray-500"
-                    : "text-gray-700 dark:text-gray-300"
-                }`}
-              >
+              <p className={`flex-1 text-[14.5px] leading-relaxed ${alert.read ? "text-ink-3" : "text-ink"}`}>
                 {alert.message}
               </p>
               {!alert.read && (
-                <button
-                  onClick={() => void handleRead(alert.id)}
-                  title="Mark as read"
-                  className="shrink-0 p-1 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors"
-                >
-                  <CheckCheck className="w-4 h-4" />
-                </button>
+                <IconButton onClick={() => void handleRead(alert.id)} title="Mark as read">
+                  <CheckCheck className="h-4 w-4" />
+                </IconButton>
               )}
             </div>
           ))}
         </div>
       )}
 
-      <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-800">
-        <Link
-          to="/alerts"
-          className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-medium transition-colors"
-        >
+      <div className="mt-5">
+        <Link to="/alerts" className="text-[15px] font-medium text-link hover:underline">
           View all alerts →
         </Link>
       </div>
-    </div>
+    </Card>
   );
 }

@@ -1,10 +1,11 @@
-import { Download, HelpCircle, Loader2, Pencil, Trash2, Upload } from "lucide-react";
+import { Download, HelpCircle, Loader2, Pencil, Plus, Trash2, Upload } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import ExpenseModal from "../components/ExpenseModal";
 import { deleteExpense, downloadImportTemplate, exportExpenses, getExpenses, importExpensesCsv, type ImportResult } from "../api/expenses";
 import type { Expense } from "../api/types";
 import { useExpenses } from "../hooks/useExpenses";
 import { useFeatures } from "../hooks/useFeatures";
+import { Button, ConfirmDialog, IconButton, Modal, PageHeader } from "../components/ui";
 import { formatCurrency, formatDate, getCategoryColor } from "../lib/formatters";
 
 export default function Expenses() {
@@ -88,130 +89,90 @@ export default function Expenses() {
     }
   };
 
+  const clearFilter = () => { setFrom(""); setTo(""); setFilteredExpenses(null); setIsFetchingFilter(false); };
+
+  const inputClass =
+    "rounded-lg border border-edge-input bg-input px-3 py-2 text-sm text-ink";
+  const labelClass = "font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3";
+
   if (loading)
     return (
-      <div className="space-y-5 animate-pulse">
-        <div className="flex justify-between items-center">
-          <div className="h-8 w-32 bg-gray-200 dark:bg-gray-800 rounded-lg" />
-          <div className="h-10 w-36 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl" />
+      <div className="animate-pulse space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="h-10 w-40 rounded-lg bg-surface-2" />
+          <div className="h-11 w-36 rounded-full bg-surface-2" />
         </div>
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm h-64" />
+        <div className="h-64 rounded-2xl bg-surface-2" />
       </div>
     );
-  if (error)
-    return <p className="text-red-500 text-center py-8">{error}</p>;
+  if (error) return <p className="py-8 text-center text-[#b30000]">{error}</p>;
 
   return (
-    <div className="space-y-5">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            Expenses
-          </h1>
-          {expenses.length > 0 && (
-            <div className="flex items-center gap-3 mt-0.5">
-              <p className="text-sm text-gray-400 dark:text-gray-500">
-                {(from || to) ? `${displayExpenses.length} of ${expenses.length}` : `${expenses.length} total`} entries
-              </p>
-              <button
-                onClick={() => setConfirmDeleteAll(true)}
-                className="inline-flex items-center gap-1 text-xs text-red-400 dark:text-red-500 hover:text-red-600 dark:hover:text-red-400 transition-colors cursor-pointer"
-              >
-                <Trash2 className="w-3 h-3" />
-                Delete All
-              </button>
-            </div>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          {features?.csvImport && (
-            <>
-              <input
-                ref={csvInputRef}
-                type="file"
-                accept=".csv,text/csv"
-                className="hidden"
-                onChange={handleCsvChange}
-              />
-              <button
-                onClick={() => csvInputRef.current?.click()}
-                disabled={importing}
-                className="inline-flex items-center gap-1.5 px-4 py-2.5 border border-indigo-300 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 rounded-xl text-sm font-semibold hover:bg-indigo-50 dark:hover:bg-indigo-900/30 hover:border-indigo-400 dark:hover:border-indigo-600 hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 cursor-pointer"
-              >
-                {importing ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Importing…
-                  </>
-                ) : (
-                  <>
-                    <Upload className="w-4 h-4" />
-                    Import CSV
-                  </>
-                )}
-              </button>
-              <label className="inline-flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400 cursor-pointer select-none" title="Reject the whole file if any row is invalid">
+    <div className="space-y-8">
+      <PageHeader
+        title="Expenses"
+        subtitle={
+          expenses.length > 0 ? (
+            <span>
+              {(from || to) ? `${displayExpenses.length} of ${expenses.length}` : `${expenses.length} total`} entries
+            </span>
+          ) : undefined
+        }
+        onDeleteAll={expenses.length > 0 ? () => setConfirmDeleteAll(true) : undefined}
+        actions={
+          <>
+            {features?.csvImport && (
+              <>
                 <input
-                  type="checkbox"
-                  checked={strictImport}
-                  onChange={(e) => setStrictImport(e.target.checked)}
-                  className="w-3.5 h-3.5 rounded accent-indigo-600"
+                  ref={csvInputRef}
+                  type="file"
+                  accept=".csv,text/csv"
+                  className="hidden"
+                  onChange={handleCsvChange}
                 />
-                Strict
-              </label>
-              <button
-                type="button"
-                onClick={() => setShowFormatHelp(true)}
-                aria-label="CSV format help"
-                title="CSV format help"
-                className="text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
-              >
-                <HelpCircle className="w-4 h-4" />
-              </button>
-            </>
-          )}
-          <button
-            onClick={() => setShowAdd(true)}
-            className="px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-xl text-sm font-semibold hover:from-indigo-700 hover:to-blue-700 transition-all shadow-md shadow-indigo-500/25 hover:shadow-lg hover:shadow-indigo-500/30 hover:-translate-y-0.5 active:translate-y-0"
-          >
-            + Add Expense
-          </button>
-        </div>
-      </div>
+                <Button variant="secondary" onClick={() => csvInputRef.current?.click()} disabled={importing}>
+                  {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                  {importing ? "Importing…" : "Import CSV"}
+                </Button>
+                <label className="inline-flex cursor-pointer select-none items-center gap-1.5 text-xs text-ink-2" title="Reject the whole file if any row is invalid">
+                  <input
+                    type="checkbox"
+                    checked={strictImport}
+                    onChange={(e) => setStrictImport(e.target.checked)}
+                    className="h-3.5 w-3.5 rounded accent-[#1f8a5b]"
+                  />
+                  Strict
+                </label>
+                <IconButton type="button" onClick={() => setShowFormatHelp(true)} aria-label="CSV format help" title="CSV format help">
+                  <HelpCircle className="h-4 w-4" />
+                </IconButton>
+              </>
+            )}
+            <Button onClick={() => setShowAdd(true)}>
+              <Plus className="h-[15px] w-[15px]" />
+              Add Expense
+            </Button>
+          </>
+        }
+      />
 
       {/* Date range filter */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-2">
-          <label className="text-sm text-gray-500 dark:text-gray-400">From</label>
-          <input
-            type="date"
-            value={from}
-            onChange={(e) => setFrom(e.target.value)}
-            className="border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm bg-gray-50/50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-          />
-        </div>
-        <div className="flex items-center gap-2">
-          <label className="text-sm text-gray-500 dark:text-gray-400">To</label>
-          <input
-            type="date"
-            value={to}
-            onChange={(e) => setTo(e.target.value)}
-            className="border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm bg-gray-50/50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-          />
-        </div>
-        {isFetchingFilter && (
-          <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-400 dark:text-indigo-500" />
-        )}
+      <div className="flex flex-wrap items-center gap-4">
+        <span className={labelClass}>From</span>
+        <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={inputClass} />
+        <span className={labelClass}>To</span>
+        <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className={inputClass} />
+        {isFetchingFilter && <Loader2 className="h-3.5 w-3.5 animate-spin text-ink-3" />}
         {(from || to) && !isFetchingFilter && (
-          <button
-            onClick={() => { setFrom(""); setTo(""); setFilteredExpenses(null); setIsFetchingFilter(false); }}
-            className="text-sm text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-          >
+          <button onClick={clearFilter} className="text-sm text-ink-3 transition-colors hover:text-ink">
             Clear
           </button>
         )}
         {expenses.length > 0 && (
-          <button
+          <Button
+            variant="secondary"
+            size="sm"
+            className="ml-auto"
             disabled={exporting}
             onClick={async () => {
               setExporting(true);
@@ -223,29 +184,19 @@ export default function Expenses() {
                 setExporting(false);
               }
             }}
-            className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 rounded-xl text-sm hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
-            {exporting ? (
-              <>
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                Exporting…
-              </>
-            ) : (
-              <>
-                <Download className="w-3.5 h-3.5" />
-                Export CSV
-              </>
-            )}
-          </button>
+            {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+            {exporting ? "Exporting…" : "Export CSV"}
+          </Button>
         )}
       </div>
 
       {importResult && (
         <div
-          className={`flex items-start gap-3 px-4 py-3 rounded-xl border text-sm ${
+          className={`flex items-start gap-3 rounded-xl border px-4 py-3 text-sm ${
             importResult.errors.length > 0
-              ? "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200"
-              : "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200"
+              ? "border-warn-edge bg-warn-bg text-warn-ink"
+              : "border-[#1f8a5b]/30 bg-[#e7f6ee] text-[#1f8a5b]"
           }`}
         >
           <div className="flex-1">
@@ -254,175 +205,119 @@ export default function Expenses() {
               {importResult.skipped > 0 && `, ${importResult.skipped} skipped`}
             </p>
             {importResult.errors.length > 0 && (
-              <ul className="mt-1 text-xs space-y-0.5 opacity-80">
+              <ul className="mt-1 space-y-0.5 text-xs opacity-80">
                 {importResult.errors.slice(0, 3).map((e, i) => <li key={i}>{e}</li>)}
-                {importResult.errors.length > 3 && (
-                  <li>…and {importResult.errors.length - 3} more</li>
-                )}
+                {importResult.errors.length > 3 && <li>…and {importResult.errors.length - 3} more</li>}
               </ul>
             )}
           </div>
-          <button
-            onClick={() => setImportResult(null)}
-            className="opacity-60 hover:opacity-100 transition-opacity text-base leading-none"
-          >
+          <button onClick={() => setImportResult(null)} className="text-base leading-none opacity-60 transition-opacity hover:opacity-100">
             ×
           </button>
         </div>
       )}
 
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
-        {expenses.length === 0 ? (
-          <div className="p-16 text-center">
-            <p className="text-4xl mb-3">🧾</p>
-            <p className="text-gray-700 dark:text-gray-300 font-semibold text-lg">
-              No expenses yet
-            </p>
-            <p className="text-gray-400 dark:text-gray-500 text-sm mt-1 mb-5">
-              Track your first expense and see your spending patterns
-            </p>
-            <button
-              onClick={() => setShowAdd(true)}
-              className="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-xl text-sm font-semibold hover:from-indigo-700 hover:to-blue-700 transition-all shadow-md shadow-indigo-500/25"
-            >
-              + Add your first expense
-            </button>
-          </div>
-        ) : displayExpenses.length === 0 ? (
-          <div className="p-12 text-center">
-            <p className="text-3xl mb-3">🔍</p>
-            <p className="text-gray-700 dark:text-gray-300 font-semibold">
-              No expenses match this filter
-            </p>
-            <button
-              onClick={() => { setFrom(""); setTo(""); setFilteredExpenses(null); setIsFetchingFilter(false); }}
-              className="mt-3 text-sm text-indigo-500 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
-            >
-              Clear filter
-            </button>
-          </div>
-        ) : (
+      {expenses.length === 0 ? (
+        <div className="rounded-2xl border border-edge bg-surface p-16 text-center">
+          <p className="mb-3 text-4xl">🧾</p>
+          <p className="text-lg font-semibold text-ink-hi">No expenses yet</p>
+          <p className="mb-5 mt-1 text-sm text-ink-3">Track your first expense and see your spending patterns</p>
+          <Button onClick={() => setShowAdd(true)}>
+            <Plus className="h-[15px] w-[15px]" />
+            Add your first expense
+          </Button>
+        </div>
+      ) : displayExpenses.length === 0 ? (
+        <div className="rounded-2xl border border-edge bg-surface p-12 text-center">
+          <p className="mb-3 text-3xl">🔍</p>
+          <p className="font-semibold text-ink-hi">No expenses match this filter</p>
+          <button onClick={clearFilter} className="mt-3 text-sm text-link hover:underline">
+            Clear filter
+          </button>
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-2xl border border-edge">
+          {selectedIds.size > 0 && (
+            <div className="flex items-center justify-between border-b border-edge-2 bg-[#b30000]/5 px-6 py-2.5">
+              <span className="text-sm text-ink">{selectedIds.size} selected</span>
+              <Button variant="danger" size="sm" onClick={deleteSelected} disabled={deletingSelected}>
+                <Trash2 className="h-3.5 w-3.5" />
+                {deletingSelected ? "Deleting…" : `Delete selected (${selectedIds.size})`}
+              </Button>
+            </div>
+          )}
           <div className="overflow-x-auto">
-            {selectedIds.size > 0 && (
-              <div className="flex items-center justify-between px-5 py-2.5 bg-red-50/60 dark:bg-red-900/10 border-b border-red-100 dark:border-red-900/30">
-                <span className="text-sm text-gray-600 dark:text-gray-300">{selectedIds.size} selected</span>
-                <button
-                  onClick={deleteSelected}
-                  disabled={deletingSelected}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg disabled:opacity-50 transition-colors"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  {deletingSelected ? "Deleting…" : `Delete Selected (${selectedIds.size})`}
-                </button>
-              </div>
-            )}
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-gray-50/80 dark:bg-gray-800/60 border-b border-gray-100 dark:border-gray-800">
-                  <th className="px-5 py-3.5 w-10">
+                <tr className="border-b border-edge-2 bg-surface-2 font-mono text-[11px] uppercase tracking-[0.1em] text-ink-3">
+                  <th className="w-10 px-5 py-4">
                     <input
                       type="checkbox"
                       aria-label="Select all"
                       checked={displayExpenses.length > 0 && displayExpenses.every((e) => selectedIds.has(e.id))}
-                      onChange={(ev) =>
-                        setSelectedIds(ev.target.checked ? new Set(displayExpenses.map((e) => e.id)) : new Set())
-                      }
-                      className="rounded border-gray-300 dark:border-gray-600"
+                      onChange={(ev) => setSelectedIds(ev.target.checked ? new Set(displayExpenses.map((e) => e.id)) : new Set())}
+                      className="rounded accent-[#1f8a5b]"
                     />
                   </th>
-                  <th className="px-5 py-3.5 text-left font-semibold text-gray-400 dark:text-gray-500 text-xs uppercase tracking-wide">
-                    Date & Time
-                  </th>
-                  <th className="px-5 py-3.5 text-left font-semibold text-gray-400 dark:text-gray-500 text-xs uppercase tracking-wide">
-                    Category
-                  </th>
-                  <th className="px-5 py-3.5 text-left font-semibold text-gray-400 dark:text-gray-500 text-xs uppercase tracking-wide">
-                    Description
-                  </th>
-                  <th className="px-5 py-3.5 text-left font-semibold text-gray-400 dark:text-gray-500 text-xs uppercase tracking-wide">
-                    Type
-                  </th>
-                  <th className="px-5 py-3.5 text-right font-semibold text-gray-400 dark:text-gray-500 text-xs uppercase tracking-wide">
-                    Amount
-                  </th>
-                  <th className="px-5 py-3.5 w-16" />
+                  <th className="px-5 py-4 text-left font-normal">Date &amp; time</th>
+                  <th className="px-5 py-4 text-left font-normal">Category</th>
+                  <th className="px-5 py-4 text-left font-normal">Description</th>
+                  <th className="px-5 py-4 text-left font-normal">Type</th>
+                  <th className="px-5 py-4 text-right font-normal">Amount</th>
+                  <th className="w-16 px-5 py-4" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
+              <tbody>
                 {displayExpenses.map((e) => {
                   const color = getCategoryColor(e.category ?? "");
+                  const typeLabel = e.expenseType === "BUSINESS" ? "Business" : "Personal";
                   return (
-                    <tr
-                      key={e.id}
-                      className="hover:bg-gray-50/60 dark:hover:bg-gray-800/40 transition-colors group"
-                    >
-                      <td className="px-5 py-3.5">
+                    <tr key={e.id} className="group border-b border-edge-3 transition-colors last:border-0 hover:bg-surface-2">
+                      <td className="px-5 py-4">
                         <input
                           type="checkbox"
                           aria-label={`Select ${e.description || "expense"}`}
                           checked={selectedIds.has(e.id)}
                           onChange={() => toggleSelect(e.id)}
-                          className="rounded border-gray-300 dark:border-gray-600"
+                          className="rounded accent-[#1f8a5b]"
                         />
                       </td>
-                      <td className="px-5 py-3.5 text-gray-500 dark:text-gray-400 whitespace-nowrap text-xs">
-                        {formatDate(e.date)}
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <span
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${color.bg} ${color.darkBg} ${color.text} ${color.darkText}`}
-                        >
-                          <span className={`w-1.5 h-1.5 rounded-full ${color.dot}`} />
+                      <td className="whitespace-nowrap px-5 py-4 text-ink">{formatDate(e.date)}</td>
+                      <td className="px-5 py-4">
+                        <span className="inline-flex items-center gap-2 rounded-full border border-edge-2 bg-surface-4 px-3 py-1 text-[13px] text-ink">
+                          <span className={`h-[7px] w-[7px] rounded-full ${color.dot}`} />
                           {e.category}
                         </span>
                       </td>
-                      <td className="px-5 py-3.5 text-gray-700 dark:text-gray-300 max-w-xs truncate">
-                        {e.description || (
-                          <span className="text-gray-300 dark:text-gray-600">—</span>
-                        )}
+                      <td className="max-w-xs truncate px-5 py-4 text-ink">
+                        {e.description || <span className="text-ink-3">—</span>}
                       </td>
-                      <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          {e.expenseType === "BUSINESS" ? (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300">
-                              Business
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
-                              Personal
+                      <td className="whitespace-nowrap px-5 py-4 font-mono text-[11px] uppercase tracking-[0.06em]">
+                        <span className={e.expenseType === "BUSINESS" ? "text-link" : "text-ink-3"}>
+                          {typeLabel}
+                        </span>
+                        {e.reimbursable && <span className="text-ink-3"> · Reimb.</span>}
+                      </td>
+                      <td className="whitespace-nowrap px-5 py-4 text-right">
+                        <span className="inline-flex items-center justify-end gap-2">
+                          {e.currency !== "PHP" && (
+                            <span className="rounded-md bg-link/10 px-1.5 py-0.5 font-mono text-[11px] text-link">
+                              {e.currency} {e.amount.toFixed(2)}
                             </span>
                           )}
-                          {e.reimbursable && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300">
-                              Reimb.
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-5 py-3.5 text-right font-semibold text-gray-900 dark:text-gray-100 whitespace-nowrap">
-                        {e.currency !== "PHP" && (
-                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 mr-1.5">
-                            {e.currency} {e.amount.toFixed(2)}
+                          <span className="font-display font-medium text-ink-hi">
+                            {formatCurrency(e.amountInBaseCurrency)}
                           </span>
-                        )}
-                        {formatCurrency(e.amountInBaseCurrency)}
+                        </span>
                       </td>
-                      <td className="px-5 py-3.5">
-                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
-                            onClick={() => setEditing(e)}
-                            title="Edit"
-                            className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => setConfirmDelete(e.id)}
-                            title="Delete"
-                            className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                      <td className="px-5 py-4">
+                        <div className="flex items-center justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                          <IconButton onClick={() => setEditing(e)} title="Edit">
+                            <Pencil className="h-4 w-4" />
+                          </IconButton>
+                          <IconButton onClick={() => setConfirmDelete(e.id)} title="Delete" className="hover:text-[#b30000]">
+                            <Trash2 className="h-4 w-4" />
+                          </IconButton>
                         </div>
                       </td>
                     </tr>
@@ -431,112 +326,55 @@ export default function Expenses() {
               </tbody>
             </table>
           </div>
-        )}
-      </div>
-
-      {showFormatHelp && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setShowFormatHelp(false)}>
-          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-2xl max-w-md w-full mx-4 border border-gray-100 dark:border-gray-800" onClick={(e) => e.stopPropagation()}>
-            <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-3">CSV import format</h3>
-            <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1.5 mb-4 list-disc pl-5">
-              <li><b>amount</b> — required, greater than 0 (currency symbols/commas are stripped).</li>
-              <li><b>category</b> — optional; defaults to "Uncategorized".</li>
-              <li><b>description</b> — optional.</li>
-              <li><b>date</b> — optional; accepts <code>YYYY-MM-DD</code>, <code>MM/DD/YYYY</code>, <code>DD/MM/YYYY</code>, with or without time; defaults to now.</li>
-              <li>Column order doesn't matter; the header row is required.</li>
-              <li><b>Strict</b> mode: if any row is missing/invalid, the whole file is rejected and nothing is imported.</li>
-            </ul>
-            <div className="flex items-center justify-between gap-3">
-              <button
-                type="button"
-                onClick={() => void downloadImportTemplate()}
-                className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-xl transition-colors"
-              >
-                <Download className="w-4 h-4" /> Download template
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowFormatHelp(false)}
-                className="px-4 py-2 text-sm bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-xl font-semibold"
-              >
-                Got it
-              </button>
-            </div>
-          </div>
         </div>
       )}
 
-      {confirmDelete !== null && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-2xl max-w-sm w-full mx-4 border border-gray-100 dark:border-gray-800">
-            <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500">
-              <Trash2 className="w-5 h-5" />
-            </div>
-            <h3 className="font-bold text-gray-900 dark:text-gray-100 text-center mb-1">
-              Delete expense?
-            </h3>
-            <p className="text-gray-500 dark:text-gray-400 text-sm mb-6 text-center">
-              This action cannot be undone.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setConfirmDelete(null)}
-                className="flex-1 px-4 py-2.5 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors font-medium"
-              >
-                Cancel
-              </button>
-              <button
-                disabled={deleting}
-                onClick={async () => {
-                  setDeleting(true);
-                  await remove(confirmDelete);
-                  setConfirmDelete(null);
-                  setDeleting(false);
-                }}
-                className="flex-1 px-4 py-2.5 text-sm bg-red-600 text-white rounded-xl hover:bg-red-700 disabled:opacity-50 font-semibold transition-colors"
-              >
-                {deleting ? "Deleting..." : "Delete"}
-              </button>
-            </div>
-          </div>
+      <Modal open={showFormatHelp} onClose={() => setShowFormatHelp(false)} title="CSV import format">
+        <ul className="mb-4 list-disc space-y-1.5 pl-5 text-sm text-ink-2">
+          <li><b>amount</b> — required, greater than 0 (currency symbols/commas are stripped).</li>
+          <li><b>category</b> — optional; defaults to "Uncategorized".</li>
+          <li><b>description</b> — optional.</li>
+          <li><b>date</b> — optional; accepts <code>YYYY-MM-DD</code>, <code>MM/DD/YYYY</code>, <code>DD/MM/YYYY</code>, with or without time; defaults to now.</li>
+          <li>Column order doesn't matter; the header row is required.</li>
+          <li><b>Strict</b> mode: if any row is missing/invalid, the whole file is rejected.</li>
+        </ul>
+        <div className="flex items-center justify-between gap-3">
+          <Button variant="ghost" size="sm" type="button" onClick={() => void downloadImportTemplate()}>
+            <Download className="h-4 w-4" /> Download template
+          </Button>
+          <Button type="button" onClick={() => setShowFormatHelp(false)}>Got it</Button>
         </div>
-      )}
+      </Modal>
 
-      {confirmDeleteAll && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-2xl max-w-sm w-full mx-4 border border-gray-100 dark:border-gray-800">
-            <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500">
-              <Trash2 className="w-5 h-5" />
-            </div>
-            <h3 className="font-bold text-gray-900 dark:text-gray-100 text-center mb-1">
-              Delete all expenses?
-            </h3>
-            <p className="text-gray-500 dark:text-gray-400 text-sm mb-6 text-center">
-              This will permanently remove all {expenses.length} expenses. This action cannot be undone.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setConfirmDeleteAll(false)}
-                className="flex-1 px-4 py-2.5 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors font-medium"
-              >
-                Cancel
-              </button>
-              <button
-                disabled={deletingAll}
-                onClick={async () => {
-                  setDeletingAll(true);
-                  await removeAll();
-                  setConfirmDeleteAll(false);
-                  setDeletingAll(false);
-                }}
-                className="flex-1 px-4 py-2.5 text-sm bg-red-600 text-white rounded-xl hover:bg-red-700 disabled:opacity-50 font-semibold transition-colors"
-              >
-                {deletingAll ? "Deleting..." : "Delete All"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={confirmDelete !== null}
+        title="Delete expense?"
+        message="This action cannot be undone."
+        loading={deleting}
+        onCancel={() => setConfirmDelete(null)}
+        onConfirm={async () => {
+          if (confirmDelete === null) return;
+          setDeleting(true);
+          await remove(confirmDelete);
+          setConfirmDelete(null);
+          setDeleting(false);
+        }}
+      />
+
+      <ConfirmDialog
+        open={confirmDeleteAll}
+        title="Delete all expenses?"
+        message={`This will permanently remove all ${expenses.length} expenses. This action cannot be undone.`}
+        confirmLabel="Delete all"
+        loading={deletingAll}
+        onCancel={() => setConfirmDeleteAll(false)}
+        onConfirm={async () => {
+          setDeletingAll(true);
+          await removeAll();
+          setConfirmDeleteAll(false);
+          setDeletingAll(false);
+        }}
+      />
 
       {(showAdd || editing !== null) && (
         <ExpenseModal

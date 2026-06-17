@@ -31,7 +31,7 @@ export default function AdminViewAsToggle() {
   };
 
   const active = plan !== "ADMIN" || ai !== "on" || role !== "ADMIN";
-  const selectCls = "w-full mt-1 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500";
+  const selectCls = "w-full mt-1 text-sm rounded-lg border border-edge-input bg-input text-ink px-2 py-1.5";
 
   return (
     <div className="relative">
@@ -40,7 +40,7 @@ export default function AdminViewAsToggle() {
         title="View as (admin)"
         aria-label="View as (admin)"
         className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium transition-colors ${
-          active ? "bg-amber-400/90 text-amber-950" : "text-white/80 hover:text-white hover:bg-white/15"
+          active ? "bg-amber-400/90 text-amber-950" : "text-ink-2 hover:text-ink-hi hover:bg-surface-2"
         }`}
       >
         <Eye className="w-3.5 h-3.5" />
@@ -77,7 +77,7 @@ export default function AdminViewAsToggle() {
             {active && (
               <button
                 onClick={() => apply("ADMIN", "on", "ADMIN")}
-                className="w-full text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline pt-1"
+                className="w-full text-xs font-semibold text-link hover:underline pt-1"
               >
                 Reset to admin
               </button>

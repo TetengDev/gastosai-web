@@ -4,6 +4,7 @@ import type { Category, Expense, ExpenseRequest, ExpenseType } from "../api/type
 import { toDateTimeLocal } from "../lib/formatters";
 import { CAT_TTL_MS, RATE_TTL_MS, getCategoryCache, rateCache, setCategoryCache } from "../lib/cache";
 import CurrencySelect from "./CurrencySelect";
+import { Button, Modal } from "./ui";
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
   PHP: "₱", USD: "$", EUR: "€", SGD: "S$", JPY: "¥", GBP: "£", AUD: "A$",
@@ -91,16 +92,11 @@ export default function ExpenseModal({ expense, onSave, onClose }: Props) {
   };
 
   const inputClass =
-    "w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-shadow bg-gray-50/50 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500";
-  const labelClass =
-    "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5";
+    "w-full rounded-xl border border-edge-input bg-input px-4 py-2.5 text-sm text-ink";
+  const labelClass = "block text-sm font-medium text-ink mb-1.5";
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-2xl max-w-md w-full mx-4 border border-gray-100 dark:border-gray-800">
-        <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-5 text-lg">
-          {expense ? "Edit Expense" : "New Expense"}
-        </h3>
+    <Modal open onClose={onClose} title={expense ? "Edit Expense" : "New Expense"}>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className={labelClass}>Currency</label>
@@ -115,7 +111,7 @@ export default function ExpenseModal({ expense, onSave, onClose }: Props) {
           <div>
             <label className={labelClass}>Amount</label>
             <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 text-sm font-medium select-none">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 select-none text-sm font-medium text-ink-3">
                 {CURRENCY_SYMBOLS[form.currency ?? "PHP"] ?? form.currency}
               </span>
               <input
@@ -139,16 +135,12 @@ export default function ExpenseModal({ expense, onSave, onClose }: Props) {
           {form.currency !== "PHP" && (
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label className="text-sm font-medium text-ink">
                   Exchange Rate (1 {form.currency} = ? PHP)
                 </label>
-                {rateFetching && (
-                  <span className="text-xs text-gray-400 dark:text-gray-500">Fetching rate…</span>
-                )}
+                {rateFetching && <span className="text-xs text-ink-3">Fetching rate…</span>}
                 {!rateFetching && suggestedRate !== null && (
-                  <span className="text-xs text-emerald-600 dark:text-emerald-400">
-                    Suggested: {suggestedRate.toFixed(4)}
-                  </span>
+                  <span className="text-xs text-[#1f8a5b]">Suggested: {suggestedRate.toFixed(4)}</span>
                 )}
               </div>
               <input
@@ -159,7 +151,7 @@ export default function ExpenseModal({ expense, onSave, onClose }: Props) {
                 onChange={(e) => setForm((f) => ({ ...f, exchangeRate: parseFloat(e.target.value) || 1 }))}
                 className={inputClass}
               />
-              <p className="text-xs text-amber-600 dark:text-amber-400 mt-1.5">
+              <p className="mt-1.5 text-xs text-warn-ink">
                 Rate is suggested and may not reflect real-time market prices. Adjust if needed.
               </p>
             </div>
@@ -228,34 +220,25 @@ export default function ExpenseModal({ expense, onSave, onClose }: Props) {
               onChange={(e) =>
                 setForm((f) => ({ ...f, reimbursable: e.target.checked }))
               }
-              className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-500 bg-gray-50 dark:bg-gray-800 cursor-pointer"
+              className="h-4 w-4 cursor-pointer rounded accent-[#1f8a5b]"
             />
             <label
               htmlFor="reimbursable"
-              className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer select-none"
+              className="cursor-pointer select-none text-sm font-medium text-ink"
             >
               Reimbursable
             </label>
           </div>
-          {error && <p className="text-red-500 text-sm">{error}</p>}
+          {error && <p className="text-sm text-[#b30000]">{error}</p>}
           <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2.5 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors font-medium"
-            >
+            <Button type="button" variant="secondary" className="flex-1" onClick={onClose}>
               Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="flex-1 px-4 py-2.5 text-sm bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-xl hover:from-indigo-700 hover:to-blue-700 disabled:opacity-50 transition-all font-semibold shadow-md shadow-indigo-500/25"
-            >
-              {saving ? "Saving..." : "Save"}
-            </button>
+            </Button>
+            <Button type="submit" className="flex-1" disabled={saving}>
+              {saving ? "Saving…" : "Save"}
+            </Button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

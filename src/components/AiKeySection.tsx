@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { AI_SETTINGS_CHANGED_EVENT, clearAiKey, getAiSettings, updateAiSettings } from "../api/aiSettings";
+import { Button } from "./ui";
 
 export default function AiKeySection() {
   const [openaiKeySet, setOpenaiKeySet] = useState(false);
@@ -55,19 +56,19 @@ export default function AiKeySection() {
   };
 
   return (
-    <section className="mt-6 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
-      <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">AI Provider Key</h2>
-      <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+    <section className="mt-6 rounded-2xl border border-edge bg-surface p-8">
+      <div className="font-display text-[21px] font-medium tracking-tight text-ink-hi">AI Provider Key</div>
+      <p className="mt-2.5 text-[14.5px] leading-relaxed text-ink-2">
         Use your own OpenAI API key for AI features (insights, chat, receipt scanning). Your key is
         stored encrypted and used only for your requests.
       </p>
 
       {!loading && (
         <div
-          className={`mb-4 rounded-xl px-3 py-2 text-sm ${
+          className={`mt-4 rounded-xl border px-4 py-3 text-[13.5px] ${
             openaiKeySet
-              ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300"
-              : "bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300"
+              ? "border-[#1f8a5b]/30 bg-[#e7f6ee] text-[#1f8a5b]"
+              : "border-warn-edge bg-warn-bg text-warn-ink"
           }`}
         >
           {openaiKeySet
@@ -76,37 +77,27 @@ export default function AiKeySection() {
         </div>
       )}
 
-      <div className="flex gap-2">
+      <div className="mt-4 flex gap-3">
         <input
           type="password"
           value={keyInput}
           onChange={(e) => setKeyInput(e.target.value)}
           placeholder={openaiKeySet ? "Enter a new key to replace" : "sk-..."}
           autoComplete="off"
-          className="flex-1 px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+          className="flex-1 rounded-xl border border-edge-input bg-input px-3.5 py-3 font-mono text-sm text-ink"
         />
-        <button
-          type="button"
-          onClick={save}
-          disabled={saving || !keyInput.trim()}
-          className="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-        >
+        <Button type="button" onClick={save} disabled={saving || !keyInput.trim()}>
           {saving ? "Saving…" : "Save"}
-        </button>
+        </Button>
         {openaiKeySet && (
-          <button
-            type="button"
-            onClick={remove}
-            disabled={saving}
-            className="px-4 py-2 rounded-xl text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-medium disabled:opacity-50 transition-colors"
-          >
+          <Button type="button" variant="ghost" onClick={remove} disabled={saving}>
             Remove
-          </button>
+          </Button>
         )}
       </div>
 
-      {error && <p className="mt-2 text-sm text-red-500 font-medium">{error}</p>}
-      <p className="mt-3 text-xs text-gray-400 dark:text-gray-500">
+      {error && <p className="mt-2 text-sm font-medium text-[#b30000]">{error}</p>}
+      <p className="mt-3.5 text-[13px] text-ink-3">
         Get a key at platform.openai.com → API keys. You can remove it anytime.
       </p>
     </section>

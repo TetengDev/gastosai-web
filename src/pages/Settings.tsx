@@ -3,6 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import { AVATAR_COLORS, getAvatarGradient, getInitials } from "../lib/formatters";
 import AiKeySection from "../components/AiKeySection";
 import { startTour } from "../components/FirstRunTour";
+import { Button } from "../components/ui";
 
 export default function Settings() {
   const { user, updateProfile } = useAuth();
@@ -28,10 +29,8 @@ export default function Settings() {
       setSuccess(true);
     } catch (err: unknown) {
       const msg =
-        (err as { response?: { data?: { detail?: string; message?: string } } })?.response?.data
-          ?.detail ??
-        (err as { response?: { data?: { detail?: string; message?: string } } })?.response?.data
-          ?.message ??
+        (err as { response?: { data?: { detail?: string; message?: string } } })?.response?.data?.detail ??
+        (err as { response?: { data?: { detail?: string; message?: string } } })?.response?.data?.message ??
         "Failed to save changes.";
       setError(msg);
     } finally {
@@ -39,52 +38,51 @@ export default function Settings() {
     }
   };
 
+  const inputClass = "w-full rounded-xl border border-edge-input bg-input px-3.5 py-3 text-sm text-ink";
+  const labelClass = "mb-2 block text-sm font-medium text-ink";
+
   return (
-    <div className="max-w-lg mx-auto">
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">Settings</h1>
-      <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">Manage your profile preferences.</p>
+    <div className="mx-auto max-w-[640px]">
+      <h1 className="m-0 font-display text-4xl font-medium tracking-tight text-ink-hi md:text-[44px]">
+        Settings
+      </h1>
+      <p className="mt-2 text-[15px] text-ink-2">Manage your profile preferences.</p>
 
-      <section className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
-        <div className="flex items-center gap-4 mb-6 pb-6 border-b border-gray-100 dark:border-gray-700">
-          <div className={`w-14 h-14 rounded-full bg-gradient-to-br ${gradient} flex items-center justify-center shrink-0 shadow-md shadow-indigo-500/20`}>
-            <span className="text-white text-xl font-bold select-none">
-              {getInitials(user?.name ?? "")}
-            </span>
+      <section className="mt-8 rounded-2xl border border-edge bg-surface p-8">
+        <div className="flex items-center gap-4 border-b border-edge-2 pb-6">
+          <div className={`flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${gradient}`} style={{ height: 52, width: 52 }}>
+            <span className="select-none text-xl font-semibold text-white">{getInitials(user?.name ?? "")}</span>
           </div>
           <div>
-            <p className="font-semibold text-gray-900 dark:text-gray-100">
-              {user?.nickname || user?.name}
-            </p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">{user?.email}</p>
+            <div className="font-semibold text-ink-hi">{user?.nickname || user?.name}</div>
+            <div className="text-sm text-ink-2">{user?.email}</div>
           </div>
         </div>
 
-        <div className="mb-6">
-          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2.5">Avatar Color</p>
-          <div className="flex gap-2.5">
-            {AVATAR_COLORS.map(({ key, from, to }) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setSelectedColor(key)}
-                aria-label={`Avatar color: ${key}`}
-                className={`w-8 h-8 rounded-full bg-gradient-to-br ${from} ${to} transition-all ${
-                  selectedColor === key || (!selectedColor && key === "violet-indigo")
-                    ? "ring-2 ring-offset-2 ring-indigo-500 dark:ring-offset-gray-800 scale-110"
-                    : "opacity-60 hover:opacity-100 hover:scale-105"
-                }`}
-              />
-            ))}
+        <div className="mt-6">
+          <p className="mb-3.5 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">Avatar color</p>
+          <div className="flex gap-3.5">
+            {AVATAR_COLORS.map(({ key, from, to }) => {
+              const active = selectedColor === key || (!selectedColor && key === "violet-indigo");
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setSelectedColor(key)}
+                  aria-label={`Avatar color: ${key}`}
+                  className={`h-8 w-8 rounded-full bg-gradient-to-br ${from} ${to} transition-transform ${
+                    active ? "ring-2 ring-ink-hi ring-offset-2 ring-offset-surface" : "opacity-60 hover:opacity-100"
+                  }`}
+                />
+              );
+            })}
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="mt-6 space-y-5">
           <div>
-            <label
-              htmlFor="profile-email"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
-            >
-              Email <span className="text-red-400">*</span>
+            <label htmlFor="profile-email" className={labelClass}>
+              Email <span className="text-alert">*</span>
             </label>
             <input
               id="profile-email"
@@ -94,16 +92,12 @@ export default function Settings() {
               maxLength={200}
               required
               placeholder="you@example.com"
-              className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+              className={inputClass}
             />
           </div>
-
           <div>
-            <label
-              htmlFor="profile-name"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
-            >
-              Name <span className="text-red-400">*</span>
+            <label htmlFor="profile-name" className={labelClass}>
+              Name <span className="text-alert">*</span>
             </label>
             <input
               id="profile-name"
@@ -113,17 +107,12 @@ export default function Settings() {
               maxLength={100}
               required
               placeholder="Your full name"
-              className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+              className={inputClass}
             />
           </div>
-
           <div>
-            <label
-              htmlFor="profile-nickname"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
-            >
-              Nickname{" "}
-              <span className="text-gray-400 font-normal">(optional)</span>
+            <label htmlFor="profile-nickname" className={labelClass}>
+              Nickname <span className="font-normal text-ink-3">(optional)</span>
             </label>
             <input
               id="profile-nickname"
@@ -132,48 +121,32 @@ export default function Settings() {
               onChange={(e) => setNickname(e.target.value)}
               maxLength={50}
               placeholder="How the app should call you"
-              className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+              className={inputClass}
             />
-            <p className="mt-1.5 text-xs text-gray-400 dark:text-gray-500">
+            <p className="mt-2 text-[13px] text-ink-3">
               When set, this is shown in the navbar and used by the chatbot to greet you.
             </p>
           </div>
 
-          {success && (
-            <p className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">
-              Profile saved.
-            </p>
-          )}
-          {error && (
-            <p className="text-sm text-red-500 font-medium">{error}</p>
-          )}
+          {success && <p className="text-sm font-medium text-[#1f8a5b]">Profile saved.</p>}
+          {error && <p className="text-sm font-medium text-[#b30000]">{error}</p>}
 
-          <div className="pt-1">
-            <button
-              type="submit"
-              disabled={saving || !name.trim() || !email.trim()}
-              className="px-5 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white text-sm font-semibold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-            >
-              {saving ? "Saving…" : "Save changes"}
-            </button>
-          </div>
+          <Button type="submit" disabled={saving || !name.trim() || !email.trim()}>
+            {saving ? "Saving…" : "Save changes"}
+          </Button>
         </form>
       </section>
 
       <AiKeySection />
 
-      <section className="mt-6 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex items-center justify-between gap-4">
+      <section className="mt-6 flex items-center justify-between gap-4 rounded-2xl border border-edge bg-surface p-8">
         <div>
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Product tour</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Replay the quick walkthrough of the app.</p>
+          <div className="font-display text-[21px] font-medium tracking-tight text-ink-hi">Product tour</div>
+          <p className="mt-1 text-sm text-ink-2">Replay the quick walkthrough of the app.</p>
         </div>
-        <button
-          type="button"
-          onClick={startTour}
-          className="px-4 py-2 rounded-xl border border-indigo-300 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 text-sm font-semibold hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors shrink-0"
-        >
+        <Button variant="secondary" type="button" onClick={startTour} className="shrink-0">
           Replay tour
-        </button>
+        </Button>
       </section>
     </div>
   );
