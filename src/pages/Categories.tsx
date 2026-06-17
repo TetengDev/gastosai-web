@@ -38,7 +38,8 @@ import {
   updateCategory,
 } from "../api/categories";
 import type { Category } from "../api/types";
-import { Button, ConfirmDialog, IconButton, Modal, PageHeader } from "../components/ui";
+import { Button, ConfirmDialog, IconButton, Modal, PageHeader, SelectionBar } from "../components/ui";
+import { useMultiSelect } from "../hooks/useMultiSelect";
 import { getCategoryColor } from "../lib/formatters";
 
 const AVAILABLE_ICONS: Record<string, LucideIcon> = {
@@ -211,6 +212,22 @@ export default function Categories() {
 
   const customCount = categories.filter((c) => !isDefaultCategory(c.name)).length;
 
+  const sel = useMultiSelect(categories.filter((c) => !isDefaultCategory(c.name)).map((c) => c.id));
+  const [deletingSelected, setDeletingSelected] = useState(false);
+  const deleteSelected = async () => {
+    const ids = sel.selectedIds;
+    setDeletingSelected(true);
+    const results = await Promise.allSettled(ids.map((id) => deleteCategory(id)));
+    const okIds = new Set(ids.filter((_, i) => results[i].status === "fulfilled"));
+    setCategories((prev) => prev.filter((c) => !okIds.has(c.id)));
+    sel.replace(ids.filter((id) => !okIds.has(id)));
+    if (okIds.size > 0) {
+      invalidateCategoryCache();
+      window.dispatchEvent(new CustomEvent("gastosai:expense-changed"));
+    }
+    setDeletingSelected(false);
+  };
+
   if (loading)
     return (
       <div className="animate-pulse space-y-6">
@@ -252,7 +269,9 @@ export default function Categories() {
           </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-[18px] md:grid-cols-3 lg:grid-cols-4">
+        <div className="space-y-3">
+          <SelectionBar count={sel.count} onDelete={() => void deleteSelected()} onClear={sel.clear} deleting={deletingSelected} noun="category" nounPlural="categories" />
+          <div className="grid grid-cols-2 gap-[18px] md:grid-cols-3 lg:grid-cols-4">
           {categories.map((cat) => {
             const color = getCategoryColor(cat.name).chart;
             const isDefault = isDefaultCategory(cat.name);
@@ -260,8 +279,17 @@ export default function Categories() {
             return (
               <div
                 key={cat.id}
-                className="group relative rounded-2xl border border-edge bg-surface p-6 transition-shadow hover:shadow-md"
+                className={`group relative rounded-2xl border bg-surface p-6 transition-shadow hover:shadow-md ${!isDefault && sel.selected.has(cat.id) ? "border-[#1f8a5b] ring-1 ring-[#1f8a5b]" : "border-edge"}`}
               >
+                {!isDefault && (
+                  <input
+                    type="checkbox"
+                    aria-label={`Select ${cat.name}`}
+                    checked={sel.selected.has(cat.id)}
+                    onChange={() => sel.toggle(cat.id)}
+                    className="absolute right-3 top-3 z-10 rounded accent-[#1f8a5b]"
+                  />
+                )}
                 <div
                   className="flex h-11 w-11 items-center justify-center rounded-xl"
                   style={{ background: tint(color), color }}
@@ -278,7 +306,7 @@ export default function Categories() {
                     </span>
                   </div>
                 ) : (
-                  <div className="absolute right-3 top-3 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                  <div className="absolute bottom-3 right-3 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                     <IconButton onClick={() => openEdit(cat)} title="Edit">
                       <Pencil className="h-3.5 w-3.5" />
                     </IconButton>
@@ -290,6 +318,7 @@ export default function Categories() {
               </div>
             );
           })}
+          </div>
         </div>
       )}
 

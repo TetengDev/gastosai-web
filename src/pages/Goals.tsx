@@ -2,7 +2,8 @@ import { Pencil, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { createGoal, deleteGoal, getGoals, updateGoal, type Goal, type GoalRequest } from "../api/goals";
 import CurrencySelect from "../components/CurrencySelect";
-import { Button, ConfirmDialog, IconButton, Modal, PageHeader, ProgressBar } from "../components/ui";
+import { Button, ConfirmDialog, IconButton, Modal, PageHeader, ProgressBar, SelectionBar } from "../components/ui";
+import { useMultiSelect } from "../hooks/useMultiSelect";
 import { formatCurrency } from "../lib/formatters";
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
@@ -188,6 +189,19 @@ export default function Goals() {
     }
   };
 
+  const sel = useMultiSelect(goals.map((g) => g.id));
+  const [deletingSelected, setDeletingSelected] = useState(false);
+  const deleteSelected = async () => {
+    const ids = sel.selectedIds;
+    setDeletingSelected(true);
+    const results = await Promise.allSettled(ids.map((id) => deleteGoal(id)));
+    const okIds = new Set(ids.filter((_, i) => results[i].status === "fulfilled"));
+    setGoals((prev) => prev.filter((g) => !okIds.has(g.id)));
+    sel.replace(ids.filter((id) => !okIds.has(id)));
+    if (okIds.size > 0) window.dispatchEvent(new CustomEvent("gastosai:goal-changed"));
+    setDeletingSelected(false);
+  };
+
   const inputClass = "w-full rounded-xl border border-edge-input bg-input px-3 py-2.5 text-sm text-ink";
   const labelClass = "mb-1.5 block text-sm font-medium text-ink";
 
@@ -244,16 +258,21 @@ export default function Goals() {
           </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-[22px] md:grid-cols-2">
+        <div className="space-y-3">
+          <SelectionBar count={sel.count} onDelete={() => void deleteSelected()} onClear={sel.clear} deleting={deletingSelected} noun="goal" />
+          <div className="grid grid-cols-1 gap-[22px] md:grid-cols-2">
           {goals.map((goal) => (
             <div
               key={goal.id}
-              className="group rounded-2xl border border-edge bg-surface p-7 transition-shadow hover:shadow-md"
+              className={`group rounded-2xl border bg-surface p-7 transition-shadow hover:shadow-md ${sel.selected.has(goal.id) ? "border-[#1f8a5b] ring-1 ring-[#1f8a5b]" : "border-edge"}`}
             >
               <div className="flex items-start justify-between gap-3">
-                <h3 className="flex-1 truncate font-display text-[23px] font-medium tracking-tight text-ink-hi">
-                  {goal.name}
-                </h3>
+                <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                  <input type="checkbox" aria-label={`Select ${goal.name}`} checked={sel.selected.has(goal.id)} onChange={() => sel.toggle(goal.id)} className="rounded accent-[#1f8a5b]" />
+                  <h3 className="flex-1 truncate font-display text-[23px] font-medium tracking-tight text-ink-hi">
+                    {goal.name}
+                  </h3>
+                </div>
                 <div className="flex flex-shrink-0 items-center gap-1">
                   <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12.5px] font-medium ${STATUS_BADGE[goal.status]}`}>
                     <span className="h-1.5 w-1.5 rounded-full" style={{ background: STATUS_COLOR[goal.status] }} />
@@ -288,6 +307,7 @@ export default function Goals() {
               </div>
             </div>
           ))}
+          </div>
         </div>
       )}
 
