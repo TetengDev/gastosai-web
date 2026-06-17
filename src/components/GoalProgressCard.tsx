@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getGoals, type Goal } from "../api/goals";
+import { Card, ProgressBar } from "./ui";
 import { formatCurrency } from "../lib/formatters";
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
@@ -22,15 +23,15 @@ const STATUS_LABEL: Record<Goal["status"], string> = {
 const STATUS_BADGE: Record<Goal["status"], string> = {
   ON_TRACK: "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400",
   BEHIND: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400",
-  COMPLETED: "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400",
-  PAUSED: "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400",
+  COMPLETED: "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400",
+  PAUSED: "bg-surface-2 text-ink-3",
 };
 
 const STATUS_BAR: Record<Goal["status"], string> = {
-  ON_TRACK: "bg-emerald-500",
-  BEHIND: "bg-amber-500",
-  COMPLETED: "bg-indigo-500",
-  PAUSED: "bg-gray-400",
+  ON_TRACK: "#1f8a5b",
+  BEHIND: "#e8590c",
+  COMPLETED: "#1f8a5b",
+  PAUSED: "#c4c4cc",
 };
 
 export default function GoalProgressCard() {
@@ -65,70 +66,62 @@ export default function GoalProgressCard() {
     .slice(0, 4);
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6">
-      <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-4">
+    <Card>
+      <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
         Savings Goals
       </p>
 
       {loading && (
-        <div className="animate-pulse space-y-3">
+        <div className="mt-4 animate-pulse space-y-3">
           {[...Array(3)].map((_, i) => (
             <div key={i} className="space-y-1.5">
-              <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-3/4" />
-              <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full" />
+              <div className="h-4 w-3/4 rounded bg-surface-2" />
+              <div className="h-2 rounded-full bg-surface-2" />
             </div>
           ))}
         </div>
       )}
 
-      {!loading && error && (
-        <p className="text-red-500 text-sm">{error}</p>
-      )}
+      {!loading && error && <p className="mt-4 text-sm text-[#b30000]">{error}</p>}
 
       {!loading && !error && active.length === 0 && (
-        <div className="text-center py-4">
-          <p className="text-gray-500 dark:text-gray-400 text-sm mb-2">No active goals</p>
-          <Link
-            to="/goals"
-            className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
-          >
+        <div className="py-4 text-center">
+          <p className="mb-2 text-sm text-ink-2">No active goals</p>
+          <Link to="/goals" className="text-sm font-medium text-link hover:underline">
             Set a goal →
           </Link>
         </div>
       )}
 
       {!loading && !error && active.length > 0 && (
-        <div className="space-y-4">
+        <div className="mt-4 space-y-4">
           {active.map((goal) => (
             <div key={goal.id}>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate flex-1 mr-2">
+              <div className="mb-1.5 flex items-center justify-between">
+                <span className="mr-2 flex-1 truncate text-sm font-medium text-ink">
                   {goal.name}
                 </span>
-                <span className={`text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0 ${STATUS_BADGE[goal.status]}`}>
+                <span className={`flex-shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_BADGE[goal.status]}`}>
                   {STATUS_LABEL[goal.status]}
                 </span>
               </div>
-              <div className="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden mb-1">
-                <div
-                  className={`h-full rounded-full transition-all duration-700 ${STATUS_BAR[goal.status]}`}
-                  style={{ width: `${Math.min(100, goal.progressPercent)}%` }}
-                />
-              </div>
-              <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500">
+              <ProgressBar
+                percent={goal.progressPercent}
+                color={STATUS_BAR[goal.status]}
+                height={6}
+                className="mb-1"
+              />
+              <div className="flex justify-between text-xs text-ink-3">
                 <span>{goal.progressPercent}% of {fmtGoal(goal.targetAmount, goal.currency ?? "PHP")}</span>
                 <span>{fmtGoal(goal.savedAmount, goal.currency ?? "PHP")} saved</span>
               </div>
             </div>
           ))}
-          <Link
-            to="/goals"
-            className="block text-sm text-indigo-600 dark:text-indigo-400 hover:underline font-medium pt-1"
-          >
+          <Link to="/goals" className="block pt-1 text-sm font-medium text-link hover:underline">
             View all goals →
           </Link>
         </div>
       )}
-    </div>
+    </Card>
   );
 }
