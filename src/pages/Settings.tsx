@@ -1,7 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { getCategories } from "../api/categories";
-import type { Category } from "../api/types";
 import { AVATAR_COLORS, getAvatarGradient, getInitials } from "../lib/formatters";
 import AiKeySection from "../components/AiKeySection";
 import { startTour } from "../components/FirstRunTour";
@@ -14,15 +12,9 @@ export default function Settings() {
   const [nickname, setNickname] = useState(user?.nickname ?? "");
   const [email, setEmail] = useState(user?.email ?? "");
   const [selectedColor, setSelectedColor] = useState<string | null>(user?.avatarColor ?? null);
-  const [defaultCategory, setDefaultCategory] = useState<string>(user?.defaultCategory ?? "");
-  const [categories, setCategories] = useState<Category[]>([]);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    getCategories().then(setCategories).catch(() => {});
-  }, []);
 
   const gradient = getAvatarGradient(selectedColor);
 
@@ -33,7 +25,7 @@ export default function Settings() {
     setSuccess(false);
     setError(null);
     try {
-      await updateProfile({ name: name.trim(), nickname: nickname.trim(), email: email.trim(), avatarColor: selectedColor, defaultCategory: defaultCategory || null });
+      await updateProfile({ name: name.trim(), nickname: nickname.trim(), email: email.trim(), avatarColor: selectedColor, defaultCategory: user?.defaultCategory ?? null });
       setSuccess(true);
     } catch (err: unknown) {
       const msg =
@@ -135,25 +127,6 @@ export default function Settings() {
               When set, this is shown in the navbar and used by the chatbot to greet you.
             </p>
           </div>
-          <div>
-            <label htmlFor="profile-default-category" className={labelClass}>
-              Default category <span className="font-normal text-ink-3">(preselected when adding an expense)</span>
-            </label>
-            <select
-              id="profile-default-category"
-              value={defaultCategory}
-              onChange={(e) => setDefaultCategory(e.target.value)}
-              className={inputClass}
-            >
-              <option value="">Uncategorized (default)</option>
-              {categories
-                .filter((c) => c.name !== "Uncategorized")
-                .map((c) => (
-                  <option key={c.id} value={c.name}>{c.name}</option>
-                ))}
-            </select>
-          </div>
-
           {success && <p className="text-sm font-medium text-[#1f8a5b]">Profile saved.</p>}
           {error && <p className="text-sm font-medium text-[#b30000]">{error}</p>}
 
