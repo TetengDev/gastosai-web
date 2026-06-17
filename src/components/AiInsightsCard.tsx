@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { getTopCategoryInsight, getMonthSummaryInsight, getRecommendationsInsight } from "../api/insights";
 import type { TopCategoryInsight, MonthSummaryInsight, RecommendationsInsight } from "../api/types";
 import { useAiAvailability } from "../hooks/useAiAvailability";
-import { Card } from "./ui";
+import { Card, InfoTip } from "./ui";
 
 interface Props {
   month: string;
@@ -63,7 +63,10 @@ export default function AiInsightsCard({ month }: Props) {
 
   return (
     <Card>
-      <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">AI Insights</p>
+      <p className="flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
+        AI Insights
+        <InfoTip text="AI-generated summary of your spending: top category, a month overview, and savings recommendations." />
+      </p>
 
       {allFailed ? (
         <p className="mt-4 text-sm text-[#b30000]">Unable to load AI insights.</p>

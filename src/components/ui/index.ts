@@ -8,4 +8,6 @@ export { default as Pill } from "./Pill";
 export { default as IconButton } from "./IconButton";
 export { default as ProgressBar } from "./ProgressBar";
 export { default as StatTile } from "./StatTile";
+export { default as SelectionBar } from "./SelectionBar";
+export { default as InfoTip } from "./InfoTip";
 export { cn } from "./cn";

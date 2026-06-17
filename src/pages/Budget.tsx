@@ -12,7 +12,8 @@ import type { BudgetRequest, BudgetResponse } from "../api/types";
 import type { Category } from "../api/types";
 import CategoryCombobox from "../components/CategoryCombobox";
 import CurrencySelect from "../components/CurrencySelect";
-import { Button, ConfirmDialog, IconButton, Modal, PageHeader } from "../components/ui";
+import { Button, ConfirmDialog, IconButton, Modal, PageHeader, SelectionBar } from "../components/ui";
+import { useMultiSelect } from "../hooks/useMultiSelect";
 import { RATE_TTL_MS, rateCache } from "../lib/cache";
 import { formatCurrency, formatMonth } from "../lib/formatters";
 
@@ -227,6 +228,19 @@ export default function Budget() {
     }
   };
 
+  const sel = useMultiSelect(budgets.map((b) => b.id));
+  const [deletingSelected, setDeletingSelected] = useState(false);
+  const deleteSelected = async () => {
+    const ids = sel.selectedIds;
+    setDeletingSelected(true);
+    const results = await Promise.allSettled(ids.map((id) => deleteBudget(id)));
+    const okIds = new Set(ids.filter((_, i) => results[i].status === "fulfilled"));
+    setBudgets((prev) => prev.filter((b) => !okIds.has(b.id)));
+    sel.replace(ids.filter((id) => !okIds.has(id)));
+    if (okIds.size > 0) window.dispatchEvent(new CustomEvent("gastosai:budget-changed"));
+    setDeletingSelected(false);
+  };
+
   const inputClass = "w-full rounded-xl border border-edge-input bg-input px-4 py-2.5 text-sm text-ink";
   const labelClass = "mb-1.5 block text-sm font-medium text-ink";
 
@@ -291,10 +305,15 @@ export default function Budget() {
           </Button>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-edge">
+        <div className="space-y-3">
+          <SelectionBar count={sel.count} onDelete={() => void deleteSelected()} onClear={sel.clear} deleting={deletingSelected} noun="budget" />
+          <div className="overflow-hidden rounded-2xl border border-edge">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-edge-2 bg-surface-2 font-mono text-[11px] uppercase tracking-[0.1em] text-ink-3">
+                <th className="w-10 px-6 py-4">
+                  <input type="checkbox" aria-label="Select all" checked={sel.allSelected} onChange={sel.toggleAll} className="rounded accent-[#1f8a5b]" />
+                </th>
                 <th className="px-6 py-4 text-left font-normal">Category</th>
                 <th className="px-6 py-4 text-right font-normal">Budget limit</th>
                 <th className="px-6 py-4 text-right font-normal">Actions</th>
@@ -303,6 +322,9 @@ export default function Budget() {
             <tbody>
               {budgets.map((b) => (
                 <tr key={b.id} className="border-b border-edge-3 transition-colors last:border-0 hover:bg-surface-2">
+                  <td className="px-6 py-5">
+                    <input type="checkbox" aria-label={`Select ${b.categoryName}`} checked={sel.selected.has(b.id)} onChange={() => sel.toggle(b.id)} className="rounded accent-[#1f8a5b]" />
+                  </td>
                   <td className="px-6 py-5 font-medium text-ink-hi">{b.categoryName}</td>
                   <td className="px-6 py-5 text-right">
                     <span className="inline-flex items-center justify-end gap-2">
@@ -330,6 +352,7 @@ export default function Budget() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getUpcomingBills } from "../api/recurring";
 import type { UpcomingBillResponse } from "../api/types";
-import { Card } from "./ui";
+import { Card, InfoTip } from "./ui";
 import { formatCurrency } from "../lib/formatters";
 
 interface Props {
@@ -34,8 +34,9 @@ export default function UpcomingBillsCard({ month }: Props) {
 
   return (
     <Card>
-      <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
+      <p className="flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
         Upcoming Bills
+        <InfoTip text="Recurring bills due this month, with their category and due date." />
       </p>
 
       {loading && (
