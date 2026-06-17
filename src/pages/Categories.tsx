@@ -215,18 +215,17 @@ export default function Categories() {
   const sel = useMultiSelect(categories.filter((c) => !isDefaultCategory(c.name)).map((c) => c.id));
   const [deletingSelected, setDeletingSelected] = useState(false);
   const deleteSelected = async () => {
+    const ids = sel.selectedIds;
     setDeletingSelected(true);
-    try {
-      await Promise.all(sel.selectedIds.map((id) => deleteCategory(id)));
-      setCategories((prev) => prev.filter((c) => !sel.selected.has(c.id)));
-      sel.clear();
+    const results = await Promise.allSettled(ids.map((id) => deleteCategory(id)));
+    const okIds = new Set(ids.filter((_, i) => results[i].status === "fulfilled"));
+    setCategories((prev) => prev.filter((c) => !okIds.has(c.id)));
+    sel.replace(ids.filter((id) => !okIds.has(id)));
+    if (okIds.size > 0) {
       invalidateCategoryCache();
       window.dispatchEvent(new CustomEvent("gastosai:expense-changed"));
-    } catch {
-      // leave selection; user can retry
-    } finally {
-      setDeletingSelected(false);
     }
+    setDeletingSelected(false);
   };
 
   if (loading)
@@ -271,7 +270,7 @@ export default function Categories() {
         </div>
       ) : (
         <div className="space-y-3">
-          <SelectionBar count={sel.count} onDelete={() => void deleteSelected()} onClear={sel.clear} deleting={deletingSelected} noun="category" />
+          <SelectionBar count={sel.count} onDelete={() => void deleteSelected()} onClear={sel.clear} deleting={deletingSelected} noun="category" nounPlural="categories" />
           <div className="grid grid-cols-2 gap-[18px] md:grid-cols-3 lg:grid-cols-4">
           {categories.map((cat) => {
             const color = getCategoryColor(cat.name).chart;

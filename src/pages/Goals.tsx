@@ -192,17 +192,14 @@ export default function Goals() {
   const sel = useMultiSelect(goals.map((g) => g.id));
   const [deletingSelected, setDeletingSelected] = useState(false);
   const deleteSelected = async () => {
+    const ids = sel.selectedIds;
     setDeletingSelected(true);
-    try {
-      await Promise.all(sel.selectedIds.map((id) => deleteGoal(id)));
-      setGoals((prev) => prev.filter((g) => !sel.selected.has(g.id)));
-      sel.clear();
-      window.dispatchEvent(new CustomEvent("gastosai:goal-changed"));
-    } catch {
-      // leave selection; user can retry
-    } finally {
-      setDeletingSelected(false);
-    }
+    const results = await Promise.allSettled(ids.map((id) => deleteGoal(id)));
+    const okIds = new Set(ids.filter((_, i) => results[i].status === "fulfilled"));
+    setGoals((prev) => prev.filter((g) => !okIds.has(g.id)));
+    sel.replace(ids.filter((id) => !okIds.has(id)));
+    if (okIds.size > 0) window.dispatchEvent(new CustomEvent("gastosai:goal-changed"));
+    setDeletingSelected(false);
   };
 
   const inputClass = "w-full rounded-xl border border-edge-input bg-input px-3 py-2.5 text-sm text-ink";

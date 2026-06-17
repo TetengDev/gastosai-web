@@ -231,17 +231,14 @@ export default function Budget() {
   const sel = useMultiSelect(budgets.map((b) => b.id));
   const [deletingSelected, setDeletingSelected] = useState(false);
   const deleteSelected = async () => {
+    const ids = sel.selectedIds;
     setDeletingSelected(true);
-    try {
-      await Promise.all(sel.selectedIds.map((id) => deleteBudget(id)));
-      setBudgets((prev) => prev.filter((b) => !sel.selected.has(b.id)));
-      sel.clear();
-      window.dispatchEvent(new CustomEvent("gastosai:budget-changed"));
-    } catch {
-      // leave selection; user can retry
-    } finally {
-      setDeletingSelected(false);
-    }
+    const results = await Promise.allSettled(ids.map((id) => deleteBudget(id)));
+    const okIds = new Set(ids.filter((_, i) => results[i].status === "fulfilled"));
+    setBudgets((prev) => prev.filter((b) => !okIds.has(b.id)));
+    sel.replace(ids.filter((id) => !okIds.has(id)));
+    if (okIds.size > 0) window.dispatchEvent(new CustomEvent("gastosai:budget-changed"));
+    setDeletingSelected(false);
   };
 
   const inputClass = "w-full rounded-xl border border-edge-input bg-input px-4 py-2.5 text-sm text-ink";

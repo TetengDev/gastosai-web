@@ -19,6 +19,9 @@ export function useMultiSelect(allIds: number[]) {
 
   const clear = useCallback(() => setSelected(new Set()), []);
 
+  /** Replace the whole selection (e.g. keep only the ids that failed to delete). */
+  const replace = useCallback((ids: number[]) => setSelected(new Set(ids)), []);
+
   const allSelected = allIds.length > 0 && allIds.every((id) => selected.has(id));
 
   const toggleAll = useCallback(() => {
@@ -30,5 +33,5 @@ export function useMultiSelect(allIds: number[]) {
 
   const selectedIds = useMemo(() => [...selected], [selected]);
 
-  return { selected, selectedIds, count: selected.size, toggle, toggleAll, clear, allSelected };
+  return { selected, selectedIds, count: selected.size, toggle, toggleAll, clear, replace, allSelected };
 }
