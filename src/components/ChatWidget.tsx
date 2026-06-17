@@ -974,7 +974,7 @@ export default function ChatWidget() {
                                 )
                               );
                               setLoading(true);
-                              void chatAction(originalMsg, "execute").then((res) => {
+                              void chatAction(originalMsg, "force").then((res) => {
                                 if (res.type === "action") {
                                   setMessages((prev) => [
                                     ...prev,
