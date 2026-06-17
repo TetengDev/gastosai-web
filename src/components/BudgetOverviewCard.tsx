@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getBudgetSummary } from "../api/budgets";
 import type { BudgetSummaryResponse } from "../api/types";
-import { Card, ProgressBar } from "./ui";
+import { Card, InfoTip, ProgressBar } from "./ui";
 import { formatCurrency } from "../lib/formatters";
 
 interface Props {
@@ -39,8 +39,9 @@ export default function BudgetOverviewCard({ month }: Props) {
 
   return (
     <Card tone="panel">
-      <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
+      <p className="flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
         Budget overview
+        <InfoTip text="How much you can still safely spend this month and per day, with per-category budget usage." />
       </p>
 
       {loading && (

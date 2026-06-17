@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { getDailyReport } from "../api/expenses";
 import type { DailyReport } from "../api/types";
-import { Card } from "./ui";
+import { Card, InfoTip } from "./ui";
 import { formatCurrency } from "../lib/formatters";
 
 interface Props {
@@ -41,8 +41,11 @@ export default function DailyTrendCard({ month }: Props) {
   return (
     <Card>
       <div className="flex items-baseline justify-between">
-        <div className="font-display text-[22px] font-medium tracking-tight text-ink-hi">
-          Daily Trend
+        <div className="flex items-center gap-1.5">
+          <div className="font-display text-[22px] font-medium tracking-tight text-ink-hi">
+            Daily Trend
+          </div>
+          <InfoTip text="Total amount you spent on each day of the selected month." />
         </div>
         <div className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
           {formatMonthTitle(month)}
