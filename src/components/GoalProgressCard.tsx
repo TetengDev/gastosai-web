@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getGoals, type Goal } from "../api/goals";
-import { Card, ProgressBar } from "./ui";
+import { Card, InfoTip, ProgressBar } from "./ui";
 import { formatCurrency } from "../lib/formatters";
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
@@ -67,8 +67,9 @@ export default function GoalProgressCard() {
 
   return (
     <Card>
-      <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
+      <p className="flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
         Savings Goals
+        <InfoTip text="Progress toward your active savings goals — amount saved vs. target and status." />
       </p>
 
       {loading && (

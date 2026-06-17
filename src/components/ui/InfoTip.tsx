@@ -3,16 +3,18 @@ import { HelpCircle } from "lucide-react";
 interface Props {
   /** Explanation shown on hover/focus. */
   text: string;
+  /** Use light icon colors for placement on a dark/colored surface (e.g. the hero). */
+  onDark?: boolean;
 }
 
 /** Small "?" icon with a hover/focus tooltip — used to explain dashboard metrics. */
-export default function InfoTip({ text }: Props) {
+export default function InfoTip({ text, onDark = false }: Props) {
   return (
     <span className="group relative inline-flex align-middle">
       <button
         type="button"
         aria-label={text}
-        className="flex text-ink-3 transition-colors hover:text-ink-hi"
+        className={`flex transition-colors ${onDark ? "text-white/60 hover:text-white" : "text-ink-3 hover:text-ink-hi"}`}
       >
         <HelpCircle className="h-4 w-4" />
       </button>

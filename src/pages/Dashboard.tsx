@@ -270,7 +270,10 @@ export default function Dashboard() {
       {/* Recent expenses */}
       <div className="overflow-hidden rounded-2xl border border-edge bg-surface">
         <div className="flex items-center justify-between border-b border-edge-2 px-7 py-4">
-          <h2 className="font-display text-lg font-medium text-ink-hi">Recent Expenses</h2>
+          <div className="flex items-center gap-1.5">
+            <h2 className="font-display text-lg font-medium text-ink-hi">Recent Expenses</h2>
+            <InfoTip text="Your 10 most recently added expenses across all categories." />
+          </div>
           <span className="font-mono text-[11px] uppercase tracking-[0.1em] text-ink-3">
             {recentExpenses.length} most recent
           </span>
