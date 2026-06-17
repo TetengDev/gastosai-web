@@ -10,6 +10,7 @@ interface AuthUser {
   name: string;
   nickname: string | null;
   avatarColor: string | null;
+  defaultCategory: string | null;
   role: string;
 }
 
@@ -48,7 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (data: LoginRequest) => {
     const res = await apiLogin(data);
     localStorage.setItem("token", res.token);
-    persistUser({ email: res.email, name: res.name, nickname: res.nickname ?? null, avatarColor: res.avatarColor ?? null, role: res.role });
+    persistUser({ email: res.email, name: res.name, nickname: res.nickname ?? null, avatarColor: res.avatarColor ?? null, defaultCategory: res.defaultCategory ?? null, role: res.role });
   };
 
   const register = async (data: RegisterRequest) => {
@@ -58,7 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem("gastosai:tour:run", "1");
       localStorage.removeItem("gastosai:tour:completed");
     }
-    persistUser({ email: res.email, name: res.name, nickname: res.nickname ?? null, avatarColor: res.avatarColor ?? null, role: res.role });
+    persistUser({ email: res.email, name: res.name, nickname: res.nickname ?? null, avatarColor: res.avatarColor ?? null, defaultCategory: res.defaultCategory ?? null, role: res.role });
   };
 
   const logout = () => {
@@ -70,7 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const updateProfile = async (data: UpdateProfileRequest) => {
     const res = await apiUpdateProfile(data);
     localStorage.setItem("token", res.token);
-    persistUser({ email: res.email, name: res.name, nickname: res.nickname ?? null, avatarColor: res.avatarColor ?? null, role: user?.role ?? "USER" });
+    persistUser({ email: res.email, name: res.name, nickname: res.nickname ?? null, avatarColor: res.avatarColor ?? null, defaultCategory: res.defaultCategory ?? null, role: user?.role ?? "USER" });
   };
 
   return (
