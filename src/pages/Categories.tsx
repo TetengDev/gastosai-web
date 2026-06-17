@@ -150,6 +150,7 @@ export default function Categories() {
         nickname: user.nickname ?? "",
         avatarColor: user.avatarColor,
         defaultCategory: next,
+        avatar: user.avatar,
       });
     } catch {
       // ignore — non-critical preference

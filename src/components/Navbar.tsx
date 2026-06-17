@@ -1,7 +1,9 @@
+import { createElement } from "react";
 import { LogOut, Moon, Sun } from "lucide-react";
 import { Link, NavLink } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { getAvatarGradient, getInitials } from "../lib/formatters";
+import { avatarIconFor } from "../lib/avatarIcons";
 import AdminViewAsToggle from "./AdminViewAsToggle";
 import { NotificationBell } from "./NotificationBell";
 import TipsPopover from "./TipsPopover";
@@ -79,9 +81,9 @@ export default function Navbar({ isDark, onToggleDark }: Props) {
               <span
                 className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${getAvatarGradient(user.avatarColor)}`}
               >
-                <span className="select-none text-xs font-semibold leading-none text-white">
-                  {getInitials(user.name)}
-                </span>
+                {avatarIconFor(user.avatar)
+                  ? createElement(avatarIconFor(user.avatar)!, { className: "h-4 w-4 text-white" })
+                  : <span className="select-none text-xs font-semibold leading-none text-white">{getInitials(user.name)}</span>}
               </span>
               <span className="hidden max-w-[100px] truncate pr-2 text-[15px] font-medium text-ink-hi lg:block">
                 {user.nickname || user.name}
