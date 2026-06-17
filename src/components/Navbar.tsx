@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { getAvatarGradient, getInitials } from "../lib/formatters";
 import AdminViewAsToggle from "./AdminViewAsToggle";
 import { NotificationBell } from "./NotificationBell";
+import TipsPopover from "./TipsPopover";
 
 interface Props {
   isDark: boolean;
@@ -53,6 +54,7 @@ export default function Navbar({ isDark, onToggleDark }: Props) {
 
       <div className="flex flex-1 items-center justify-end gap-2.5">
         {isAdmin && <AdminViewAsToggle />}
+        <TipsPopover />
         <NotificationBell />
         <button
           onClick={onToggleDark}
