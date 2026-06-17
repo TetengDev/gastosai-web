@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { getTopCategoryInsight, getMonthSummaryInsight, getRecommendationsInsight } from "../api/insights";
 import type { TopCategoryInsight, MonthSummaryInsight, RecommendationsInsight } from "../api/types";
 import { useAiAvailability } from "../hooks/useAiAvailability";
+import { Card } from "./ui";
 
 interface Props {
   month: string;
@@ -12,7 +13,7 @@ function MiniSkeleton({ lines = 1 }: { lines?: number }) {
   return (
     <div className="space-y-2 animate-pulse">
       {Array.from({ length: lines }).map((_, i) => (
-        <div key={i} className="h-4 bg-gray-200 dark:bg-gray-700 rounded" />
+        <div key={i} className="h-4 rounded bg-surface-2" />
       ))}
     </div>
   );
@@ -46,45 +47,50 @@ export default function AiInsightsCard({ month }: Props) {
   const allDone = !topLoading && !sumLoading && !recLoading;
   const allFailed = allDone && !topCategory && !summary && !recommendations;
 
-  return (
-    <div className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
-      <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-4">
-        AI Insights
-      </p>
-
-      {aiAvailable === false ? (
-        <div className="text-sm text-gray-600 dark:text-gray-300">
-          <p className="mb-2">AI insights need your OpenAI key.</p>
-          <Link to="/settings" className="text-indigo-600 dark:text-indigo-400 font-medium hover:underline">
-            Connect your key in Settings →
-          </Link>
+  if (aiAvailable === false) {
+    return (
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-edge-2 py-6">
+        <div className="font-mono text-xs uppercase tracking-[0.12em] text-ink-3">AI Insights</div>
+        <div className="flex-1 text-[17px] text-ink">
+          Insights need your AI key to analyze spending patterns and surface anomalies.
         </div>
-      ) : allFailed ? (
-        <p className="text-sm text-red-500">Unable to load AI insights.</p>
+        <Link to="/settings" className="whitespace-nowrap text-base font-medium text-link hover:underline">
+          Connect your key in Settings →
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <Card>
+      <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">AI Insights</p>
+
+      {allFailed ? (
+        <p className="mt-4 text-sm text-[#b30000]">Unable to load AI insights.</p>
       ) : (
-        <div className="space-y-4">
+        <div className="mt-4 space-y-4">
           <div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Top Category</p>
+            <p className="mb-1 text-xs text-ink-2">Top Category</p>
             {topCategory ? (
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-semibold text-gray-800 dark:text-gray-100">{topCategory.category}</span>
-                <span className="text-sm text-gray-600 dark:text-gray-300">₱{topCategory.total.toLocaleString()}</span>
-                <span className="text-xs text-gray-400 dark:text-gray-500">{topCategory.percentOfMonthTotal}% of month</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-semibold text-ink-hi">{topCategory.category}</span>
+                <span className="text-sm text-ink-2">₱{topCategory.total.toLocaleString()}</span>
+                <span className="text-xs text-ink-3">{topCategory.percentOfMonthTotal}% of month</span>
               </div>
             ) : topLoading ? <MiniSkeleton /> : null}
           </div>
           <div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Month Summary</p>
+            <p className="mb-1 text-xs text-ink-2">Month Summary</p>
             {summary ? (
-              <p className="text-sm text-gray-700 dark:text-gray-300">{summary.summary}</p>
+              <p className="text-sm text-ink">{summary.summary}</p>
             ) : sumLoading ? <MiniSkeleton lines={2} /> : null}
           </div>
           <div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Recommendations</p>
+            <p className="mb-1 text-xs text-ink-2">Recommendations</p>
             {recommendations ? (
               <ul className="space-y-1">
                 {recommendations.recommendations.map((r, i) => (
-                  <li key={i} className="flex gap-2 text-sm text-gray-700 dark:text-gray-300">
+                  <li key={i} className="flex gap-2 text-sm text-ink">
                     <span>→</span>
                     <span>{r}</span>
                   </li>
@@ -94,6 +100,6 @@ export default function AiInsightsCard({ month }: Props) {
           </div>
         </div>
       )}
-    </div>
+    </Card>
   );
 }

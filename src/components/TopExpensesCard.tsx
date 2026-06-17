@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { getTopTransactions } from "../api/expenses";
 import type { Expense } from "../api/types";
+import { Card } from "./ui";
 import { formatCurrency, getCategoryColor } from "../lib/formatters";
 
 interface Props {
@@ -30,54 +31,55 @@ export default function TopExpensesCard({ month }: Props) {
   }, [fetchData]);
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6">
-      <div className="mb-4">
-        <p className="text-sm font-bold text-gray-900 dark:text-gray-100">Top Expenses</p>
-        <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">This month · top 5</p>
+    <Card>
+      <div className="font-display text-[22px] font-medium tracking-tight text-ink-hi">
+        Top Expenses
+      </div>
+      <div className="mt-0.5 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
+        This month · top 5
       </div>
 
       {loading ? (
-        <div className="space-y-3">
+        <div className="mt-4 space-y-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-10 bg-gray-100 dark:bg-gray-800 rounded-xl animate-pulse" />
+            <div key={i} className="h-10 animate-pulse rounded-xl bg-surface-2" />
           ))}
         </div>
       ) : expenses.length === 0 ? (
-        <div className="h-[180px] flex items-center justify-center text-sm text-gray-400 dark:text-gray-500">
+        <div className="flex h-[180px] items-center justify-center text-sm text-ink-3">
           No expenses this month.
         </div>
       ) : (
-        <ul className="divide-y divide-gray-50 dark:divide-gray-800">
+        <ul className="mt-2">
           {expenses.map((e, index) => {
             const color = getCategoryColor(e.category ?? "");
             return (
-              <li key={e.id} className="flex items-center justify-between py-3 gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 w-4 flex-shrink-0 text-right">
+              <li
+                key={e.id}
+                className="flex items-center justify-between gap-3 border-b border-edge-3 py-3 last:border-0"
+              >
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="w-4 flex-shrink-0 text-right text-xs font-semibold text-ink-3">
                     {index + 1}
                   </span>
                   <span
-                    className={`text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0 ${color.bg} ${color.darkBg} ${color.text} ${color.darkText}`}
+                    className={`flex-shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${color.bg} ${color.darkBg} ${color.text} ${color.darkText}`}
                   >
                     {e.category}
                   </span>
-                  <span className="text-sm text-gray-600 dark:text-gray-400 truncate">
-                    {e.description}
-                  </span>
+                  <span className="truncate text-sm text-ink-2">{e.description}</span>
                 </div>
-                <div className="text-right flex-shrink-0">
-                  <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                <div className="flex-shrink-0 text-right">
+                  <div className="text-sm font-semibold text-ink-hi">
                     {formatCurrency(e.amount)}
                   </div>
-                  <div className="text-xs text-gray-400 dark:text-gray-500">
-                    {formatShortDate(e.date)}
-                  </div>
+                  <div className="text-xs text-ink-3">{formatShortDate(e.date)}</div>
                 </div>
               </li>
             );
           })}
         </ul>
       )}
-    </div>
+    </Card>
   );
 }
