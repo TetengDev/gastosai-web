@@ -6,6 +6,7 @@ export interface UserProfileResponse {
   nickname: string | null;
   avatarColor: string | null;
   defaultCategory: string | null;
+  avatar: string | null;
 }
 
 export interface UpdateProfileRequest {
@@ -14,6 +15,7 @@ export interface UpdateProfileRequest {
   email: string;
   avatarColor?: string | null;
   defaultCategory?: string | null;
+  avatar?: string | null;
 }
 
 export interface UpdateProfileResponse extends UserProfileResponse {
