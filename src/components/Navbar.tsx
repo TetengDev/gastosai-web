@@ -31,11 +31,10 @@ export default function Navbar({ isDark, onToggleDark }: Props) {
 
   return (
     <nav className="sticky top-0 z-40 flex h-[72px] items-center justify-between border-b border-edge-2 bg-nav px-5 backdrop-blur-md md:px-10">
-      <Link
-        to="/"
-        className="flex flex-1 select-none items-center gap-2 font-display text-[21px] font-bold tracking-tight text-ink-hi"
-      >
-        Gastos<span className="text-brand">AI</span>
+      <Link to="/" className="flex flex-1 select-none items-center">
+        <span className="font-display text-[21px] font-bold tracking-tight text-ink-hi">
+          Gastos<span className="text-brand">AI</span>
+        </span>
       </Link>
 
       <div className="hidden items-center gap-1 md:flex">

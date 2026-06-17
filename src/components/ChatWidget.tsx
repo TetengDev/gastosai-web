@@ -51,56 +51,55 @@ interface ModeTheme {
   typingDot: string;
 }
 
-// The chat panel is always dark (per the design handoff) — the panel root carries
-// a `dark` class so inner `dark:` utilities resolve regardless of the global theme.
-// Each tone mode keeps its own accent within that dark chrome.
+// The chat panel follows the global light/dark theme (neutral token chrome).
+// Each tone mode contributes only its accent: header gradient, avatar, user
+// bubble, active pill, send button, FAB, accent text, and typing dots. The
+// header is always a colored gradient, so the mode-toggle pills on it stay white.
+const NEUTRAL = {
+  botBubble: "bg-surface-2 border-edge",
+  inactivePill: "text-white/70 border border-white/25 hover:text-white hover:bg-white/10",
+  chip: "bg-surface-2 text-ink-2 border border-edge hover:bg-surface-3",
+  msgBg: "",
+};
+
 const MODE_THEMES: Record<ChatMode, ModeTheme> = {
   plain: {
+    ...NEUTRAL,
     headerGradient: "from-[#003c33] to-[#004d40]",
     avatarGradient: "from-[#1f8a5b] to-[#003c33]",
     userBubble: "from-[#1f8a5b] to-[#003c33]",
-    botBubble: "bg-white/[0.08] border-white/10",
     activePill: "bg-white text-[#003c33] shadow-sm",
-    inactivePill: "text-white/70 border border-white/25 hover:text-white hover:bg-white/10",
     sendBtn: "from-[#1f8a5b] to-[#003c33] hover:opacity-90",
-    fabGradient: "from-[#17171c] to-[#17171c]",
-    fabShadow: "shadow-black/30 hover:shadow-black/40",
-    chip: "bg-white/[0.06] text-white/85 border border-white/15 hover:bg-white/10",
+    fabGradient: "from-[#1f8a5b] to-[#003c33] hover:opacity-90",
+    fabShadow: "shadow-[#1f8a5b]/40 hover:shadow-[#1f8a5b]/50",
     inputRing: "focus:ring-[#1f8a5b]",
-    accentText: "text-[#7fd6b8]",
-    msgBg: "",
-    typingDot: "bg-[#7fd6b8]",
+    accentText: "text-[#1f8a5b] dark:text-[#7fd6b8]",
+    typingDot: "bg-[#1f8a5b]",
   },
   professional: {
+    ...NEUTRAL,
     headerGradient: "from-slate-700 to-slate-900",
     avatarGradient: "from-slate-500 to-slate-700",
     userBubble: "from-slate-600 to-slate-800",
-    botBubble: "bg-white/[0.08] border-white/10",
     activePill: "bg-white text-slate-900 shadow-sm",
-    inactivePill: "text-white/70 border border-white/25 hover:text-white hover:bg-white/10",
     sendBtn: "from-slate-500 to-slate-700 hover:opacity-90",
-    fabGradient: "from-[#17171c] to-[#17171c]",
-    fabShadow: "shadow-black/30 hover:shadow-black/40",
-    chip: "bg-white/[0.06] text-white/85 border border-white/15 hover:bg-white/10",
+    fabGradient: "from-slate-600 to-slate-800 hover:opacity-90",
+    fabShadow: "shadow-slate-700/40 hover:shadow-slate-700/50",
     inputRing: "focus:ring-slate-400",
-    accentText: "text-sky-300",
-    msgBg: "",
+    accentText: "text-slate-700 dark:text-slate-300",
     typingDot: "bg-slate-400",
   },
   genz: {
+    ...NEUTRAL,
     headerGradient: "from-fuchsia-600 to-pink-600",
     avatarGradient: "from-pink-500 to-fuchsia-600",
     userBubble: "from-pink-500 to-fuchsia-600",
-    botBubble: "bg-white/[0.08] border-white/10",
     activePill: "bg-white text-fuchsia-700 shadow-sm",
-    inactivePill: "text-white/70 border border-white/25 hover:text-white hover:bg-white/10",
     sendBtn: "from-pink-500 to-fuchsia-600 hover:opacity-90",
-    fabGradient: "from-[#17171c] to-[#17171c]",
-    fabShadow: "shadow-black/30 hover:shadow-black/40",
-    chip: "bg-white/[0.06] text-white/85 border border-white/15 hover:bg-white/10",
+    fabGradient: "from-pink-500 to-fuchsia-600 hover:opacity-90",
+    fabShadow: "shadow-pink-500/40 hover:shadow-pink-500/50",
     inputRing: "focus:ring-pink-400",
-    accentText: "text-pink-300",
-    msgBg: "",
+    accentText: "text-fuchsia-600 dark:text-pink-300",
     typingDot: "bg-pink-400",
   },
 };
@@ -650,8 +649,8 @@ export default function ChatWidget() {
         <div
           className={
             fullscreen
-              ? "dark fixed inset-4 z-50 bg-[#17171c] rounded-[20px] shadow-2xl flex flex-col overflow-hidden"
-              : "dark fixed bottom-24 right-6 z-50 w-96 h-[32rem] bg-[#17171c] rounded-[20px] shadow-2xl flex flex-col overflow-hidden"
+              ? "fixed inset-4 z-50 bg-surface border border-edge rounded-[20px] shadow-2xl flex flex-col overflow-hidden"
+              : "fixed bottom-24 right-6 z-50 w-96 h-[32rem] bg-surface border border-edge rounded-[20px] shadow-2xl flex flex-col overflow-hidden"
           }
         >
           {/* Header — themed gradient */}
@@ -1043,12 +1042,12 @@ export default function ChatWidget() {
           </div>
 
           {/* Input */}
-          <div className="border-t border-white/10 px-3 py-3 flex-shrink-0 bg-[#17171c]">
-            {error && <p className="text-red-400 text-xs mb-2">{error}</p>}
+          <div className="border-t border-edge px-3 py-3 flex-shrink-0 bg-surface">
+            {error && <p className="text-[#b30000] text-xs mb-2">{error}</p>}
             {aiAvailable === false && (
-              <p className="text-xs text-white/60 text-center py-1">
+              <p className="text-xs text-ink-3 text-center py-1">
                 Add your OpenAI key in{" "}
-                <Link to="/settings" className="text-[#7fd6b8] font-medium hover:underline">
+                <Link to="/settings" className="text-link font-medium hover:underline">
                   Settings
                 </Link>{" "}
                 to use AI chat.
