@@ -51,55 +51,31 @@ interface ModeTheme {
   typingDot: string;
 }
 
+// The chat is always dark (per the design handoff). The panel root carries a
+// `dark` class so every `dark:` utility inside resolves regardless of the global
+// theme; all three tone modes share the same green/dark chrome (only the reply
+// style differs).
+const DARK_THEME: ModeTheme = {
+  headerGradient: "from-[#003c33] to-[#003c33]",
+  avatarGradient: "from-[#003c33] to-[#003c33]",
+  userBubble: "from-[#003c33] to-[#003c33]",
+  botBubble: "bg-white/[0.08] border-white/10",
+  activePill: "bg-white text-[#003c33] shadow-sm",
+  inactivePill: "text-white/70 border border-white/25 hover:text-white hover:bg-white/10",
+  sendBtn: "from-[#1f8a5b] to-[#003c33] hover:opacity-90",
+  fabGradient: "from-[#17171c] to-[#17171c]",
+  fabShadow: "shadow-black/30 hover:shadow-black/40",
+  chip: "bg-white/[0.06] text-white/85 border border-white/15 hover:bg-white/10",
+  inputRing: "focus:ring-[#1f8a5b]",
+  accentText: "text-[#7fd6b8]",
+  msgBg: "",
+  typingDot: "bg-[#7fd6b8]",
+};
+
 const MODE_THEMES: Record<ChatMode, ModeTheme> = {
-  plain: {
-    headerGradient: "from-indigo-600 to-blue-700",
-    avatarGradient: "from-indigo-600 to-blue-600",
-    userBubble: "from-indigo-600 to-blue-600",
-    botBubble: "bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700",
-    activePill: "bg-white/25 text-white shadow-sm",
-    inactivePill: "text-white/70 hover:text-white hover:bg-white/15",
-    sendBtn: "from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700",
-    fabGradient: "from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700",
-    fabShadow: "shadow-indigo-500/40 hover:shadow-indigo-500/50",
-    chip: "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-700 hover:bg-indigo-100 dark:hover:bg-indigo-800/50",
-    inputRing: "focus:ring-indigo-500",
-    accentText: "text-indigo-700 dark:text-indigo-400",
-    msgBg: "bg-gray-50/30",
-    typingDot: "bg-indigo-400",
-  },
-  professional: {
-    headerGradient: "from-slate-700 to-slate-900",
-    avatarGradient: "from-slate-500 to-slate-700",
-    userBubble: "from-slate-600 to-slate-800",
-    botBubble: "bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700",
-    activePill: "bg-white/20 text-white shadow-sm",
-    inactivePill: "text-white/60 hover:text-white hover:bg-white/15",
-    sendBtn: "from-slate-600 to-slate-800 hover:from-slate-700 hover:to-slate-900",
-    fabGradient: "from-slate-700 to-slate-900 hover:from-slate-800 hover:to-gray-950",
-    fabShadow: "shadow-slate-700/50 hover:shadow-slate-800/60",
-    chip: "bg-slate-100 dark:bg-slate-700/50 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 hover:bg-slate-200 dark:hover:bg-slate-700",
-    inputRing: "focus:ring-slate-500",
-    accentText: "text-slate-800 dark:text-slate-200",
-    msgBg: "bg-slate-50/40",
-    typingDot: "bg-slate-400",
-  },
-  genz: {
-    headerGradient: "from-pink-500 via-fuchsia-500 to-purple-600",
-    avatarGradient: "from-pink-500 to-fuchsia-600",
-    userBubble: "from-pink-500 to-fuchsia-500",
-    botBubble: "bg-pink-50 dark:bg-pink-900/20 border-pink-200 dark:border-pink-800/50",
-    activePill: "bg-white/25 text-white shadow-sm",
-    inactivePill: "text-white/70 hover:text-white hover:bg-white/15",
-    sendBtn: "from-pink-500 to-fuchsia-500 hover:from-pink-600 hover:to-fuchsia-600",
-    fabGradient: "from-pink-500 to-fuchsia-600 hover:from-pink-600 hover:to-fuchsia-700",
-    fabShadow: "shadow-pink-500/40 hover:shadow-pink-500/50",
-    chip: "bg-pink-50 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300 border border-pink-200 dark:border-pink-700 hover:bg-pink-100 dark:hover:bg-pink-800/50",
-    inputRing: "focus:ring-pink-500",
-    accentText: "text-fuchsia-700 dark:text-fuchsia-400",
-    msgBg: "bg-pink-50/20",
-    typingDot: "bg-pink-400",
-  },
+  plain: DARK_THEME,
+  professional: DARK_THEME,
+  genz: DARK_THEME,
 };
 
 const MODES: { value: ChatMode; label: string; emoji: string }[] = [
@@ -647,8 +623,8 @@ export default function ChatWidget() {
         <div
           className={
             fullscreen
-              ? "fixed inset-4 z-50 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
-              : "fixed bottom-24 right-6 z-50 w-96 h-[32rem] bg-white dark:bg-gray-900 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+              ? "dark fixed inset-4 z-50 bg-[#17171c] rounded-[20px] shadow-2xl flex flex-col overflow-hidden"
+              : "dark fixed bottom-24 right-6 z-50 w-96 h-[32rem] bg-[#17171c] rounded-[20px] shadow-2xl flex flex-col overflow-hidden"
           }
         >
           {/* Header — themed gradient */}
@@ -1040,12 +1016,12 @@ export default function ChatWidget() {
           </div>
 
           {/* Input */}
-          <div className="border-t border-gray-100 dark:border-gray-800 px-3 py-3 flex-shrink-0 bg-white dark:bg-gray-900">
-            {error && <p className="text-red-500 text-xs mb-2">{error}</p>}
+          <div className="border-t border-white/10 px-3 py-3 flex-shrink-0 bg-[#17171c]">
+            {error && <p className="text-red-400 text-xs mb-2">{error}</p>}
             {aiAvailable === false && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-1">
+              <p className="text-xs text-white/60 text-center py-1">
                 Add your OpenAI key in{" "}
-                <Link to="/settings" className="text-indigo-600 dark:text-indigo-400 font-medium hover:underline">
+                <Link to="/settings" className="text-[#7fd6b8] font-medium hover:underline">
                   Settings
                 </Link>{" "}
                 to use AI chat.
