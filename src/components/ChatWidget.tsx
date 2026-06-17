@@ -51,31 +51,58 @@ interface ModeTheme {
   typingDot: string;
 }
 
-// The chat is always dark (per the design handoff). The panel root carries a
-// `dark` class so every `dark:` utility inside resolves regardless of the global
-// theme; all three tone modes share the same green/dark chrome (only the reply
-// style differs).
-const DARK_THEME: ModeTheme = {
-  headerGradient: "from-[#003c33] to-[#003c33]",
-  avatarGradient: "from-[#003c33] to-[#003c33]",
-  userBubble: "from-[#003c33] to-[#003c33]",
-  botBubble: "bg-white/[0.08] border-white/10",
-  activePill: "bg-white text-[#003c33] shadow-sm",
-  inactivePill: "text-white/70 border border-white/25 hover:text-white hover:bg-white/10",
-  sendBtn: "from-[#1f8a5b] to-[#003c33] hover:opacity-90",
-  fabGradient: "from-[#17171c] to-[#17171c]",
-  fabShadow: "shadow-black/30 hover:shadow-black/40",
-  chip: "bg-white/[0.06] text-white/85 border border-white/15 hover:bg-white/10",
-  inputRing: "focus:ring-[#1f8a5b]",
-  accentText: "text-[#7fd6b8]",
-  msgBg: "",
-  typingDot: "bg-[#7fd6b8]",
-};
-
+// The chat panel is always dark (per the design handoff) — the panel root carries
+// a `dark` class so inner `dark:` utilities resolve regardless of the global theme.
+// Each tone mode keeps its own accent within that dark chrome.
 const MODE_THEMES: Record<ChatMode, ModeTheme> = {
-  plain: DARK_THEME,
-  professional: DARK_THEME,
-  genz: DARK_THEME,
+  plain: {
+    headerGradient: "from-[#003c33] to-[#004d40]",
+    avatarGradient: "from-[#1f8a5b] to-[#003c33]",
+    userBubble: "from-[#1f8a5b] to-[#003c33]",
+    botBubble: "bg-white/[0.08] border-white/10",
+    activePill: "bg-white text-[#003c33] shadow-sm",
+    inactivePill: "text-white/70 border border-white/25 hover:text-white hover:bg-white/10",
+    sendBtn: "from-[#1f8a5b] to-[#003c33] hover:opacity-90",
+    fabGradient: "from-[#17171c] to-[#17171c]",
+    fabShadow: "shadow-black/30 hover:shadow-black/40",
+    chip: "bg-white/[0.06] text-white/85 border border-white/15 hover:bg-white/10",
+    inputRing: "focus:ring-[#1f8a5b]",
+    accentText: "text-[#7fd6b8]",
+    msgBg: "",
+    typingDot: "bg-[#7fd6b8]",
+  },
+  professional: {
+    headerGradient: "from-slate-700 to-slate-900",
+    avatarGradient: "from-slate-500 to-slate-700",
+    userBubble: "from-slate-600 to-slate-800",
+    botBubble: "bg-white/[0.08] border-white/10",
+    activePill: "bg-white text-slate-900 shadow-sm",
+    inactivePill: "text-white/70 border border-white/25 hover:text-white hover:bg-white/10",
+    sendBtn: "from-slate-500 to-slate-700 hover:opacity-90",
+    fabGradient: "from-[#17171c] to-[#17171c]",
+    fabShadow: "shadow-black/30 hover:shadow-black/40",
+    chip: "bg-white/[0.06] text-white/85 border border-white/15 hover:bg-white/10",
+    inputRing: "focus:ring-slate-400",
+    accentText: "text-sky-300",
+    msgBg: "",
+    typingDot: "bg-slate-400",
+  },
+  genz: {
+    headerGradient: "from-fuchsia-600 to-pink-600",
+    avatarGradient: "from-pink-500 to-fuchsia-600",
+    userBubble: "from-pink-500 to-fuchsia-600",
+    botBubble: "bg-white/[0.08] border-white/10",
+    activePill: "bg-white text-fuchsia-700 shadow-sm",
+    inactivePill: "text-white/70 border border-white/25 hover:text-white hover:bg-white/10",
+    sendBtn: "from-pink-500 to-fuchsia-600 hover:opacity-90",
+    fabGradient: "from-[#17171c] to-[#17171c]",
+    fabShadow: "shadow-black/30 hover:shadow-black/40",
+    chip: "bg-white/[0.06] text-white/85 border border-white/15 hover:bg-white/10",
+    inputRing: "focus:ring-pink-400",
+    accentText: "text-pink-300",
+    msgBg: "",
+    typingDot: "bg-pink-400",
+  },
 };
 
 const MODES: { value: ChatMode; label: string; emoji: string }[] = [
