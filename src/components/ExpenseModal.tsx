@@ -5,6 +5,7 @@ import { toDateTimeLocal } from "../lib/formatters";
 import { CAT_TTL_MS, RATE_TTL_MS, getCategoryCache, rateCache, setCategoryCache } from "../lib/cache";
 import CurrencySelect from "./CurrencySelect";
 import { Button, Modal } from "./ui";
+import { useAuth } from "../context/AuthContext";
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
   PHP: "₱", USD: "$", EUR: "€", SGD: "S$", JPY: "¥", GBP: "£", AUD: "A$",
@@ -17,10 +18,11 @@ interface Props {
 }
 
 export default function ExpenseModal({ expense, onSave, onClose }: Props) {
+  const { user } = useAuth();
   const now = new Date().toISOString().slice(0, 16);
   const [form, setForm] = useState<ExpenseRequest>({
     amount: expense?.amount ?? (0 as unknown as number),
-    category: expense?.category ?? "Uncategorized",
+    category: expense?.category ?? user?.defaultCategory ?? "Uncategorized",
     date: expense?.date ? toDateTimeLocal(expense.date) : now,
     description: expense?.description ?? "",
     expenseType: expense?.expenseType ?? "PERSONAL",

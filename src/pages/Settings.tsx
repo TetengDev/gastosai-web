@@ -25,7 +25,7 @@ export default function Settings() {
     setSuccess(false);
     setError(null);
     try {
-      await updateProfile({ name: name.trim(), nickname: nickname.trim(), email: email.trim(), avatarColor: selectedColor });
+      await updateProfile({ name: name.trim(), nickname: nickname.trim(), email: email.trim(), avatarColor: selectedColor, defaultCategory: user?.defaultCategory ?? null });
       setSuccess(true);
     } catch (err: unknown) {
       const msg =
@@ -127,7 +127,6 @@ export default function Settings() {
               When set, this is shown in the navbar and used by the chatbot to greet you.
             </p>
           </div>
-
           {success && <p className="text-sm font-medium text-[#1f8a5b]">Profile saved.</p>}
           {error && <p className="text-sm font-medium text-[#b30000]">{error}</p>}
 

@@ -22,6 +22,7 @@ import {
   Plus,
   ShoppingBag,
   Sparkles,
+  Star,
   Tag,
   Trash2,
   Utensils,
@@ -38,6 +39,7 @@ import {
   updateCategory,
 } from "../api/categories";
 import type { Category } from "../api/types";
+import { useAuth } from "../context/AuthContext";
 import { Button, ConfirmDialog, IconButton, Modal, PageHeader, SelectionBar } from "../components/ui";
 import { useMultiSelect } from "../hooks/useMultiSelect";
 import { getCategoryColor } from "../lib/formatters";
@@ -212,6 +214,23 @@ export default function Categories() {
 
   const customCount = categories.filter((c) => !isDefaultCategory(c.name)).length;
 
+  const { user, updateProfile } = useAuth();
+  const setDefault = async (name: string) => {
+    if (!user) return;
+    const next = user.defaultCategory === name ? null : name;
+    try {
+      await updateProfile({
+        name: user.name,
+        email: user.email,
+        nickname: user.nickname ?? "",
+        avatarColor: user.avatarColor,
+        defaultCategory: next,
+      });
+    } catch {
+      // ignore — non-critical preference
+    }
+  };
+
   const sel = useMultiSelect(categories.filter((c) => !isDefaultCategory(c.name)).map((c) => c.id));
   const [deletingSelected, setDeletingSelected] = useState(false);
   const deleteSelected = async () => {
@@ -275,6 +294,7 @@ export default function Categories() {
           {categories.map((cat) => {
             const color = getCategoryColor(cat.name).chart;
             const isDefault = isDefaultCategory(cat.name);
+            const isPref = (user?.defaultCategory || "Uncategorized") === cat.name;
             const Icon = getCategoryIcon(cat);
             return (
               <div
@@ -296,16 +316,29 @@ export default function Categories() {
                 >
                   <Icon className="h-[22px] w-[22px]" />
                 </div>
-                <div className="mt-5 font-display text-[19px] font-medium tracking-tight text-ink-hi">
-                  {cat.name}
+                <div className="mt-5 flex items-center gap-1.5">
+                  <span className="truncate font-display text-[19px] font-medium tracking-tight text-ink-hi">
+                    {cat.name}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => void setDefault(cat.name)}
+                    title={isPref ? "Default for new expenses (click to clear)" : "Set as default for new expenses"}
+                    aria-label={isPref ? `${cat.name} is the default category` : `Set ${cat.name} as default`}
+                    aria-pressed={isPref}
+                    className={`flex shrink-0 rounded-md p-0.5 transition-colors ${isPref ? "text-[#1f8a5b]" : "text-ink-3 opacity-0 hover:text-ink-hi group-hover:opacity-100"}`}
+                  >
+                    <Star className="h-4 w-4" fill={isPref ? "currentColor" : "none"} />
+                  </button>
                 </div>
-                {isDefault ? (
+                {isPref && (
                   <div className="mt-3">
-                    <span className="rounded-full border border-edge px-2.5 py-0.5 font-mono text-[10.5px] uppercase tracking-[0.1em] text-ink-3">
-                      Default
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[#1f8a5b]/10 px-2.5 py-0.5 font-mono text-[10.5px] uppercase tracking-[0.1em] text-[#1f8a5b]">
+                      <Star className="h-3 w-3" fill="currentColor" /> Default
                     </span>
                   </div>
-                ) : (
+                )}
+                {!isDefault && (
                   <div className="absolute bottom-3 right-3 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                     <IconButton onClick={() => openEdit(cat)} title="Edit">
                       <Pencil className="h-3.5 w-3.5" />
