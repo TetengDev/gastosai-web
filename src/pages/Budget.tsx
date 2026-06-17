@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Pencil, RotateCcw, Trash2 } from "lucide-react";
+import { Pencil, Plus, RotateCcw, Trash2 } from "lucide-react";
 import {
   createBudget,
   deleteAllBudgets,
@@ -12,6 +12,7 @@ import type { BudgetRequest, BudgetResponse } from "../api/types";
 import type { Category } from "../api/types";
 import CategoryCombobox from "../components/CategoryCombobox";
 import CurrencySelect from "../components/CurrencySelect";
+import { Button, ConfirmDialog, IconButton, Modal, PageHeader } from "../components/ui";
 import { RATE_TTL_MS, rateCache } from "../lib/cache";
 import { formatCurrency, formatMonth } from "../lib/formatters";
 
@@ -178,7 +179,6 @@ export default function Budget() {
       window.dispatchEvent(new CustomEvent("gastosai:budget-changed"));
     } catch (err: unknown) {
       const response = (err as { response?: { status?: number; data?: { message?: string; detail?: string } } })?.response;
-      // Duplicate (409): a budget for this category+month already exists. Offer to overwrite it.
       if (response?.status === 409 && !editing) {
         const existing = budgets.find(
           (b) => b.categoryId === Number(categoryId) && b.month === modalMonth
@@ -227,140 +227,103 @@ export default function Budget() {
     }
   };
 
+  const inputClass = "w-full rounded-xl border border-edge-input bg-input px-4 py-2.5 text-sm text-ink";
+  const labelClass = "mb-1.5 block text-sm font-medium text-ink";
+
   if (loading)
     return (
-      <div className="space-y-5 animate-pulse">
-        <div className="flex justify-between items-center">
-          <div className="h-8 w-36 bg-gray-200 dark:bg-gray-800 rounded-lg" />
-          <div className="h-10 w-36 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl" />
+      <div className="animate-pulse space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="h-10 w-40 rounded-lg bg-surface-2" />
+          <div className="h-11 w-36 rounded-full bg-surface-2" />
         </div>
-        <div className="h-64 bg-gray-100 dark:bg-gray-800 rounded-2xl" />
+        <div className="h-64 rounded-2xl bg-surface-2" />
       </div>
     );
 
   if (error)
     return (
-      <div className="text-center py-8">
-        <p className="text-red-500 mb-3">{error}</p>
-        <button
-          onClick={() => { void load(); }}
-          className="text-sm text-indigo-600 dark:text-indigo-400 underline"
-        >
+      <div className="py-8 text-center">
+        <p className="mb-3 text-[#b30000]">{error}</p>
+        <button onClick={() => { void load(); }} className="text-sm text-link underline">
           Retry
         </button>
       </div>
     );
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap justify-between items-center gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            Budgets
-          </h1>
-          <div className="flex items-center gap-3 mt-0.5">
-            <p className="text-sm text-gray-400 dark:text-gray-500">
-              {budgets.length} {budgets.length === 1 ? "budget" : "budgets"} for {formatMonth(month)}
-            </p>
-            {budgets.length > 0 && (
-              <button
-                onClick={() => setConfirmDeleteAll(true)}
-                className="inline-flex items-center gap-1 text-xs text-red-400 dark:text-red-500 hover:text-red-600 dark:hover:text-red-400 transition-colors cursor-pointer"
-              >
-                <Trash2 className="w-3 h-3" />
-                Delete All
-              </button>
-            )}
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <input
-            type="month"
-            value={month}
-            onChange={(e) => setMonth(e.target.value)}
-            className="border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm bg-gray-50/50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-          />
-          <button
-            onClick={() => { void load(); }}
-            title="Reload"
-            className="p-2 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-xl transition-colors"
-          >
-            <RotateCcw className="w-4 h-4" />
-          </button>
-          <button
-            onClick={openAdd}
-            className="px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-xl text-sm font-semibold hover:from-indigo-700 hover:to-blue-700 transition-all shadow-md shadow-indigo-500/25 hover:shadow-lg hover:shadow-indigo-500/30 hover:-translate-y-0.5 active:translate-y-0 whitespace-nowrap"
-          >
-            + Add Budget
-          </button>
-        </div>
-      </div>
+    <div className="space-y-8">
+      <PageHeader
+        title="Budgets"
+        subtitle={
+          <span>
+            {budgets.length} {budgets.length === 1 ? "budget" : "budgets"} for {formatMonth(month)}
+          </span>
+        }
+        onDeleteAll={budgets.length > 0 ? () => setConfirmDeleteAll(true) : undefined}
+        actions={
+          <>
+            <input
+              type="month"
+              value={month}
+              onChange={(e) => setMonth(e.target.value)}
+              className="rounded-lg border border-edge-input bg-surface px-3 py-2 text-sm text-ink"
+            />
+            <IconButton onClick={() => { void load(); }} title="Reload">
+              <RotateCcw className="h-4 w-4" />
+            </IconButton>
+            <Button onClick={openAdd}>
+              <Plus className="h-[15px] w-[15px]" />
+              Add Budget
+            </Button>
+          </>
+        }
+      />
 
       {budgets.length === 0 ? (
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-16 text-center">
-          <p className="text-4xl mb-3">💰</p>
-          <p className="text-gray-700 dark:text-gray-300 font-semibold text-lg">
-            No budgets for this month
-          </p>
-          <p className="text-gray-400 dark:text-gray-500 text-sm mt-1 mb-5">
-            Set spending limits per category to track your budget
-          </p>
-          <button
-            onClick={openAdd}
-            className="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-xl text-sm font-semibold hover:from-indigo-700 hover:to-blue-700 transition-all shadow-md shadow-indigo-500/25"
-          >
-            + Set your first budget
-          </button>
+        <div className="rounded-2xl border border-edge bg-surface p-16 text-center">
+          <p className="mb-3 text-4xl">💰</p>
+          <p className="text-lg font-semibold text-ink-hi">No budgets for this month</p>
+          <p className="mb-5 mt-1 text-sm text-ink-3">Set spending limits per category to track your budget</p>
+          <Button onClick={openAdd}>
+            <Plus className="h-[15px] w-[15px]" />
+            Set your first budget
+          </Button>
         </div>
       ) : (
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
+        <div className="overflow-hidden rounded-2xl border border-edge">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-100 dark:border-gray-800">
-                <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Category
-                </th>
-                <th className="px-6 py-3.5 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Budget Limit
-                </th>
-                <th className="px-6 py-3.5 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Actions
-                </th>
+              <tr className="border-b border-edge-2 bg-surface-2 font-mono text-[11px] uppercase tracking-[0.1em] text-ink-3">
+                <th className="px-6 py-4 text-left font-normal">Category</th>
+                <th className="px-6 py-4 text-right font-normal">Budget limit</th>
+                <th className="px-6 py-4 text-right font-normal">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
+            <tbody>
               {budgets.map((b) => (
-                <tr
-                  key={b.id}
-                  className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors"
-                >
-                  <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">
-                    {b.categoryName}
-                  </td>
-                  <td className="px-6 py-4 text-right text-gray-700 dark:text-gray-300 font-semibold">
-                    {b.currency !== "PHP" && (
-                      <span className="mr-1.5 text-xs font-medium px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
-                        {b.currency} {b.amountLimit.toFixed(2)}
+                <tr key={b.id} className="border-b border-edge-3 transition-colors last:border-0 hover:bg-surface-2">
+                  <td className="px-6 py-5 font-medium text-ink-hi">{b.categoryName}</td>
+                  <td className="px-6 py-5 text-right">
+                    <span className="inline-flex items-center justify-end gap-2">
+                      {b.currency !== "PHP" && (
+                        <span className="rounded-md bg-link/10 px-1.5 py-0.5 font-mono text-[11px] text-link">
+                          {b.currency} {b.amountLimit.toFixed(2)}
+                        </span>
+                      )}
+                      <span className="font-display text-[17px] font-medium text-ink-hi">
+                        {formatCurrency(b.amountLimitInBaseCurrency ?? b.amountLimit)}
                       </span>
-                    )}
-                    {formatCurrency(b.amountLimitInBaseCurrency ?? b.amountLimit)}
+                    </span>
                   </td>
-                  <td className="px-6 py-4 text-right">
+                  <td className="px-6 py-5">
                     <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => openEdit(b)}
-                        title="Edit"
-                        className="p-1.5 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => setConfirmDelete(b)}
-                        title="Delete"
-                        className="p-1.5 text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <IconButton onClick={() => openEdit(b)} title="Edit">
+                        <Pencil className="h-4 w-4" />
+                      </IconButton>
+                      <IconButton onClick={() => setConfirmDelete(b)} title="Delete" className="hover:text-[#b30000]">
+                        <Trash2 className="h-4 w-4" />
+                      </IconButton>
                     </div>
                   </td>
                 </tr>
@@ -370,233 +333,163 @@ export default function Budget() {
         </div>
       )}
 
-      {modalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-2xl max-w-sm w-full mx-4 border border-gray-100 dark:border-gray-800">
-            <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-5 text-lg">
-              {editing ? "Edit Budget" : "Add Budget"}
-            </h3>
-            <form onSubmit={(e) => { void handleSave(e); }} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                  Category
-                </label>
-                <CategoryCombobox
-                  categories={categories}
-                  value={selectedCategoryName}
-                  onChange={(name, id) => {
-                    setSelectedCategoryName(name);
-                    setCategoryId(id ?? "");
-                  }}
-                  onCreateCategory={handleCreateCategory}
-                  allowCreate
-                  placeholder="Select or create a category"
-                />
-                {editing && selectedCategoryName !== editing.categoryName && (
-                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                    ⚠ This retargets the budget — only the spending limit moves.
-                  </p>
-                )}
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                  Month
-                </label>
-                {editing ? (
-                  <div className="px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50/50 dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100">
-                    {formatMonth(modalMonth)}
-                  </div>
-                ) : (
-                  <input
-                    type="month"
-                    required
-                    value={modalMonth}
-                    onChange={(e) => setModalMonth(e.target.value)}
-                    className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-shadow bg-gray-50/50 dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                  />
-                )}
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                  Currency
-                </label>
-                <CurrencySelect
-                  value={budgetCurrency}
-                  onChange={(c) => {
-                    setSuggestedRate(null);
-                    setBudgetCurrency(c);
-                    if (c === "PHP") setBudgetExchangeRate(1);
-                  }}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                  Amount Limit
-                </label>
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 text-sm font-medium select-none">
-                    {CURRENCY_SYMBOLS[budgetCurrency] ?? budgetCurrency}
-                  </span>
-                  <input
-                    type="number"
-                    required
-                    min={0.01}
-                    step={0.01}
-                    value={amountLimit}
-                    onChange={(e) => setAmountLimit(e.target.value)}
-                    placeholder="0.00"
-                    className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 pl-10 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-shadow bg-gray-50/50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 dark:placeholder-gray-500"
-                  />
-                </div>
-              </div>
-              {budgetCurrency !== "PHP" && (
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Exchange Rate (1 {budgetCurrency} = ? PHP)
-                    </label>
-                    {rateFetching && (
-                      <span className="text-xs text-gray-400 dark:text-gray-500">Fetching rate…</span>
-                    )}
-                    {!rateFetching && suggestedRate !== null && (
-                      <span className="text-xs text-emerald-600 dark:text-emerald-400">
-                        Suggested: {suggestedRate.toFixed(4)}
-                      </span>
-                    )}
-                  </div>
-                  <input
-                    type="number"
-                    step="0.0001"
-                    min="0.0001"
-                    value={budgetExchangeRate}
-                    onChange={(e) => setBudgetExchangeRate(parseFloat(e.target.value) || 1)}
-                    className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-shadow bg-gray-50/50 dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                  />
-                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-1.5">
-                    Rate is suggested and may not reflect real-time market prices. Adjust if needed.
-                  </p>
-                </div>
-              )}
-              {modalError && (
-                <p className="text-red-500 text-sm">{modalError}</p>
-              )}
-              <div className="flex gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  disabled={saving}
-                  className="flex-1 px-4 py-2.5 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Cancel
-                </button>
-                {conflict !== null && !editing ? (
-                  <button
-                    type="button"
-                    onClick={handleOverwrite}
-                    disabled={saving}
-                    className="flex-1 px-4 py-2.5 text-sm bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-xl hover:from-amber-700 hover:to-orange-700 disabled:opacity-50 transition-all font-semibold"
-                  >
-                    {saving ? "Overwriting..." : "Overwrite existing"}
-                  </button>
-                ) : (
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="flex-1 px-4 py-2.5 text-sm bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-xl hover:from-indigo-700 hover:to-blue-700 disabled:opacity-50 transition-all font-semibold"
-                  >
-                    {saving ? "Saving..." : "Save"}
-                  </button>
-                )}
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {confirmDelete && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-2xl max-w-sm w-full mx-4 border border-gray-100 dark:border-gray-800">
-            <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2">
-              Delete budget for "{confirmDelete.categoryName}"?
-            </h3>
-            <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">
-              This will remove the spending limit for{" "}
-              <span className="font-medium text-gray-700 dark:text-gray-300">
-                {confirmDelete.categoryName}
-              </span>{" "}
-              in {formatMonth(confirmDelete.month)}.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setConfirmDelete(null)}
-                className="flex-1 px-4 py-2.5 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors font-medium"
-              >
-                Cancel
-              </button>
-              <button
-                disabled={deleting}
-                onClick={() => { void handleDelete(); }}
-                className="flex-1 px-4 py-2.5 text-sm bg-red-600 text-white rounded-xl hover:bg-red-700 disabled:opacity-50 font-semibold transition-colors"
-              >
-                {deleting ? "Deleting..." : "Confirm"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {confirmDeleteAll && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-2xl max-w-sm w-full mx-4 border border-gray-100 dark:border-gray-800">
-            <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500">
-              <Trash2 className="w-5 h-5" />
-            </div>
-            <h3 className="font-bold text-gray-900 dark:text-gray-100 text-center mb-1">
-              Delete all budgets?
-            </h3>
-            <p className="text-gray-500 dark:text-gray-400 text-sm mb-4 text-center">
-              All {budgets.length} {budgets.length === 1 ? "budget" : "budgets"} for{" "}
-              {formatMonth(month)} will be removed. This cannot be undone.
-            </p>
-            {deleteAllError && (
-              <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-xl px-4 py-2.5 mb-4">
-                {deleteAllError}
+      <Modal open={modalOpen} onClose={closeModal} title={editing ? "Edit Budget" : "Add Budget"} maxWidthClass="max-w-sm">
+        <form onSubmit={(e) => { void handleSave(e); }} className="space-y-4">
+          <div>
+            <label className={labelClass}>Category</label>
+            <CategoryCombobox
+              categories={categories}
+              value={selectedCategoryName}
+              onChange={(name, id) => {
+                setSelectedCategoryName(name);
+                setCategoryId(id ?? "");
+              }}
+              onCreateCategory={handleCreateCategory}
+              allowCreate
+              placeholder="Select or create a category"
+            />
+            {editing && selectedCategoryName !== editing.categoryName && (
+              <p className="mt-1 text-xs text-warn-ink">
+                ⚠ This retargets the budget — only the spending limit moves.
               </p>
             )}
-            <div className="flex gap-3">
-              <button
-                onClick={() => { setConfirmDeleteAll(false); setDeleteAllError(null); }}
-                className="flex-1 px-4 py-2.5 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors font-medium"
-              >
-                Cancel
-              </button>
-              <button
-                disabled={deletingAll}
-                onClick={async () => {
-                  setDeletingAll(true);
-                  setDeleteAllError(null);
-                  try {
-                    await deleteAllBudgets(month);
-                    setBudgets([]);
-                    setConfirmDeleteAll(false);
-                    window.dispatchEvent(new CustomEvent("gastosai:budget-changed"));
-                  } catch (err: unknown) {
-                    const msg =
-                      (err as { response?: { data?: { message?: string } } })?.response?.data?.message
-                      ?? "Failed to delete all budgets.";
-                    setDeleteAllError(msg);
-                  } finally {
-                    setDeletingAll(false);
-                  }
-                }}
-                className="flex-1 px-4 py-2.5 text-sm bg-red-600 text-white rounded-xl hover:bg-red-700 disabled:opacity-50 font-semibold transition-colors"
-              >
-                {deletingAll ? "Deleting..." : "Delete All"}
-              </button>
+          </div>
+          <div>
+            <label className={labelClass}>Month</label>
+            {editing ? (
+              <div className="rounded-xl border border-edge-input bg-surface-2 px-4 py-2.5 text-sm text-ink">
+                {formatMonth(modalMonth)}
+              </div>
+            ) : (
+              <input
+                type="month"
+                required
+                value={modalMonth}
+                onChange={(e) => setModalMonth(e.target.value)}
+                className={inputClass}
+              />
+            )}
+          </div>
+          <div>
+            <label className={labelClass}>Currency</label>
+            <CurrencySelect
+              value={budgetCurrency}
+              onChange={(c) => {
+                setSuggestedRate(null);
+                setBudgetCurrency(c);
+                if (c === "PHP") setBudgetExchangeRate(1);
+              }}
+            />
+          </div>
+          <div>
+            <label className={labelClass}>Amount Limit</label>
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 select-none text-sm font-medium text-ink-3">
+                {CURRENCY_SYMBOLS[budgetCurrency] ?? budgetCurrency}
+              </span>
+              <input
+                type="number"
+                required
+                min={0.01}
+                step={0.01}
+                value={amountLimit}
+                onChange={(e) => setAmountLimit(e.target.value)}
+                placeholder="0.00"
+                className={`${inputClass} pl-10`}
+              />
             </div>
           </div>
-        </div>
-      )}
+          {budgetCurrency !== "PHP" && (
+            <div>
+              <div className="mb-1.5 flex items-center justify-between">
+                <label className="text-sm font-medium text-ink">
+                  Exchange Rate (1 {budgetCurrency} = ? PHP)
+                </label>
+                {rateFetching && <span className="text-xs text-ink-3">Fetching rate…</span>}
+                {!rateFetching && suggestedRate !== null && (
+                  <span className="text-xs text-[#1f8a5b]">Suggested: {suggestedRate.toFixed(4)}</span>
+                )}
+              </div>
+              <input
+                type="number"
+                step="0.0001"
+                min="0.0001"
+                value={budgetExchangeRate}
+                onChange={(e) => setBudgetExchangeRate(parseFloat(e.target.value) || 1)}
+                className={inputClass}
+              />
+              <p className="mt-1.5 text-xs text-warn-ink">
+                Rate is suggested and may not reflect real-time market prices. Adjust if needed.
+              </p>
+            </div>
+          )}
+          {modalError && <p className="text-sm text-[#b30000]">{modalError}</p>}
+          <div className="flex gap-3 pt-2">
+            <Button type="button" variant="secondary" className="flex-1" onClick={closeModal} disabled={saving}>
+              Cancel
+            </Button>
+            {conflict !== null && !editing ? (
+              <button
+                type="button"
+                onClick={handleOverwrite}
+                disabled={saving}
+                className="flex-1 rounded-full bg-[#e8590c] px-6 py-3 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+              >
+                {saving ? "Overwriting…" : "Overwrite existing"}
+              </button>
+            ) : (
+              <Button type="submit" className="flex-1" disabled={saving}>
+                {saving ? "Saving…" : "Save"}
+              </Button>
+            )}
+          </div>
+        </form>
+      </Modal>
+
+      <ConfirmDialog
+        open={confirmDelete !== null}
+        title={confirmDelete ? `Delete budget for "${confirmDelete.categoryName}"?` : "Delete budget?"}
+        message={
+          confirmDelete ? (
+            <>
+              This will remove the spending limit for{" "}
+              <span className="font-medium text-ink">{confirmDelete.categoryName}</span> in{" "}
+              {formatMonth(confirmDelete.month)}.
+            </>
+          ) : ""
+        }
+        confirmLabel="Delete"
+        loading={deleting}
+        onCancel={() => setConfirmDelete(null)}
+        onConfirm={() => { void handleDelete(); }}
+      />
+
+      <ConfirmDialog
+        open={confirmDeleteAll}
+        title="Delete all budgets?"
+        message={`All ${budgets.length} ${budgets.length === 1 ? "budget" : "budgets"} for ${formatMonth(month)} will be removed. This cannot be undone.`}
+        confirmLabel="Delete all"
+        loading={deletingAll}
+        error={deleteAllError}
+        onCancel={() => { setConfirmDeleteAll(false); setDeleteAllError(null); }}
+        onConfirm={async () => {
+          setDeletingAll(true);
+          setDeleteAllError(null);
+          try {
+            await deleteAllBudgets(month);
+            setBudgets([]);
+            setConfirmDeleteAll(false);
+            window.dispatchEvent(new CustomEvent("gastosai:budget-changed"));
+          } catch (err: unknown) {
+            const msg =
+              (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+              ?? "Failed to delete all budgets.";
+            setDeleteAllError(msg);
+          } finally {
+            setDeletingAll(false);
+          }
+        }}
+      />
     </div>
   );
 }
