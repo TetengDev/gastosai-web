@@ -11,7 +11,8 @@ import { getCategories } from "../api/categories";
 import type { Category, RecurringExpenseRequest, RecurringExpenseResponse, RecurringFrequency } from "../api/types";
 import CategoryCombobox from "../components/CategoryCombobox";
 import CurrencySelect from "../components/CurrencySelect";
-import { Button, ConfirmDialog, IconButton, Modal, PageHeader } from "../components/ui";
+import { Button, ConfirmDialog, IconButton, Modal, PageHeader, SelectionBar } from "../components/ui";
+import { useMultiSelect } from "../hooks/useMultiSelect";
 import { RATE_TTL_MS, rateCache } from "../lib/cache";
 import { formatCurrency } from "../lib/formatters";
 
@@ -257,6 +258,22 @@ export default function Recurring() {
     value: RecurringExpenseRequest[K]
   ) => setForm((prev) => ({ ...prev, [key]: value }));
 
+  const sel = useMultiSelect(bills.map((b) => b.id));
+  const [deletingSelected, setDeletingSelected] = useState(false);
+  const deleteSelected = async () => {
+    setDeletingSelected(true);
+    try {
+      await Promise.all(sel.selectedIds.map((id) => deleteRecurring(id)));
+      setBills((prev) => prev.filter((b) => !sel.selected.has(b.id)));
+      sel.clear();
+      window.dispatchEvent(new CustomEvent("gastosai:recurring-changed"));
+    } catch {
+      // leave selection; user can retry
+    } finally {
+      setDeletingSelected(false);
+    }
+  };
+
   const inputClass = "w-full rounded-xl border border-edge-input bg-input px-4 py-2.5 text-sm text-ink";
   const labelClass = "mb-1.5 block text-sm font-medium text-ink";
 
@@ -311,10 +328,15 @@ export default function Recurring() {
           </Button>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-edge">
+        <div className="space-y-3">
+          <SelectionBar count={sel.count} onDelete={() => void deleteSelected()} onClear={sel.clear} deleting={deletingSelected} noun="bill" />
+          <div className="overflow-hidden rounded-2xl border border-edge">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-edge-2 bg-surface-2 font-mono text-[11px] uppercase tracking-[0.1em] text-ink-3">
+                <th className="w-10 px-6 py-4">
+                  <input type="checkbox" aria-label="Select all" checked={sel.allSelected} onChange={sel.toggleAll} className="rounded accent-[#1f8a5b]" />
+                </th>
                 <th className="px-6 py-4 text-left font-normal">Name</th>
                 <th className="hidden px-6 py-4 text-left font-normal sm:table-cell">Category</th>
                 <th className="hidden px-6 py-4 text-left font-normal md:table-cell">Schedule</th>
@@ -325,6 +347,9 @@ export default function Recurring() {
             <tbody>
               {bills.map((bill) => (
                 <tr key={bill.id} className="border-b border-edge-3 transition-colors last:border-0 hover:bg-surface-2">
+                  <td className="px-6 py-5">
+                    <input type="checkbox" aria-label={`Select ${bill.name}`} checked={sel.selected.has(bill.id)} onChange={() => sel.toggle(bill.id)} className="rounded accent-[#1f8a5b]" />
+                  </td>
                   <td className="px-6 py-5">
                     <div className="flex items-center gap-3">
                       <span
@@ -368,6 +393,7 @@ export default function Recurring() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
