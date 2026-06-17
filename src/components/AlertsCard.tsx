@@ -2,7 +2,7 @@ import { CheckCheck } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { type Alert, getAlerts, markAlertRead } from "../api/alerts";
-import { Card, IconButton } from "./ui";
+import { Card, IconButton, InfoTip } from "./ui";
 
 function severityColor(severity: Alert["severity"]): string {
   if (severity === "CRITICAL") return "#ff7759";
@@ -41,8 +41,9 @@ export default function AlertsCard() {
 
   return (
     <Card>
-      <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
+      <p className="flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
         Spending alerts
+        <InfoTip text="Notifications when you approach or exceed a category budget this month." />
       </p>
 
       {loading && (

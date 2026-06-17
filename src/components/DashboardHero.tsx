@@ -1,5 +1,6 @@
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { formatCurrency } from "../lib/formatters";
+import { InfoTip } from "./ui";
 
 export interface HeroStat {
   label: string;
@@ -29,8 +30,9 @@ export default function DashboardHero({
   return (
     <div className="grid items-center gap-8 overflow-hidden rounded-[22px] bg-hero p-8 text-white md:grid-cols-[1fr_1.15fr] md:gap-12 md:p-11">
       <div>
-        <div className="font-mono text-xs uppercase tracking-[0.14em] text-[#7fd6b8]">
+        <div className="flex items-center gap-1.5 font-mono text-xs uppercase tracking-[0.14em] text-[#7fd6b8]">
           Total spend · {monthLabel}
+          <InfoTip onDark text="Your total spending for the current month, with how it compares to last month and key stats." />
         </div>
         <div className="mt-3.5 font-display text-6xl font-medium leading-none tracking-tight md:text-[84px]">
           {intPart}

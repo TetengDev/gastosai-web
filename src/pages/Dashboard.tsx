@@ -20,7 +20,7 @@ import DashboardHero, { type HeroStat } from "../components/DashboardHero";
 import GoalProgressCard from "../components/GoalProgressCard";
 import TopExpensesCard from "../components/TopExpensesCard";
 import UpcomingBillsCard from "../components/UpcomingBillsCard";
-import { Card } from "../components/ui";
+import { Card, InfoTip } from "../components/ui";
 import { formatCurrency, formatDate, getCategoryColor } from "../lib/formatters";
 
 const currentMonth = new Date().toISOString().slice(0, 7);
@@ -168,8 +168,11 @@ export default function Dashboard() {
 
           <Card>
             <div className="flex items-baseline justify-between">
-              <div className="font-display text-[22px] font-medium tracking-tight text-ink-hi">
-                Spending by Category
+              <div className="flex items-center gap-1.5">
+                <div className="font-display text-[22px] font-medium tracking-tight text-ink-hi">
+                  Spending by Category
+                </div>
+                <InfoTip text="Your total spend per category (all time), longest bar = highest spend." />
               </div>
               {categoryData.length > 0 && (
                 <div className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
@@ -222,8 +225,11 @@ export default function Dashboard() {
         <TopExpensesCard month={currentMonth} />
 
         <Card>
-          <div className="font-display text-[22px] font-medium tracking-tight text-ink-hi">
-            Monthly Trend
+          <div className="flex items-center gap-1.5">
+            <div className="font-display text-[22px] font-medium tracking-tight text-ink-hi">
+              Monthly Trend
+            </div>
+            <InfoTip text="Total spend per month over the last 6 months." />
           </div>
           <div className="mt-0.5 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
             Last 6 months
@@ -264,7 +270,10 @@ export default function Dashboard() {
       {/* Recent expenses */}
       <div className="overflow-hidden rounded-2xl border border-edge bg-surface">
         <div className="flex items-center justify-between border-b border-edge-2 px-7 py-4">
-          <h2 className="font-display text-lg font-medium text-ink-hi">Recent Expenses</h2>
+          <div className="flex items-center gap-1.5">
+            <h2 className="font-display text-lg font-medium text-ink-hi">Recent Expenses</h2>
+            <InfoTip text="Your 10 most recently added expenses across all categories." />
+          </div>
           <span className="font-mono text-[11px] uppercase tracking-[0.1em] text-ink-3">
             {recentExpenses.length} most recent
           </span>

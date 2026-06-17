@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { getTopTransactions } from "../api/expenses";
 import type { Expense } from "../api/types";
-import { Card } from "./ui";
+import { Card, InfoTip } from "./ui";
 import { formatCurrency, getCategoryColor } from "../lib/formatters";
 
 interface Props {
@@ -32,8 +32,11 @@ export default function TopExpensesCard({ month }: Props) {
 
   return (
     <Card>
-      <div className="font-display text-[22px] font-medium tracking-tight text-ink-hi">
-        Top Expenses
+      <div className="flex items-center gap-1.5">
+        <div className="font-display text-[22px] font-medium tracking-tight text-ink-hi">
+          Top Expenses
+        </div>
+        <InfoTip text="Your five largest individual expenses this month." />
       </div>
       <div className="mt-0.5 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
         This month · top 5
