@@ -223,4 +223,71 @@ describe("looksLikeNlQuery", () => {
   it("returns false for plain expense log", () => {
     expect(looksLikeNlQuery("paid 200 for lunch")).toBe(false);
   });
+
+  // --- new management verbs must NOT go to NL query ---
+  it("returns false for 'rename category Food to Meals'", () => {
+    expect(looksLikeNlQuery("rename category Food to Meals")).toBe(false);
+  });
+
+  it("returns false for 'delete category Extras'", () => {
+    expect(looksLikeNlQuery("delete category Extras")).toBe(false);
+  });
+
+  it("returns false for 'list my categories'", () => {
+    expect(looksLikeNlQuery("list my categories")).toBe(false);
+  });
+
+  it("returns false for 'show my categories'", () => {
+    expect(looksLikeNlQuery("show my categories")).toBe(false);
+  });
+
+  it("returns false for 'what plan am I on'", () => {
+    expect(looksLikeNlQuery("what plan am I on")).toBe(false);
+  });
+
+  it("returns false for 'my subscription'", () => {
+    expect(looksLikeNlQuery("my subscription")).toBe(false);
+  });
+
+  it("returns false for 'update budget for groceries 3000'", () => {
+    expect(looksLikeNlQuery("update budget for groceries 3000")).toBe(false);
+  });
+
+  it("returns false for 'set my nickname to Lester'", () => {
+    expect(looksLikeNlQuery("set my nickname to Lester")).toBe(false);
+  });
+
+  it("returns false for 'update my avatar color'", () => {
+    expect(looksLikeNlQuery("update my avatar color")).toBe(false);
+  });
+});
+
+describe("looksLikeExpenseLog — new management verbs must NOT match", () => {
+  it("returns false for 'rename category Food to Meals'", () => {
+    expect(looksLikeExpenseLog("rename category Food to Meals")).toBe(false);
+  });
+
+  it("returns false for 'list my categories'", () => {
+    expect(looksLikeExpenseLog("list my categories")).toBe(false);
+  });
+
+  it("returns false for 'show my categories'", () => {
+    expect(looksLikeExpenseLog("show my categories")).toBe(false);
+  });
+
+  it("returns false for 'update my goal Emergency Fund'", () => {
+    expect(looksLikeExpenseLog("update my goal Emergency Fund")).toBe(false);
+  });
+
+  it("returns false for 'update recurring Netflix 599'", () => {
+    expect(looksLikeExpenseLog("update recurring Netflix 599")).toBe(false);
+  });
+
+  it("returns false for 'set my nickname to Lester'", () => {
+    expect(looksLikeExpenseLog("set my nickname to Lester")).toBe(false);
+  });
+
+  it("returns false for 'update my avatar color to teal'", () => {
+    expect(looksLikeExpenseLog("update my avatar color to teal")).toBe(false);
+  });
 });

@@ -2,10 +2,11 @@ import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { askQuery, askWithAttachment, chatAction, type ChatMode } from "../api/ai";
+import { updateAiSettings } from "../api/aiSettings";
 import { updateBudget } from "../api/budgets";
 import { getCategories } from "../api/categories";
 import { createExpense, deleteExpense, importExpensesCsv, parseExpense } from "../api/expenses";
-import type { ChatPreviewData, ParsedExpenseResult } from "../api/types";
+import type { Category, ChatPreviewData, ParsedExpenseResult } from "../api/types";
 import { useAuth } from "../context/AuthContext";
 import { useFeatures } from "../hooks/useFeatures";
 import { useAiAvailability } from "../hooks/useAiAvailability";
@@ -13,6 +14,8 @@ import { formatCurrency, formatDate } from "../lib/formatters";
 import { looksLikeExpenseLog, looksLikeNlQuery } from "../lib/intentDetection";
 import { TypingDots, BotAvatar, ExpandIcon, CollapseIcon } from "./chat/ChatChrome";
 import { actionLabel, savedLabel, buildPreviewFields, buildConfirmMessage, dispatchDataEvents } from "./chat/chatActions";
+
+const OPENAI_KEY_REGEX = /\bsk-[A-Za-z0-9_-]{16,}\b/;
 
 interface Message {
   role: "user" | "assistant";
@@ -32,6 +35,8 @@ interface Message {
   disambiguateItems?: Array<{ id: number; description: string; amount: number; date: string }>;
   selectedDisambiguateIds?: number[];
   draftCancelled?: boolean;
+  expenseDedupPreview?: { originalMessage: string; params: Record<string, unknown> };
+  expenseDedupDismissed?: boolean;
 }
 
 interface ModeTheme {
@@ -273,13 +278,77 @@ function renderAnswer(answer: unknown, accentText: string): ReactNode {
   return <span>{String(answer)}</span>;
 }
 
+function renderCategoryList(categories: Category[]): ReactNode {
+  if (categories.length === 0) return <span className="text-sm text-gray-500 dark:text-gray-400">No categories found.</span>;
+  return (
+    <div className="mt-2 space-y-1.5">
+      <p className="text-xs text-gray-500 dark:text-gray-400">{categories.length} categor{categories.length !== 1 ? "ies" : "y"}</p>
+      <div className="flex flex-wrap gap-1.5">
+        {categories.map((cat) => (
+          <span key={cat.id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600">
+            {cat.icon && <span className="text-xs">{cat.icon}</span>}
+            {cat.name}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function renderSubscriptionResult(result: { plan: string; status: string; features: string[]; admin: boolean }): ReactNode {
+  return (
+    <div className="mt-2 space-y-2">
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-gray-500 dark:text-gray-400">Plan</span>
+        <span className="text-sm font-semibold text-gray-800 dark:text-gray-100 capitalize">{result.plan}</span>
+        <span className={`text-xs px-1.5 py-0.5 rounded-full ${result.status === "active" ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400" : "bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400"}`}>{result.status}</span>
+        {result.admin && <span className="text-xs px-1.5 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-400">Admin</span>}
+      </div>
+      {result.features.length > 0 && (
+        <div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Features</p>
+          <div className="flex flex-wrap gap-1">
+            {result.features.map((f) => (
+              <span key={f} className="text-xs px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800">{f}</span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function renderActionResult(msg: Message) {
+  const result = msg.actionResult;
+
+  if (Array.isArray(result) && result.length > 0 && "name" in (result[0] as object) && "id" in (result[0] as object)) {
+    return (
+      <div>
+        {typeof msg.content === "string" && msg.content && (
+          <p className="text-sm font-medium text-green-700 dark:text-green-300 mb-1">{msg.content}</p>
+        )}
+        {renderCategoryList(result as Category[])}
+      </div>
+    );
+  }
+
+  if (result && typeof result === "object" && !Array.isArray(result) && "plan" in (result as object) && "features" in (result as object)) {
+    return (
+      <div>
+        {typeof msg.content === "string" && msg.content && (
+          <p className="text-sm font-medium text-green-700 dark:text-green-300 mb-1">{msg.content}</p>
+        )}
+        {renderSubscriptionResult(result as { plan: string; status: string; features: string[]; admin: boolean })}
+      </div>
+    );
+  }
+
   const isDelete = typeof msg.content === "string" && msg.content.toLowerCase().includes("deleted");
   return (
     <div className={`mt-2 border-l-2 ${isDelete ? "border-red-500 dark:border-red-400" : "border-green-500 dark:border-green-400"} pl-3`}>
       <p className={`text-sm font-medium ${isDelete ? "text-red-700 dark:text-red-300" : "text-green-700 dark:text-green-300"}`}>{msg.content as string}</p>
-      {Boolean(msg.actionResult && typeof msg.actionResult === "object" && "id" in (msg.actionResult as object)) && (
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">ID: #{(msg.actionResult as { id: number }).id}</p>
+      {Boolean(result && typeof result === "object" && "id" in (result as object)) && (
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">ID: #{(result as { id: number }).id}</p>
       )}
     </div>
   );
@@ -344,6 +413,35 @@ export default function ChatWidget() {
   const sendMessage = async (q: string, file?: File) => {
     const trimmed = q.trim();
     if (!trimmed && !file || loading) return;
+
+    const keyMatch = trimmed.match(OPENAI_KEY_REGEX);
+    if (keyMatch && !file) {
+      const redacted = trimmed.replace(OPENAI_KEY_REGEX, "sk-••••••");
+      setMessages((prev) => [
+        ...prev,
+        { role: "user", content: redacted, timestamp: new Date() },
+      ]);
+      setQuestion("");
+      setLoading(true);
+      setError(null);
+      try {
+        await updateAiSettings({ openaiApiKey: keyMatch[0] });
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: "Saved your OpenAI key — AI features are unlocked.", timestamp: new Date(), actionType: "success" },
+        ]);
+      } catch {
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: "Failed to save the key. Please try again in Settings.", timestamp: new Date(), actionType: "error" },
+        ]);
+      } finally {
+        setLoading(false);
+        inputRef.current?.focus();
+      }
+      return;
+    }
+
     const attachmentUrl = file ? URL.createObjectURL(file) : undefined;
     const defaultLabel = file
       ? isCsvFile(file) ? "Import CSV" : isImageFile(file) ? "Analyze this image" : `Attach ${file.name}`
@@ -433,15 +531,28 @@ export default function ChatWidget() {
               },
             ]);
           } else if (res.type === "disambiguate") {
-            setMessages((prev) => [
-              ...prev,
-              {
-                role: "assistant",
-                content: res.message,
-                timestamp: new Date(),
-                disambiguateItems: res.result as Array<{ id: number; description: string; amount: number; date: string }>,
-              },
-            ]);
+            const dedupResult = res.result as Record<string, unknown>;
+            if (dedupResult && typeof dedupResult === "object" && !Array.isArray(dedupResult) && dedupResult.toolName === "create_expense") {
+              setMessages((prev) => [
+                ...prev,
+                {
+                  role: "assistant",
+                  content: res.message,
+                  timestamp: new Date(),
+                  expenseDedupPreview: { originalMessage: trimmed, params: dedupResult.params as Record<string, unknown> },
+                },
+              ]);
+            } else {
+              setMessages((prev) => [
+                ...prev,
+                {
+                  role: "assistant",
+                  content: res.message,
+                  timestamp: new Date(),
+                  disambiguateItems: res.result as Array<{ id: number; description: string; amount: number; date: string }>,
+                },
+              ]);
+            }
           } else if (res.type === "action") {
             setMessages((prev) => [
               ...prev,
@@ -850,6 +961,63 @@ export default function ChatWidget() {
                           </button>
                         </div>
                       </div>
+                    ) : m.expenseDedupPreview && !m.expenseDedupDismissed ? (
+                      <div className="space-y-2">
+                        <p className="text-sm text-gray-700 dark:text-gray-200">{m.content as string}</p>
+                        <div className="flex gap-2 mt-1">
+                          <button
+                            onClick={() => {
+                              const originalMsg = m.expenseDedupPreview!.originalMessage;
+                              setMessages((prev) =>
+                                prev.map((msg, idx) =>
+                                  idx === i ? { ...msg, expenseDedupDismissed: true, content: "Adding expense…" } : msg
+                                )
+                              );
+                              setLoading(true);
+                              void chatAction(originalMsg, "force").then((res) => {
+                                if (res.type === "action") {
+                                  setMessages((prev) => [
+                                    ...prev,
+                                    { role: "assistant", content: res.message, timestamp: new Date(), actionType: "success", actionResult: res.result },
+                                  ]);
+                                  dispatchDataEvents("expense");
+                                } else {
+                                  setMessages((prev) => [
+                                    ...prev,
+                                    { role: "assistant", content: res.message, timestamp: new Date() },
+                                  ]);
+                                }
+                              }).catch(() => {
+                                setMessages((prev) => [
+                                  ...prev,
+                                  { role: "assistant", content: "Failed to add expense. Please try again.", timestamp: new Date(), actionType: "error" },
+                                ]);
+                              }).finally(() => {
+                                setLoading(false);
+                              });
+                            }}
+                            disabled={loading}
+                            className={`flex-1 text-xs font-medium py-1.5 rounded-lg bg-gradient-to-r ${theme.sendBtn} text-white disabled:opacity-40 transition-all`}
+                          >
+                            Add anyway
+                          </button>
+                          <button
+                            onClick={() =>
+                              setMessages((prev) =>
+                                prev.map((msg, idx) =>
+                                  idx === i ? { ...msg, expenseDedupDismissed: true, content: "Cancelled." } : msg
+                                )
+                              )
+                            }
+                            disabled={loading}
+                            className="flex-1 text-xs font-medium py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : m.expenseDedupDismissed ? (
+                      <span className="text-sm text-gray-700 dark:text-gray-200">{m.content as string}</span>
                     ) : m.disambiguateItems && m.disambiguateItems.length > 0 ? (
                       <div className="space-y-2">
                         <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{m.content as string}</p>

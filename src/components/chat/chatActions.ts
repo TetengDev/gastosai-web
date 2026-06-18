@@ -8,6 +8,12 @@ export function actionLabel(toolName: string): string {
     create_recurring: "New recurring expense",
     create_expense: "New expense",
     update_budget: "Update budget",
+    create_category: "New category",
+    rename_category: "Rename category",
+    delete_category: "Delete category",
+    update_goal: "Update savings goal",
+    update_recurring: "Update recurring expense",
+    update_profile: "Update profile",
   };
   return labels[toolName] ?? "Confirm action";
 }
@@ -19,6 +25,12 @@ export function savedLabel(toolName: string): string {
     create_recurring: "Saved to recurring",
     create_expense: "Saved to expenses",
     update_budget: "Budget updated",
+    create_category: "Category created",
+    rename_category: "Category renamed",
+    delete_category: "Category deleted",
+    update_goal: "Goal updated",
+    update_recurring: "Recurring updated",
+    update_profile: "Profile updated",
   };
   return labels[toolName] ?? "Saved";
 }
@@ -66,6 +78,44 @@ export function buildPreviewFields(toolName: string, params: Record<string, unkn
         { field: "month", label: "Month", value: String(p.month ?? new Date().toISOString().slice(0, 7)), inputType: "month" },
         { field: "amountLimit", label: "New Amount (₱)", value: String(p.amountLimit ?? 0), inputType: "number" },
       ];
+    case "create_category":
+      return [
+        { field: "name", label: "Name", value: String(p.name ?? ""), inputType: "text" },
+        ...(p.icon !== undefined ? [{ field: "icon", label: "Icon", value: String(p.icon ?? ""), inputType: "text" as const }] : []),
+      ];
+    case "rename_category":
+      return [
+        { field: "currentName", label: "Current Name", value: String(p.currentName ?? ""), inputType: "text" },
+        { field: "newName", label: "New Name", value: String(p.newName ?? ""), inputType: "text" },
+      ];
+    case "delete_category":
+      return [
+        { field: "name", label: "Category Name", value: String(p.name ?? ""), inputType: "text" },
+      ];
+    case "update_goal":
+      return [
+        ...(p.name !== undefined ? [{ field: "name", label: "Goal Name", value: String(p.name ?? ""), inputType: "text" as const }] : []),
+        ...(p.targetAmount !== undefined ? [{ field: "targetAmount", label: "Target Amount (₱)", value: String(p.targetAmount ?? 0), inputType: "number" as const }] : []),
+        ...(p.savedAmount !== undefined ? [{ field: "savedAmount", label: "Saved Amount (₱)", value: String(p.savedAmount ?? 0), inputType: "number" as const }] : []),
+        ...(p.targetDate !== undefined ? [{ field: "targetDate", label: "Target Date", value: String(p.targetDate ?? ""), inputType: "date" as const }] : []),
+        ...(p.paused !== undefined ? [{ field: "paused", label: "Paused", value: String(p.paused ?? false), inputType: "text" as const }] : []),
+      ];
+    case "update_recurring":
+      return [
+        ...(p.name !== undefined ? [{ field: "name", label: "Name", value: String(p.name ?? ""), inputType: "text" as const }] : []),
+        ...(p.amount !== undefined ? [{ field: "amount", label: "Amount (₱)", value: String(p.amount ?? 0), inputType: "number" as const }] : []),
+        ...(p.frequency !== undefined ? [{ field: "frequency", label: "Frequency", value: String(p.frequency ?? "MONTHLY"), inputType: "freq-select" as const }] : []),
+        ...(p.dayOfMonth !== undefined ? [{ field: "dayOfMonth", label: "Day of Month", value: String(p.dayOfMonth ?? ""), inputType: "number" as const }] : []),
+        ...(p.dayOfWeek !== undefined ? [{ field: "dayOfWeek", label: "Day of Week", value: String(p.dayOfWeek ?? ""), inputType: "number" as const }] : []),
+        ...(p.active !== undefined ? [{ field: "active", label: "Active", value: String(p.active ?? true), inputType: "text" as const }] : []),
+      ];
+    case "update_profile":
+      return [
+        ...(p.name !== undefined ? [{ field: "name", label: "Display Name", value: String(p.name ?? ""), inputType: "text" as const }] : []),
+        ...(p.nickname !== undefined ? [{ field: "nickname", label: "Nickname", value: String(p.nickname ?? ""), inputType: "text" as const }] : []),
+        ...(p.avatar !== undefined ? [{ field: "avatar", label: "Avatar Color", value: String(p.avatar ?? ""), inputType: "text" as const }] : []),
+        ...(p.defaultCategory !== undefined ? [{ field: "defaultCategory", label: "Default Category", value: String(p.defaultCategory ?? ""), inputType: "select" as const }] : []),
+      ];
     default:
       return [];
   }
@@ -81,6 +131,18 @@ export function buildConfirmMessage(toolName: string, params: Record<string, unk
       return `create recurring ${params.name} ₱${params.amount} ${params.frequency}${params.categoryName ? ` ${params.categoryName}` : ""}`;
     case "create_expense":
       return `₱${params.amount} ${params.description}${params.category ? ` ${params.category}` : ""}`;
+    case "create_category":
+      return `create category ${params.name}${params.icon ? ` icon ${params.icon}` : ""}`;
+    case "rename_category":
+      return `rename category ${params.currentName} to ${params.newName}`;
+    case "delete_category":
+      return `delete category ${params.name}`;
+    case "update_goal":
+      return `update goal${params.id ? ` id ${params.id}` : params.name ? ` ${params.name}` : ""}${params.targetAmount !== undefined ? ` target ₱${params.targetAmount}` : ""}${params.savedAmount !== undefined ? ` saved ₱${params.savedAmount}` : ""}${params.paused !== undefined ? ` paused ${params.paused}` : ""}`;
+    case "update_recurring":
+      return `update recurring${params.id ? ` id ${params.id}` : params.name ? ` ${params.name}` : ""}${params.amount !== undefined ? ` ₱${params.amount}` : ""}${params.frequency !== undefined ? ` ${params.frequency}` : ""}${params.active !== undefined ? ` active ${params.active}` : ""}`;
+    case "update_profile":
+      return `update profile${params.name ? ` name ${params.name}` : ""}${params.nickname ? ` nickname ${params.nickname}` : ""}${params.avatar ? ` avatar ${params.avatar}` : ""}`;
     default:
       return "";
   }
@@ -91,4 +153,6 @@ export function dispatchDataEvents(toolName: string) {
   if (toolName.includes("budget")) window.dispatchEvent(new CustomEvent("gastosai:budget-changed"));
   if (toolName.includes("goal")) window.dispatchEvent(new CustomEvent("gastosai:goal-changed"));
   if (toolName.includes("recurring")) window.dispatchEvent(new CustomEvent("gastosai:recurring-changed"));
+  if (toolName.includes("category")) window.dispatchEvent(new CustomEvent("gastosai:category-changed"));
+  if (toolName.includes("profile")) window.dispatchEvent(new CustomEvent("gastosai:profile-changed"));
 }

@@ -6,7 +6,8 @@ import type { Expense } from "../api/types";
 import { useExpenses } from "../hooks/useExpenses";
 import { useFeatures } from "../hooks/useFeatures";
 import { Button, ConfirmDialog, IconButton, Modal, PageHeader } from "../components/ui";
-import { formatCurrency, formatDate, getCategoryColor } from "../lib/formatters";
+import { formatCurrency, formatDate } from "../lib/formatters";
+import CategoryChip from "../components/CategoryChip";
 
 export default function Expenses() {
   const features = useFeatures();
@@ -269,7 +270,6 @@ export default function Expenses() {
               </thead>
               <tbody>
                 {displayExpenses.map((e) => {
-                  const color = getCategoryColor(e.category ?? "");
                   const typeLabel = e.expenseType === "BUSINESS" ? "Business" : "Personal";
                   return (
                     <tr key={e.id} className="group border-b border-edge-3 transition-colors last:border-0 hover:bg-surface-2">
@@ -284,10 +284,7 @@ export default function Expenses() {
                       </td>
                       <td className="whitespace-nowrap px-5 py-4 text-ink">{formatDate(e.date)}</td>
                       <td className="px-5 py-4">
-                        <span className="inline-flex items-center gap-2 rounded-full border border-edge-2 bg-surface-4 px-3 py-1 text-[13px] text-ink">
-                          <span className={`h-[7px] w-[7px] rounded-full ${color.dot}`} />
-                          {e.category}
-                        </span>
+                        <CategoryChip name={e.category ?? "Uncategorized"} />
                       </td>
                       <td className="max-w-xs truncate px-5 py-4 text-ink">
                         {e.description || <span className="text-ink-3">—</span>}

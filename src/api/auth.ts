@@ -6,6 +6,8 @@ export interface AuthResponse {
   name: string;
   nickname: string | null;
   avatarColor: string | null;
+  defaultCategory: string | null;
+  avatar: string | null;
   firstLogin: boolean;
   role: string;
 }

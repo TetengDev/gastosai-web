@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { createElement, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { AVATAR_COLORS, getAvatarGradient, getInitials } from "../lib/formatters";
+import { AVATAR_ICONS, avatarIconFor } from "../lib/avatarIcons";
 import AiKeySection from "../components/AiKeySection";
 import { startTour } from "../components/FirstRunTour";
 import { Button } from "../components/ui";
@@ -12,6 +13,7 @@ export default function Settings() {
   const [nickname, setNickname] = useState(user?.nickname ?? "");
   const [email, setEmail] = useState(user?.email ?? "");
   const [selectedColor, setSelectedColor] = useState<string | null>(user?.avatarColor ?? null);
+  const [avatar, setAvatar] = useState<string | null>(user?.avatar ?? null);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +27,7 @@ export default function Settings() {
     setSuccess(false);
     setError(null);
     try {
-      await updateProfile({ name: name.trim(), nickname: nickname.trim(), email: email.trim(), avatarColor: selectedColor });
+      await updateProfile({ name: name.trim(), nickname: nickname.trim(), email: email.trim(), avatarColor: selectedColor, defaultCategory: user?.defaultCategory ?? null, avatar });
       setSuccess(true);
     } catch (err: unknown) {
       const msg =
@@ -51,7 +53,9 @@ export default function Settings() {
       <section className="mt-8 rounded-2xl border border-edge bg-surface p-8">
         <div className="flex items-center gap-4 border-b border-edge-2 pb-6">
           <div className={`flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${gradient}`} style={{ height: 52, width: 52 }}>
-            <span className="select-none text-xl font-semibold text-white">{getInitials(user?.name ?? "")}</span>
+            {avatarIconFor(avatar)
+              ? createElement(avatarIconFor(avatar)!, { className: "h-6 w-6 text-white" })
+              : <span className="select-none text-xl font-semibold text-white">{getInitials(user?.name ?? "")}</span>}
           </div>
           <div>
             <div className="font-semibold text-ink-hi">{user?.nickname || user?.name}</div>
@@ -76,6 +80,33 @@ export default function Settings() {
                 />
               );
             })}
+          </div>
+        </div>
+
+        <div className="mt-6">
+          <p className="mb-3.5 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">Avatar icon</p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setAvatar(null)}
+              aria-label="No icon (use initials)"
+              title="Use initials"
+              className={`flex h-9 w-9 items-center justify-center rounded-lg border text-xs font-semibold text-ink-2 transition-colors ${avatar === null ? "border-[#1f8a5b] ring-1 ring-[#1f8a5b]" : "border-edge hover:bg-surface-2"}`}
+            >
+              {getInitials(user?.name ?? "")}
+            </button>
+            {Object.entries(AVATAR_ICONS).map(([key, Ic]) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setAvatar(key)}
+                aria-label={`Avatar icon: ${key}`}
+                title={key}
+                className={`flex h-9 w-9 items-center justify-center rounded-lg border transition-colors ${avatar === key ? "border-[#1f8a5b] text-[#1f8a5b] ring-1 ring-[#1f8a5b]" : "border-edge text-ink-2 hover:bg-surface-2"}`}
+              >
+                <Ic className="h-[18px] w-[18px]" />
+              </button>
+            ))}
           </div>
         </div>
 
@@ -127,7 +158,6 @@ export default function Settings() {
               When set, this is shown in the navbar and used by the chatbot to greet you.
             </p>
           </div>
-
           {success && <p className="text-sm font-medium text-[#1f8a5b]">Profile saved.</p>}
           {error && <p className="text-sm font-medium text-[#b30000]">{error}</p>}
 

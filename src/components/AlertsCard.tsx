@@ -57,7 +57,10 @@ export default function AlertsCard() {
       {!loading && error && <p className="mt-4 text-sm text-[#b30000]">{error}</p>}
 
       {!loading && !error && alerts.length === 0 && (
-        <p className="py-4 text-center text-sm text-ink-3">No active alerts</p>
+        <div className="py-4 text-center">
+          <p className="text-sm font-medium text-ink-2">No active alerts</p>
+          <p className="mt-0.5 text-xs text-ink-3">You're within all budget limits.</p>
+        </div>
       )}
 
       {!loading && !error && alerts.length > 0 && (

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { Button } from "../components/ui";
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -27,63 +28,56 @@ export default function LoginPage() {
     }
   };
 
+  const inputClass =
+    "w-full rounded-xl border border-edge-input bg-input px-4 py-2.5 text-sm text-ink";
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-blue-700 to-indigo-700 flex items-center justify-center px-4">
+    <div className="flex min-h-screen items-center justify-center bg-page px-4">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-white text-4xl font-extrabold tracking-tight mb-2 select-none">
-            Gastos<span className="text-indigo-300">AI</span>
+        <div className="mb-8 text-center">
+          <h1 className="select-none font-display text-4xl font-bold tracking-tight text-ink-hi">
+            Gastos<span className="text-brand">AI</span>
           </h1>
-          <p className="text-indigo-200 text-sm">Sign in to your account</p>
+          <p className="mt-2 text-sm text-ink-2">Sign in to your account</p>
         </div>
 
-        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl shadow-black/20 p-8">
+        <div className="rounded-2xl border border-edge bg-surface p-8 shadow-sm">
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                Email
-              </label>
+              <label className="mb-1.5 block text-sm font-medium text-ink">Email</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 placeholder="you@example.com"
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                className={inputClass}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                Password
-              </label>
+              <label className="mb-1.5 block text-sm font-medium text-ink">Password</label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 placeholder="••••••••"
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                className={inputClass}
               />
             </div>
 
             {error && (
-              <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-4 py-2.5 rounded-xl">
-                {error}
-              </p>
+              <p className="rounded-xl bg-[#b30000]/10 px-4 py-2.5 text-sm text-[#b30000]">{error}</p>
             )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-2.5 px-4 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-semibold rounded-xl transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-indigo-500/25 disabled:opacity-60 disabled:cursor-not-allowed disabled:translate-y-0 cursor-pointer"
-            >
+            <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Signing in…" : "Sign in"}
-            </button>
+            </Button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
+          <p className="mt-6 text-center text-sm text-ink-2">
             Don't have an account?{" "}
-            <Link to="/register" className="text-indigo-600 dark:text-indigo-400 font-medium hover:underline">
+            <Link to="/register" className="font-medium text-link hover:underline">
               Create one
             </Link>
           </p>
