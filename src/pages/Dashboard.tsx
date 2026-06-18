@@ -378,14 +378,14 @@ export default function Dashboard() {
         <BudgetOverviewCard month={currentMonth} />
       </div>
 
-      {/* Row 4: Recent activity + daily trend */}
+      {/* Row 4: Recent expenses beside the two trend charts (grouped together) */}
       <div className="grid grid-cols-1 gap-7 lg:grid-cols-[1fr_1.5fr]">
         {recentExpensesCard}
-        <DailyTrendCard month={currentMonth} />
+        <div className="flex flex-col gap-7">
+          <DailyTrendCard month={currentMonth} />
+          {monthlyTrendCard}
+        </div>
       </div>
-
-      {/* Row 5: Monthly trend (kept adjacent to the daily trend) */}
-      {monthlyTrendCard}
 
       {/* Row 6: Forward-looking + ranked */}
       <div className="grid grid-cols-1 gap-7 md:grid-cols-2 lg:grid-cols-3">
