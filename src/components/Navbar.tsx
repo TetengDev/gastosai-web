@@ -52,6 +52,11 @@ export default function Navbar({ isDark, onToggleDark }: Props) {
             {item.label}
           </NavLink>
         ))}
+        {isAdmin && (
+          <NavLink to="/admin/submissions" className={linkClass}>
+            Messages
+          </NavLink>
+        )}
       </div>
 
       <div className="flex flex-1 items-center justify-end gap-2.5">

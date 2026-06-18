@@ -78,7 +78,7 @@ export default function Dashboard() {
     ])
       .then(([cats, expenses, monthly, mom, budget]) => {
         setCategoryData(cats);
-        setRecentExpenses(expenses.slice(0, 10));
+        setRecentExpenses(expenses.slice(0, 15));
         setMonthlyData(monthly);
         setMomData(mom);
         setBudgetSummary(budget);
@@ -253,7 +253,7 @@ export default function Dashboard() {
         </div>
       ) : (
         <ul className="flex-1 overflow-y-auto">
-          {recentExpenses.slice(0, 6).map((e) => (
+          {recentExpenses.slice(0, 10).map((e) => (
             <li
               key={e.id}
               className="flex items-center justify-between gap-3 border-b border-edge-3 px-6 py-3 transition-colors last:border-0 hover:bg-surface-2"
