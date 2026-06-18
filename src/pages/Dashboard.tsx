@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { ArrowDown, ArrowUp } from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -13,14 +14,12 @@ import { getCategoryReport, getExpenses, getMonthlyComparison, getMonthlyReport 
 import type { BudgetSummaryResponse, CategoryReport, Expense, MonthlyComparison, MonthlyReport } from "../api/types";
 import AiInsightsCard from "../components/AiInsightsCard";
 import FeatureGate from "../components/FeatureGate";
-import AlertsCard from "../components/AlertsCard";
 import BudgetOverviewCard from "../components/BudgetOverviewCard";
 import DailyTrendCard from "../components/DailyTrendCard";
-import DashboardHero, { type HeroStat } from "../components/DashboardHero";
 import GoalProgressCard from "../components/GoalProgressCard";
 import TopExpensesCard from "../components/TopExpensesCard";
 import UpcomingBillsCard from "../components/UpcomingBillsCard";
-import { Card, InfoTip } from "../components/ui";
+import { Button, Card, InfoTip } from "../components/ui";
 import { formatCurrency, formatDate } from "../lib/formatters";
 import { categoryIcon } from "../lib/categoryIcon";
 import CategoryChip from "../components/CategoryChip";
@@ -35,6 +34,14 @@ function formatMonthLabel(yyyyMM: string): string {
 function prevMonthLabel(yyyyMM: string): string {
   const [y, m] = yyyyMM.split("-").map(Number);
   return new Date(y, m - 2, 1).toLocaleString("default", { month: "short", year: "numeric" });
+}
+
+/** Split a formatted peso amount into its main part and the cents, so the cents can render smaller. */
+function splitAmount(n: number): { head: string; dec: string } {
+  const s = formatCurrency(n);
+  const idx = s.lastIndexOf(".");
+  if (idx === -1) return { head: s, dec: "" };
+  return { head: s.slice(0, idx), dec: s.slice(idx + 1) };
 }
 
 const MAX_SLICES = 8;
@@ -90,64 +97,145 @@ export default function Dashboard() {
   const total = momData?.currentTotal ?? 0;
   const chartData = buildChartData(categoryData);
   const chartMax = chartData.length > 0 ? Math.max(...chartData.map((c) => c.value)) : 0;
-  const today = new Date().getDate();
+
+  const monthLabel = formatMonthLabel(currentMonth);
+  const [cy, cm] = currentMonth.split("-").map(Number);
+  const daysInMonth = new Date(cy, cm, 0).getDate();
+  const today = Math.min(new Date().getDate(), daysInMonth);
+  const daysLeft = Math.max(daysInMonth - today, 0);
   const dailyAvg = today > 0 ? total / today : 0;
-  const topCategory = categoryData.length > 0
-    ? [...categoryData].sort((a, b) => Number(b.total) - Number(a.total))[0]
-    : null;
+
   const remainingBudget =
     budgetSummary && budgetSummary.items.length > 0 ? budgetSummary.safeToSpend : null;
+  const dailyAllowance = budgetSummary?.dailyAllowance ?? 0;
 
   const momPercent = momData?.changePercent ?? null;
-  const momValue =
+  const momCaption =
     momPercent === null
-      ? "—"
-      : momPercent === 0
-        ? "±0%"
-        : `${momPercent > 0 ? "+" : ""}${momPercent.toFixed(1)}%`;
-
-  const heroStats: HeroStat[] = [
-    {
-      label: "vs Last Month",
-      value: momValue,
-      sub: momData ? `vs ${prevMonthLabel(momData.month)}` : "No prior data",
-    },
-    {
-      label: "Daily Average",
-      value: formatCurrency(dailyAvg),
-      sub: `Day ${today} of month`,
-    },
-    {
-      label: "Biggest Category",
-      value: topCategory ? topCategory.category : "—",
-      sub: topCategory ? formatCurrency(Number(topCategory.total)) : "No data yet",
-    },
-    {
-      label: "Remaining Budget",
-      value: remainingBudget !== null ? formatCurrency(remainingBudget) : "—",
-      sub: remainingBudget !== null ? "safe to spend" : "No budget set",
-    },
-  ];
+      ? "No prior data"
+      : momPercent > 0
+        ? "Spending more"
+        : momPercent < 0
+          ? "Spending less"
+          : "No change vs last month";
 
   if (loading)
     return (
       <div className="animate-pulse space-y-7">
-        <div className="h-56 rounded-[22px] bg-surface-2" />
+        <div className="grid grid-cols-1 gap-7 lg:grid-cols-3">
+          <div className="h-40 rounded-2xl bg-surface-2" />
+          <div className="h-40 rounded-2xl bg-surface-2" />
+          <div className="h-40 rounded-2xl bg-surface-2" />
+        </div>
+        <div className="h-32 rounded-2xl bg-surface-2" />
         <div className="grid grid-cols-1 gap-7 lg:grid-cols-[1.7fr_1fr]">
-          <div className="space-y-7">
-            <div className="h-64 rounded-2xl bg-surface-2" />
-            <div className="h-64 rounded-2xl bg-surface-2" />
-          </div>
-          <div className="space-y-7">
-            <div className="h-64 rounded-2xl bg-surface-2" />
-            <div className="h-44 rounded-2xl bg-surface-2" />
-          </div>
+          <div className="h-80 rounded-2xl bg-surface-2" />
+          <div className="h-80 rounded-2xl bg-surface-2" />
+        </div>
+        <div className="grid grid-cols-1 gap-7 lg:grid-cols-[1fr_1.5fr]">
+          <div className="h-72 rounded-2xl bg-surface-2" />
+          <div className="h-72 rounded-2xl bg-surface-2" />
+        </div>
+        <div className="h-64 rounded-2xl bg-surface-2" />
+        <div className="grid grid-cols-1 gap-7 md:grid-cols-2 lg:grid-cols-3">
+          <div className="h-64 rounded-2xl bg-surface-2" />
+          <div className="h-64 rounded-2xl bg-surface-2" />
+          <div className="h-64 rounded-2xl bg-surface-2" />
         </div>
       </div>
     );
 
   if (error)
-    return <p className="py-8 text-center text-[#b30000]">{error}</p>;
+    return (
+      <Card className="mx-auto mt-8 max-w-md text-center">
+        <p className="text-[#b30000]">{error}</p>
+        <Button
+          variant="secondary"
+          className="mt-4"
+          onClick={() => {
+            setError(null);
+            setLoading(true);
+            fetchData();
+          }}
+        >
+          Retry
+        </Button>
+      </Card>
+    );
+
+  const totalSplit = splitAmount(total);
+  const budgetSplit = remainingBudget !== null ? splitAmount(remainingBudget) : null;
+  const avgSplit = splitAmount(dailyAvg);
+
+  const kpiStrip = (
+    <div className="grid grid-cols-1 items-stretch gap-7 lg:grid-cols-3">
+      {/* Total Spend (brand hero) */}
+      <div className="rounded-2xl bg-hero p-7 text-white">
+        <div className="font-mono text-[11px] uppercase tracking-[0.14em] text-[#7fd6b8]">
+          Total Spend · {monthLabel}
+        </div>
+        <div className="mt-2.5 flex items-end font-display text-[44px] font-medium leading-none tracking-tight">
+          <span>{totalSplit.head}</span>
+          {totalSplit.dec && <span className="text-[24px] text-[#9fe3c9]">.{totalSplit.dec}</span>}
+        </div>
+        <div className="mt-3.5 flex flex-wrap items-center gap-2">
+          {momPercent !== null && momPercent !== 0 && (
+            <span
+              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
+                momPercent > 0 ? "bg-[#ff9b8a]/20 text-[#ffb4a6]" : "bg-[#9fe3c9]/15 text-[#9fe3c9]"
+              }`}
+            >
+              {momPercent > 0 ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+              {Math.abs(momPercent).toFixed(1)}% vs {prevMonthLabel(momData!.month)}
+            </span>
+          )}
+          <span className="text-xs text-white/70">{momCaption}</span>
+        </div>
+      </div>
+
+      {/* Remaining Budget */}
+      <Card tone="panel" className="h-full">
+        <div className="flex items-center gap-1.5">
+          <div className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-3">
+            Remaining Budget
+          </div>
+          <InfoTip text="What's left to spend this month while staying within your budgets." />
+        </div>
+        <div className="mt-2.5 flex items-end font-display text-[44px] font-medium leading-none tracking-tight text-[#003c33] dark:text-[#7fd6b8]">
+          {budgetSplit ? (
+            <>
+              <span>{budgetSplit.head}</span>
+              {budgetSplit.dec && <span className="text-[24px] opacity-60">.{budgetSplit.dec}</span>}
+            </>
+          ) : (
+            "—"
+          )}
+        </div>
+        <div className="mt-3.5 text-[12.5px] text-ink-2">
+          {budgetSplit
+            ? `${formatCurrency(dailyAllowance)} / day safe · ${daysLeft} ${daysLeft === 1 ? "day" : "days"} left`
+            : "No budget set"}
+        </div>
+      </Card>
+
+      {/* Daily Average */}
+      <Card className="h-full">
+        <div className="flex items-center gap-1.5">
+          <div className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-3">
+            Daily Average
+          </div>
+          <InfoTip text="Average spend per day so far this month (total ÷ days elapsed)." />
+        </div>
+        <div className="mt-2.5 flex items-end font-display text-[44px] font-medium leading-none tracking-tight text-ink-hi">
+          <span>{avgSplit.head}</span>
+          {avgSplit.dec && <span className="text-[24px] text-ink-3">.{avgSplit.dec}</span>}
+        </div>
+        <div className="mt-3.5 text-[12.5px] text-ink-2">
+          Day {today} of {daysInMonth} · {monthLabel}
+        </div>
+      </Card>
+    </div>
+  );
 
   const recentExpensesCard = (
     <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-edge bg-surface">
@@ -211,7 +299,7 @@ export default function Dashboard() {
           {chartData.map((c) => (
             <div
               key={c.name}
-              className="grid grid-cols-[110px_1fr_72px] items-center gap-4 sm:grid-cols-[140px_1fr_78px]"
+              className="grid grid-cols-[110px_1fr_72px] items-center gap-4 sm:grid-cols-[136px_1fr_86px]"
             >
               <div className="flex min-w-0 items-center justify-end gap-1.5 text-sm text-ink">
                 {(() => { const Ic = categoryIcon(c.name); return <Ic className="h-3.5 w-3.5 shrink-0 text-ink-3" />; })()}
@@ -219,7 +307,7 @@ export default function Dashboard() {
               </div>
               <div className="h-2.5 overflow-hidden rounded-full bg-track">
                 <div
-                  className="h-full rounded-full bg-[#003c33]"
+                  className="h-full rounded-full bg-[#1f8a5b]"
                   style={{ width: `${chartMax > 0 ? (c.value / chartMax) * 100 : 0}%` }}
                 />
               </div>
@@ -249,7 +337,7 @@ export default function Dashboard() {
           No monthly data yet.
         </div>
       ) : (
-        <ResponsiveContainer width="100%" height={180} className="mt-4">
+        <ResponsiveContainer width="100%" height={210} className="mt-4">
           <BarChart data={monthlyData.slice(-6)} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--ga-border)" />
             <XAxis
@@ -266,7 +354,7 @@ export default function Dashboard() {
               tickFormatter={(v) => abbrevCurrency(v as number)}
               width={56}
             />
-            <Tooltip formatter={(v) => formatCurrency(v as number)} />
+            <Tooltip formatter={(v) => [formatCurrency(v as number), "Spend"]} />
             <Bar dataKey="total" fill="#1f8a5b" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
@@ -276,45 +364,35 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-7">
-      <DashboardHero
-        monthLabel={formatMonthLabel(currentMonth)}
-        total={total}
-        momPercent={momPercent}
-        prevMonthLabel={momData ? prevMonthLabel(momData.month) : null}
-        stats={heroStats}
-      />
+      {/* Row 1: KPI strip */}
+      {kpiStrip}
 
-      {/* Current-month activity */}
-      <div className="grid grid-cols-1 gap-7 lg:grid-cols-[1.7fr_1fr]">
-        <DailyTrendCard month={currentMonth} />
-        {recentExpensesCard}
-      </div>
-
-      {/* AI interpretation of the data above */}
+      {/* Row 2: AI interpretation of this month */}
       <FeatureGate feature="ADVANCED_INSIGHTS">
         <AiInsightsCard month={currentMonth} />
       </FeatureGate>
 
-      {/* Spending breakdown vs budget */}
+      {/* Row 3: Spending breakdown vs budget */}
       <div className="grid grid-cols-1 gap-7 lg:grid-cols-[1.7fr_1fr]">
         {spendingByCategoryCard}
         <BudgetOverviewCard month={currentMonth} />
       </div>
 
-      {/* Action items */}
-      <div className="grid grid-cols-1 gap-7 md:grid-cols-2">
-        <AlertsCard />
+      {/* Row 4: Recent activity + daily trend */}
+      <div className="grid grid-cols-1 gap-7 lg:grid-cols-[1fr_1.5fr]">
+        {recentExpensesCard}
+        <DailyTrendCard month={currentMonth} />
+      </div>
+
+      {/* Row 5: Monthly trend (kept adjacent to the daily trend) */}
+      {monthlyTrendCard}
+
+      {/* Row 6: Forward-looking + ranked */}
+      <div className="grid grid-cols-1 gap-7 md:grid-cols-2 lg:grid-cols-3">
+        <UpcomingBillsCard month={currentMonth} />
+        <GoalProgressCard />
         <TopExpensesCard month={currentMonth} />
       </div>
-
-      {/* Planning / forward-looking */}
-      <div className="grid grid-cols-1 gap-7 md:grid-cols-2">
-        <GoalProgressCard />
-        <UpcomingBillsCard month={currentMonth} />
-      </div>
-
-      {/* Long-horizon context */}
-      {monthlyTrendCard}
     </div>
   );
 }
