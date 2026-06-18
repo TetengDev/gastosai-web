@@ -3,19 +3,29 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import AnnouncementBar from "./components/AnnouncementBar";
 import ChatWidget from "./components/ChatWidget";
 import FirstRunTour from "./components/FirstRunTour";
+import Footer from "./components/Footer";
 import Navbar from "./components/Navbar";
 import ProtectedRoute from "./components/ProtectedRoute";
+import PublicLayout from "./components/PublicLayout";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import About from "./pages/About";
+import AdminSubmissions from "./pages/AdminSubmissions";
 import Budget from "./pages/Budget";
 import Categories from "./pages/Categories";
+import Contact from "./pages/Contact";
 import Dashboard from "./pages/Dashboard";
 import Expenses from "./pages/Expenses";
 import Alerts from "./pages/Alerts";
+import Faq from "./pages/Faq";
+import Feedback from "./pages/Feedback";
 import Goals from "./pages/Goals";
 import LoginPage from "./pages/LoginPage";
+import NotFound from "./pages/NotFound";
+import Privacy from "./pages/Privacy";
 import Recurring from "./pages/Recurring";
 import RegisterPage from "./pages/RegisterPage";
 import Settings from "./pages/Settings";
+import Terms from "./pages/Terms";
 
 function AppShell({ darkMode, onToggleDark, onResetDark }: { darkMode: boolean; onToggleDark: () => void; onResetDark: () => void }) {
   const { user } = useAuth();
@@ -33,6 +43,12 @@ function AppShell({ darkMode, onToggleDark, onResetDark }: { darkMode: boolean; 
       <Routes>
         <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
         <Route path="/register" element={user ? <Navigate to="/" replace /> : <RegisterPage />} />
+        <Route path="/contact" element={<PublicLayout><Contact /></PublicLayout>} />
+        <Route path="/feedback" element={<PublicLayout><Feedback /></PublicLayout>} />
+        <Route path="/about" element={<PublicLayout><About /></PublicLayout>} />
+        <Route path="/faq" element={<PublicLayout><Faq /></PublicLayout>} />
+        <Route path="/privacy" element={<PublicLayout><Privacy /></PublicLayout>} />
+        <Route path="/terms" element={<PublicLayout><Terms /></PublicLayout>} />
         <Route
           path="/*"
           element={
@@ -50,14 +66,11 @@ function AppShell({ darkMode, onToggleDark, onResetDark }: { darkMode: boolean; 
                     <Route path="/goals" element={<Goals />} />
                     <Route path="/alerts" element={<Alerts />} />
                     <Route path="/settings" element={<Settings />} />
-                    <Route path="*" element={<Navigate to="/" replace />} />
+                    <Route path="/admin/submissions" element={<AdminSubmissions />} />
+                    <Route path="*" element={<NotFound />} />
                   </Routes>
                 </main>
-                <footer className="max-w-[1240px] mx-auto px-6 md:px-10 pb-6 flex justify-end">
-                  <span className="text-xs text-ink-3 select-none">
-                    v{__APP_VERSION__}
-                  </span>
-                </footer>
+                <Footer />
                 <ChatWidget />
                 <FirstRunTour />
               </>
