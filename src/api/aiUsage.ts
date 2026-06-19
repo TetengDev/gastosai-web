@@ -7,6 +7,7 @@ export interface AiUsage {
   remaining: number;
   visionUsed: number;
   visionLimit: number;
+  managed: boolean;
   resetsAt: string;
 }
 

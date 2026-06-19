@@ -72,14 +72,16 @@ export default function AiKeySection() {
       {!loading && (
         <div
           className={`mt-4 rounded-xl border px-4 py-3 text-[13.5px] ${
-            openaiKeySet
+            openaiKeySet || usage?.managed
               ? "border-[#1f8a5b]/30 bg-[#e7f6ee] text-[#1f8a5b]"
               : "border-warn-edge bg-warn-bg text-warn-ink"
           }`}
         >
           {openaiKeySet
             ? "Using your own OpenAI key."
-            : "Using the shared key (rate-limited). Add your own for full access."}
+            : usage?.managed
+              ? "Using GastosAI's managed AI, within your monthly quota. Add your own key for unlimited use."
+              : "Add your OpenAI key to use AI features (insights, chat, receipt scanning)."}
         </div>
       )}
 
