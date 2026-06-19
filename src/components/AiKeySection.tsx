@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { AI_SETTINGS_CHANGED_EVENT, clearAiKey, getAiSettings, updateAiSettings } from "../api/aiSettings";
+import { type AiUsage, getAiUsage } from "../api/aiUsage";
 import { Button } from "./ui";
 
 export default function AiKeySection() {
@@ -8,20 +9,25 @@ export default function AiKeySection() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [usage, setUsage] = useState<AiUsage | null>(null);
 
   const load = useCallback(async () => {
     try {
-      const s = await getAiSettings();
-      setOpenaiKeySet(s.openaiKeySet);
-    } catch {
-      setError("Failed to load AI settings.");
+      const [s, u] = await Promise.allSettled([getAiSettings(), getAiUsage()]);
+      if (s.status === "fulfilled") {
+        setOpenaiKeySet(s.value.openaiKeySet);
+      } else {
+        setError("Failed to load AI settings.");
+      }
+      if (u.status === "fulfilled") {
+        setUsage(u.value);
+      }
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
   }, [load]);
 
@@ -74,6 +80,25 @@ export default function AiKeySection() {
           {openaiKeySet
             ? "Using your own OpenAI key."
             : "Using the shared key (rate-limited). Add your own for full access."}
+        </div>
+      )}
+
+      {usage && (
+        <div className="mt-4 rounded-xl border border-edge bg-surface-2 px-4 py-3 text-[13px] text-ink-2">
+          <div>
+            AI requests this month:{" "}
+            <span className="font-mono text-ink">
+              {usage.used} / {usage.limit}
+            </span>
+          </div>
+          {usage.visionLimit > 0 && (
+            <div className="mt-0.5 text-[12px] text-ink-3">
+              Receipts:{" "}
+              <span className="font-mono">
+                {usage.visionUsed}/{usage.visionLimit}
+              </span>
+            </div>
+          )}
         </div>
       )}
 
