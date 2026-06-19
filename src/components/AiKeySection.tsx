@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { AI_SETTINGS_CHANGED_EVENT, clearAiKey, getAiSettings, updateAiSettings } from "../api/aiSettings";
+import { type AiUsage, getAiUsage } from "../api/aiUsage";
 import { Button } from "./ui";
 
 export default function AiKeySection() {
@@ -8,20 +9,25 @@ export default function AiKeySection() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [usage, setUsage] = useState<AiUsage | null>(null);
 
   const load = useCallback(async () => {
     try {
-      const s = await getAiSettings();
-      setOpenaiKeySet(s.openaiKeySet);
-    } catch {
-      setError("Failed to load AI settings.");
+      const [s, u] = await Promise.allSettled([getAiSettings(), getAiUsage()]);
+      if (s.status === "fulfilled") {
+        setOpenaiKeySet(s.value.openaiKeySet);
+      } else {
+        setError("Failed to load AI settings.");
+      }
+      if (u.status === "fulfilled") {
+        setUsage(u.value);
+      }
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
   }, [load]);
 
@@ -66,14 +72,35 @@ export default function AiKeySection() {
       {!loading && (
         <div
           className={`mt-4 rounded-xl border px-4 py-3 text-[13.5px] ${
-            openaiKeySet
+            openaiKeySet || usage?.managed
               ? "border-[#1f8a5b]/30 bg-[#e7f6ee] text-[#1f8a5b]"
               : "border-warn-edge bg-warn-bg text-warn-ink"
           }`}
         >
           {openaiKeySet
             ? "Using your own OpenAI key."
-            : "Using the shared key (rate-limited). Add your own for full access."}
+            : usage?.managed
+              ? "Using GastosAI's managed AI, within your monthly quota. Add your own key for unlimited use."
+              : "Add your OpenAI key to use AI features (insights, chat, receipt scanning)."}
+        </div>
+      )}
+
+      {usage && (
+        <div className="mt-4 rounded-xl border border-edge bg-surface-2 px-4 py-3 text-[13px] text-ink-2">
+          <div>
+            AI requests this month:{" "}
+            <span className="font-mono text-ink">
+              {usage.used} / {usage.limit}
+            </span>
+          </div>
+          {usage.visionLimit > 0 && (
+            <div className="mt-0.5 text-[12px] text-ink-3">
+              Receipts:{" "}
+              <span className="font-mono">
+                {usage.visionUsed}/{usage.visionLimit}
+              </span>
+            </div>
+          )}
         </div>
       )}
 
