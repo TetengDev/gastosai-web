@@ -28,3 +28,9 @@ export const register = (data: RegisterRequest) =>
 
 export const login = (data: LoginRequest) =>
   api.post<AuthResponse>("/auth/login", data).then((r) => r.data);
+
+export const requestMagicLink = (email: string): Promise<void> =>
+  api.post("/auth/magic-link", { email }).then(() => undefined);
+
+export const verifyMagicLink = (token: string): Promise<AuthResponse> =>
+  api.post<AuthResponse>("/auth/magic-link/verify", { token }).then((r) => r.data);
