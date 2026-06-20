@@ -14,6 +14,20 @@ export function actionLabel(toolName: string): string {
     update_goal: "Update savings goal",
     update_recurring: "Update recurring expense",
     update_profile: "Update profile",
+    list_goals: "Your savings goals",
+    list_budgets: "Budget summary",
+    list_recurring: "Recurring expenses",
+    list_alerts: "Your alerts",
+    search_expenses: "Expense search results",
+    get_category_totals: "Category totals",
+    get_monthly_report: "Monthly report",
+    mark_alert_read: "Mark alert read",
+    dismiss_alert: "Dismiss alert",
+    delete_alert: "Delete alert",
+    set_default_category: "Set default category",
+    set_category_icon: "Set category icon",
+    delete_expenses: "Delete expenses",
+    recategorize_expenses: "Recategorize expenses",
   };
   return labels[toolName] ?? "Confirm action";
 }
@@ -31,6 +45,20 @@ export function savedLabel(toolName: string): string {
     update_goal: "Goal updated",
     update_recurring: "Recurring updated",
     update_profile: "Profile updated",
+    list_goals: "Done",
+    list_budgets: "Done",
+    list_recurring: "Done",
+    list_alerts: "Done",
+    search_expenses: "Done",
+    get_category_totals: "Done",
+    get_monthly_report: "Done",
+    mark_alert_read: "Alert marked as read",
+    dismiss_alert: "Alert dismissed",
+    delete_alert: "Alert deleted",
+    set_default_category: "Default category updated",
+    set_category_icon: "Category icon updated",
+    delete_expenses: "Expenses deleted",
+    recategorize_expenses: "Expenses recategorized",
   };
   return labels[toolName] ?? "Saved";
 }
@@ -116,6 +144,17 @@ export function buildPreviewFields(toolName: string, params: Record<string, unkn
         ...(p.avatar !== undefined ? [{ field: "avatar", label: "Avatar Color", value: String(p.avatar ?? ""), inputType: "text" as const }] : []),
         ...(p.defaultCategory !== undefined ? [{ field: "defaultCategory", label: "Default Category", value: String(p.defaultCategory ?? ""), inputType: "select" as const }] : []),
       ];
+    case "delete_expenses":
+      return [
+        { field: "category", label: "Category", value: String(p.category ?? ""), inputType: "select" },
+        ...(p.fromDate !== undefined ? [{ field: "fromDate", label: "From Date", value: String(p.fromDate ?? ""), inputType: "date" as const }] : []),
+        ...(p.toDate !== undefined ? [{ field: "toDate", label: "To Date", value: String(p.toDate ?? ""), inputType: "date" as const }] : []),
+      ];
+    case "recategorize_expenses":
+      return [
+        { field: "fromCategory", label: "From Category", value: String(p.fromCategory ?? ""), inputType: "select" },
+        { field: "toCategory", label: "To Category", value: String(p.toCategory ?? ""), inputType: "select" },
+      ];
     default:
       return [];
   }
@@ -143,6 +182,10 @@ export function buildConfirmMessage(toolName: string, params: Record<string, unk
       return `update recurring${params.id ? ` id ${params.id}` : params.name ? ` ${params.name}` : ""}${params.amount !== undefined ? ` ₱${params.amount}` : ""}${params.frequency !== undefined ? ` ${params.frequency}` : ""}${params.active !== undefined ? ` active ${params.active}` : ""}`;
     case "update_profile":
       return `update profile${params.name ? ` name ${params.name}` : ""}${params.nickname ? ` nickname ${params.nickname}` : ""}${params.avatar ? ` avatar ${params.avatar}` : ""}`;
+    case "delete_expenses":
+      return `delete expenses${params.category ? ` category ${params.category}` : ""}${params.fromDate ? ` from ${params.fromDate}` : ""}${params.toDate ? ` to ${params.toDate}` : ""}`;
+    case "recategorize_expenses":
+      return `recategorize expenses from ${params.fromCategory} to ${params.toCategory}`;
     default:
       return "";
   }
@@ -154,5 +197,12 @@ export function dispatchDataEvents(toolName: string) {
   if (toolName.includes("goal")) window.dispatchEvent(new CustomEvent("gastosai:goal-changed"));
   if (toolName.includes("recurring")) window.dispatchEvent(new CustomEvent("gastosai:recurring-changed"));
   if (toolName.includes("category")) window.dispatchEvent(new CustomEvent("gastosai:category-changed"));
-  if (toolName.includes("profile")) window.dispatchEvent(new CustomEvent("gastosai:profile-changed"));
+  if (toolName.includes("profile") || toolName === "set_default_category") window.dispatchEvent(new CustomEvent("gastosai:profile-changed"));
+  if (toolName.includes("alert") || toolName === "mark_alert_read" || toolName === "dismiss_alert" || toolName === "delete_alert") {
+    window.dispatchEvent(new CustomEvent("gastosai:alert-changed"));
+  }
+  if (toolName === "set_category_icon") window.dispatchEvent(new CustomEvent("gastosai:category-changed"));
+  if (toolName === "delete_expenses" || toolName === "recategorize_expenses") {
+    window.dispatchEvent(new CustomEvent("gastosai:expense-changed"));
+  }
 }

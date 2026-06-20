@@ -6,7 +6,7 @@ import { updateAiSettings } from "../api/aiSettings";
 import { updateBudget } from "../api/budgets";
 import { getCategories } from "../api/categories";
 import { createExpense, deleteExpense, importExpensesCsv, parseExpense } from "../api/expenses";
-import type { Category, ChatPreviewData, ParsedExpenseResult } from "../api/types";
+import type { AlertChatItem, BudgetSummaryChatResult, Category, CategoryTotalChatItem, ChatPreviewData, ExpenseChatItem, GoalChatItem, MonthlyReportChatResult, ParsedExpenseResult, RecurringChatResult } from "../api/types";
 import { useAuth } from "../context/AuthContext";
 import { useFeatures } from "../hooks/useFeatures";
 import { useAiAvailability } from "../hooks/useAiAvailability";
@@ -120,6 +120,9 @@ const SUGGESTED_PROMPTS = [
   "add 250 expense for lunch",
   "create goal Emergency Fund 10000",
   "add recurring Netflix 499 monthly",
+  "list my goals",
+  "show my alerts",
+  "list my budgets",
 ];
 
 function makeWelcomeMessage(displayName?: string | null): Message {
@@ -318,36 +321,343 @@ function renderSubscriptionResult(result: { plan: string; status: string; featur
   );
 }
 
-function renderActionResult(msg: Message) {
+function goalStatusStyle(status: GoalChatItem["status"]): string {
+  switch (status) {
+    case "ON_TRACK": return "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400";
+    case "BEHIND": return "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400";
+    case "COMPLETED": return "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400";
+    case "PAUSED": return "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400";
+  }
+}
+
+function budgetStatusStyle(status: BudgetSummaryChatResult["items"][number]["status"]): string {
+  switch (status) {
+    case "ON_TRACK": return "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400";
+    case "WARNING": return "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400";
+    case "OVER_BUDGET": return "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400";
+  }
+}
+
+function alertSeverityStyle(severity: AlertChatItem["severity"]): string {
+  switch (severity) {
+    case "CRITICAL": return "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400";
+    case "WARNING": return "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400";
+    case "INFO": return "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400";
+  }
+}
+
+function renderGoalList(goals: GoalChatItem[]): ReactNode {
+  if (goals.length === 0) return <span className="text-sm text-gray-500 dark:text-gray-400">No goals found.</span>;
+  return (
+    <div className="mt-2 space-y-2">
+      <p className="text-xs text-gray-500 dark:text-gray-400">{goals.length} goal{goals.length !== 1 ? "s" : ""}</p>
+      {goals.map((g) => (
+        <div key={g.id} className="bg-gray-50 dark:bg-gray-700/50 rounded-xl px-3 py-2.5 border border-gray-100 dark:border-gray-700 space-y-1.5">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{g.name}</span>
+            <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${goalStatusStyle(g.status)}`}>{g.status.replace("_", " ")}</span>
+          </div>
+          <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-1.5">
+            <div
+              className={`h-1.5 rounded-full ${g.status === "COMPLETED" ? "bg-emerald-500" : g.status === "BEHIND" ? "bg-orange-500" : "bg-green-500"}`}
+              style={{ width: `${Math.min(g.progressPercent, 100)}%` }}
+            />
+          </div>
+          <div className="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
+            <span>{formatCurrency(g.savedAmount)} of {formatCurrency(g.targetAmount)}</span>
+            <span>{g.progressPercent.toFixed(1)}%</span>
+          </div>
+          {g.targetDate && (
+            <p className="text-xs text-gray-400 dark:text-gray-500">Target: {formatDate(g.targetDate)}</p>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function renderBudgetSummary(data: BudgetSummaryChatResult): ReactNode {
+  return (
+    <div className="mt-2 space-y-2">
+      <div className="flex flex-wrap gap-3 text-xs">
+        <span className="text-gray-500 dark:text-gray-400">Budgeted <span className="font-semibold text-gray-800 dark:text-gray-200">{formatCurrency(data.totalBudgeted)}</span></span>
+        <span className="text-gray-500 dark:text-gray-400">Spent <span className="font-semibold text-gray-800 dark:text-gray-200">{formatCurrency(data.totalSpent)}</span></span>
+        <span className="text-gray-500 dark:text-gray-400">Safe to spend <span className="font-semibold text-green-700 dark:text-green-400">{formatCurrency(data.safeToSpend)}</span></span>
+      </div>
+      {data.items.length > 0 && (
+        <div className="space-y-1.5 mt-1">
+          {data.items.map((item) => (
+            <div key={item.categoryName} className="bg-gray-50 dark:bg-gray-700/50 rounded-xl px-3 py-2 border border-gray-100 dark:border-gray-700">
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <span className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">{item.categoryName}</span>
+                <span className={`text-xs px-1.5 py-0.5 rounded-full shrink-0 ${budgetStatusStyle(item.status)}`}>{item.status.replace("_", " ")}</span>
+              </div>
+              <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-1">
+                <div
+                  className={`h-1 rounded-full ${item.status === "OVER_BUDGET" ? "bg-red-500" : item.status === "WARNING" ? "bg-amber-500" : "bg-green-500"}`}
+                  style={{ width: `${Math.min(item.percentUsed, 100)}%` }}
+                />
+              </div>
+              <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500 mt-1">
+                <span>{formatCurrency(item.spent)} / {formatCurrency(item.budgeted)}</span>
+                <span>{item.percentUsed.toFixed(0)}%</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function renderRecurringList(data: RecurringChatResult): ReactNode {
+  return (
+    <div className="mt-2 space-y-2">
+      {data.items.length > 0 && (
+        <div className="space-y-1.5">
+          <p className="text-xs text-gray-500 dark:text-gray-400">{data.items.length} recurring expense{data.items.length !== 1 ? "s" : ""}</p>
+          {data.items.map((item) => (
+            <div key={item.id} className="flex items-center justify-between gap-2 bg-gray-50 dark:bg-gray-700/50 rounded-xl px-3 py-2 border border-gray-100 dark:border-gray-700">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-medium text-gray-800 dark:text-gray-200 truncate">{item.name}</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500">{item.categoryName} · {item.frequency}</p>
+              </div>
+              <div className="text-right shrink-0">
+                <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">{formatCurrency(item.amount)}</p>
+                <p className={`text-xs ${item.active ? "text-green-600 dark:text-green-400" : "text-gray-400 dark:text-gray-500"}`}>{item.active ? "Active" : "Inactive"}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {data.upcoming.length > 0 && (
+        <div className="space-y-1.5">
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Upcoming bills</p>
+          {data.upcoming.map((bill, i) => (
+            <div key={i} className="flex items-center justify-between gap-2 bg-amber-50 dark:bg-amber-900/20 rounded-xl px-3 py-2 border border-amber-100 dark:border-amber-800/50">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-medium text-gray-800 dark:text-gray-200 truncate">{bill.name}</p>
+                <p className="text-xs text-amber-600 dark:text-amber-400">Due: {formatDate(bill.dueDate)}</p>
+              </div>
+              <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 shrink-0">{formatCurrency(bill.amount)}</p>
+            </div>
+          ))}
+        </div>
+      )}
+      {data.items.length === 0 && data.upcoming.length === 0 && (
+        <span className="text-sm text-gray-500 dark:text-gray-400">No recurring expenses found.</span>
+      )}
+    </div>
+  );
+}
+
+function renderAlertList(alerts: AlertChatItem[]): ReactNode {
+  if (alerts.length === 0) return <span className="text-sm text-gray-500 dark:text-gray-400">No alerts.</span>;
+  return (
+    <div className="mt-2 space-y-1.5">
+      <p className="text-xs text-gray-500 dark:text-gray-400">{alerts.length} alert{alerts.length !== 1 ? "s" : ""}</p>
+      {alerts.map((alert) => (
+        <div key={alert.id} className={`rounded-xl px-3 py-2.5 border space-y-0.5 ${alert.read ? "bg-gray-50 dark:bg-gray-700/30 border-gray-100 dark:border-gray-700" : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600"}`}>
+          <div className="flex items-center gap-2">
+            <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${alertSeverityStyle(alert.severity)}`}>{alert.severity}</span>
+            {!alert.read && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-blue-400 shrink-0" />}
+          </div>
+          <p className="text-xs text-gray-700 dark:text-gray-300">{alert.message}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function renderExpenseSearchResults(expenses: ExpenseChatItem[], accentText: string): ReactNode {
+  if (expenses.length === 0) return <span className="text-sm text-gray-500 dark:text-gray-400">No expenses found.</span>;
+  return (
+    <div className="mt-2 space-y-1.5">
+      <p className="text-xs text-gray-500 dark:text-gray-400">{expenses.length} result{expenses.length !== 1 ? "s" : ""}</p>
+      {expenses.map((e) => (
+        <div key={e.id} className="bg-gray-50 dark:bg-gray-700/50 rounded-xl px-3 py-2.5 border border-gray-100 dark:border-gray-700">
+          <div className="flex justify-between items-start gap-2">
+            <span className="text-sm text-gray-800 dark:text-gray-200 font-medium leading-snug flex-1">{e.description}</span>
+            <span className={`text-sm font-semibold whitespace-nowrap shrink-0 ${accentText}`}>{formatCurrency(e.amount)}</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1.5">
+            <span className={`text-xs px-2 py-0.5 rounded-full border ${accentText} bg-opacity-10`}>{e.category}</span>
+            <span className="text-xs text-gray-400 dark:text-gray-500">{formatDate(e.date)}</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function renderCategoryTotals(totals: CategoryTotalChatItem[], accentText: string): ReactNode {
+  if (totals.length === 0) return <span className="text-sm text-gray-500 dark:text-gray-400">No data.</span>;
+  const max = Math.max(...totals.map((t) => t.total), 1);
+  return (
+    <div className="mt-2 space-y-1.5">
+      {totals.map((t) => (
+        <div key={t.category} className="space-y-0.5">
+          <div className="flex justify-between text-xs">
+            <span className="text-gray-700 dark:text-gray-300 truncate">{t.category}</span>
+            <span className={`font-semibold shrink-0 ${accentText}`}>{formatCurrency(t.total)}</span>
+          </div>
+          <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-1">
+            <div className="h-1 rounded-full bg-indigo-500 dark:bg-indigo-400" style={{ width: `${(t.total / max) * 100}%` }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function renderMonthlyReport(report: MonthlyReportChatResult, accentText: string): ReactNode {
+  return (
+    <div className="mt-2 space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-gray-500 dark:text-gray-400">{report.month}</span>
+        <span className={`text-sm font-semibold ${accentText}`}>{formatCurrency(report.totalSpent)}</span>
+      </div>
+      {report.categoryBreakdown.length > 0 && (
+        <div className="space-y-1">
+          <p className="text-xs text-gray-500 dark:text-gray-400">By category</p>
+          {report.categoryBreakdown.map((c) => (
+            <div key={c.category} className="flex justify-between text-xs">
+              <span className="text-gray-700 dark:text-gray-300 truncate">{c.category}</span>
+              <span className={`font-medium shrink-0 ${accentText}`}>{formatCurrency(c.total)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {report.topExpenses.length > 0 && (
+        <div className="space-y-1">
+          <p className="text-xs text-gray-500 dark:text-gray-400">Top expenses</p>
+          {report.topExpenses.map((e) => (
+            <div key={e.id} className="flex justify-between items-start gap-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg px-2 py-1.5 border border-gray-100 dark:border-gray-700">
+              <span className="text-xs text-gray-700 dark:text-gray-300 truncate flex-1">{e.description}</span>
+              <span className={`text-xs font-semibold shrink-0 ${accentText}`}>{formatCurrency(e.amount)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function renderActionResult(msg: Message, accentText: string) {
   const result = msg.actionResult;
 
-  if (Array.isArray(result) && result.length > 0 && "name" in (result[0] as object) && "id" in (result[0] as object)) {
-    return (
-      <div>
-        {typeof msg.content === "string" && msg.content && (
-          <p className="text-sm font-medium text-green-700 dark:text-green-300 mb-1">{msg.content}</p>
-        )}
-        {renderCategoryList(result as Category[])}
-      </div>
-    );
+  if (Array.isArray(result) && result.length > 0) {
+    const first = result[0] as Record<string, unknown>;
+
+    if ("progressPercent" in first) {
+      return (
+        <div>
+          {typeof msg.content === "string" && msg.content && (
+            <p className="text-sm font-medium text-green-700 dark:text-green-300 mb-1">{msg.content}</p>
+          )}
+          {renderGoalList(result as GoalChatItem[])}
+        </div>
+      );
+    }
+
+    if ("severity" in first) {
+      return (
+        <div>
+          {typeof msg.content === "string" && msg.content && (
+            <p className="text-sm font-medium text-green-700 dark:text-green-300 mb-1">{msg.content}</p>
+          )}
+          {renderAlertList(result as AlertChatItem[])}
+        </div>
+      );
+    }
+
+    if ("category" in first && "date" in first) {
+      return (
+        <div>
+          {typeof msg.content === "string" && msg.content && (
+            <p className="text-sm font-medium text-green-700 dark:text-green-300 mb-1">{msg.content}</p>
+          )}
+          {renderExpenseSearchResults(result as ExpenseChatItem[], accentText)}
+        </div>
+      );
+    }
+
+    if ("category" in first && "total" in first) {
+      return (
+        <div>
+          {typeof msg.content === "string" && msg.content && (
+            <p className="text-sm font-medium text-green-700 dark:text-green-300 mb-1">{msg.content}</p>
+          )}
+          {renderCategoryTotals(result as CategoryTotalChatItem[], accentText)}
+        </div>
+      );
+    }
+
+    if ("name" in first && "id" in first) {
+      return (
+        <div>
+          {typeof msg.content === "string" && msg.content && (
+            <p className="text-sm font-medium text-green-700 dark:text-green-300 mb-1">{msg.content}</p>
+          )}
+          {renderCategoryList(result as Category[])}
+        </div>
+      );
+    }
   }
 
-  if (result && typeof result === "object" && !Array.isArray(result) && "plan" in (result as object) && "features" in (result as object)) {
-    return (
-      <div>
-        {typeof msg.content === "string" && msg.content && (
-          <p className="text-sm font-medium text-green-700 dark:text-green-300 mb-1">{msg.content}</p>
-        )}
-        {renderSubscriptionResult(result as { plan: string; status: string; features: string[]; admin: boolean })}
-      </div>
-    );
+  if (result && typeof result === "object" && !Array.isArray(result)) {
+    const r = result as Record<string, unknown>;
+
+    if ("totalBudgeted" in r) {
+      return (
+        <div>
+          {typeof msg.content === "string" && msg.content && (
+            <p className="text-sm font-medium text-green-700 dark:text-green-300 mb-1">{msg.content}</p>
+          )}
+          {renderBudgetSummary(result as BudgetSummaryChatResult)}
+        </div>
+      );
+    }
+
+    if ("upcoming" in r) {
+      return (
+        <div>
+          {typeof msg.content === "string" && msg.content && (
+            <p className="text-sm font-medium text-green-700 dark:text-green-300 mb-1">{msg.content}</p>
+          )}
+          {renderRecurringList(result as RecurringChatResult)}
+        </div>
+      );
+    }
+
+    if ("categoryBreakdown" in r) {
+      return (
+        <div>
+          {typeof msg.content === "string" && msg.content && (
+            <p className="text-sm font-medium text-green-700 dark:text-green-300 mb-1">{msg.content}</p>
+          )}
+          {renderMonthlyReport(result as MonthlyReportChatResult, accentText)}
+        </div>
+      );
+    }
+
+    if ("plan" in r && "features" in r) {
+      return (
+        <div>
+          {typeof msg.content === "string" && msg.content && (
+            <p className="text-sm font-medium text-green-700 dark:text-green-300 mb-1">{msg.content}</p>
+          )}
+          {renderSubscriptionResult(result as { plan: string; status: string; features: string[]; admin: boolean })}
+        </div>
+      );
+    }
   }
 
   const isDelete = typeof msg.content === "string" && msg.content.toLowerCase().includes("deleted");
   return (
     <div className={`mt-2 border-l-2 ${isDelete ? "border-red-500 dark:border-red-400" : "border-green-500 dark:border-green-400"} pl-3`}>
       <p className={`text-sm font-medium ${isDelete ? "text-red-700 dark:text-red-300" : "text-green-700 dark:text-green-300"}`}>{msg.content as string}</p>
-      {Boolean(result && typeof result === "object" && "id" in (result as object)) && (
+      {Boolean(result && typeof result === "object" && !Array.isArray(result) && "id" in (result as object)) && (
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">ID: #{(result as { id: number }).id}</p>
       )}
     </div>
@@ -1163,7 +1473,7 @@ export default function ChatWidget() {
                     ) : m.draftCancelled ? (
                       <span className="text-sm text-gray-400 dark:text-gray-500 italic">Draft discarded.</span>
                     ) : m.actionType === "success" ? (
-                      renderActionResult(m)
+                      renderActionResult(m, theme.accentText)
                     ) : (
                       renderAnswer(m.content, theme.accentText)
                     )}
