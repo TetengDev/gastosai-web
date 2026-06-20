@@ -172,3 +172,78 @@ export interface ChatResponse {
   message: string;
   result: unknown;
 }
+
+export interface GoalChatItem {
+  id: number;
+  name: string;
+  targetAmount: number;
+  savedAmount: number;
+  progressPercent: number;
+  status: "ON_TRACK" | "BEHIND" | "COMPLETED" | "PAUSED";
+  targetDate?: string;
+}
+
+export interface BudgetChatItem {
+  categoryName: string;
+  budgeted: number;
+  spent: number;
+  remaining: number;
+  percentUsed: number;
+  status: "ON_TRACK" | "WARNING" | "OVER_BUDGET";
+}
+
+export interface BudgetSummaryChatResult {
+  month: string;
+  totalBudgeted: number;
+  totalSpent: number;
+  safeToSpend: number;
+  items: BudgetChatItem[];
+}
+
+export interface RecurringChatItem {
+  id: number;
+  name: string;
+  amount: number;
+  categoryName: string;
+  frequency: RecurringFrequency;
+  active: boolean;
+}
+
+export interface UpcomingBillChatItem {
+  name: string;
+  amount: number;
+  dueDate: string;
+}
+
+export interface RecurringChatResult {
+  items: RecurringChatItem[];
+  upcoming: UpcomingBillChatItem[];
+}
+
+export interface AlertChatItem {
+  id: number;
+  type: string;
+  severity: "CRITICAL" | "WARNING" | "INFO";
+  message: string;
+  read: boolean;
+}
+
+export interface ExpenseChatItem {
+  id: number;
+  amount: number;
+  category: string;
+  date: string;
+  description: string;
+}
+
+export interface CategoryTotalChatItem {
+  category: string;
+  total: number;
+}
+
+export interface MonthlyReportChatResult {
+  month: string;
+  totalSpent: number;
+  categoryBreakdown: CategoryTotalChatItem[];
+  topExpenses: ExpenseChatItem[];
+}

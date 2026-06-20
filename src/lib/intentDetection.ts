@@ -20,12 +20,20 @@ export const CRUD_WORD_KEYWORDS = [
   "rename", "category", "categories",
   "subscription", "plan", "profile",
   "nickname", "avatar",
+  "alert", "alerts", "bills",
 ];
 
 export const CRUD_PHRASE_KEYWORDS = [
   "create a", "add a", "set a", "make a", "set up",
   "list my", "show my categories", "list categories",
   "what plan", "my plan", "my subscription",
+  "show my goals", "show my budgets", "show my recurring", "show my alerts", "show my bills",
+  "list goals", "list budgets", "list recurring", "list alerts", "list bills",
+  "my goals", "my budgets", "my recurring", "my alerts",
+  "upcoming bills", "upcoming payments",
+  "monthly report", "spending report",
+  "search expenses", "find expenses", "search for expenses",
+  "get category totals", "category totals",
 ];
 
 export function looksLikeNlQuery(text: string): boolean {
