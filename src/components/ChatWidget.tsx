@@ -13,7 +13,7 @@ import { useAiAvailability } from "../hooks/useAiAvailability";
 import { formatCurrency, formatDate } from "../lib/formatters";
 import { looksLikeExpenseLog, looksLikeNlQuery } from "../lib/intentDetection";
 import { TypingDots, BotAvatar, ExpandIcon, CollapseIcon } from "./chat/ChatChrome";
-import { actionLabel, savedLabel, buildPreviewFields, buildConfirmMessage, dispatchDataEvents } from "./chat/chatActions";
+import { actionLabel, savedLabel, buildPreviewFields, buildConfirmMessage, dispatchDataEvents, dispatchAllDataEvents } from "./chat/chatActions";
 
 const OPENAI_KEY_REGEX = /\bsk-[A-Za-z0-9_-]{16,}\b/;
 
@@ -868,7 +868,7 @@ export default function ChatWidget() {
               ...prev,
               { role: "assistant", content: res.message, timestamp: new Date(), actionType: "success", actionResult: res.result },
             ]);
-            dispatchDataEvents(trimmed);
+            dispatchAllDataEvents();
           } else {
             setMessages((prev) => [
               ...prev,

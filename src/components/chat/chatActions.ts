@@ -147,8 +147,8 @@ export function buildPreviewFields(toolName: string, params: Record<string, unkn
     case "delete_expenses":
       return [
         { field: "category", label: "Category", value: String(p.category ?? ""), inputType: "select" },
-        ...(p.fromDate !== undefined ? [{ field: "fromDate", label: "From Date", value: String(p.fromDate ?? ""), inputType: "date" as const }] : []),
-        ...(p.toDate !== undefined ? [{ field: "toDate", label: "To Date", value: String(p.toDate ?? ""), inputType: "date" as const }] : []),
+        ...(p.from !== undefined ? [{ field: "from", label: "From Date", value: String(p.from ?? ""), inputType: "date" as const }] : []),
+        ...(p.to !== undefined ? [{ field: "to", label: "To Date", value: String(p.to ?? ""), inputType: "date" as const }] : []),
       ];
     case "recategorize_expenses":
       return [
@@ -183,7 +183,7 @@ export function buildConfirmMessage(toolName: string, params: Record<string, unk
     case "update_profile":
       return `update profile${params.name ? ` name ${params.name}` : ""}${params.nickname ? ` nickname ${params.nickname}` : ""}${params.avatar ? ` avatar ${params.avatar}` : ""}`;
     case "delete_expenses":
-      return `delete expenses${params.category ? ` category ${params.category}` : ""}${params.fromDate ? ` from ${params.fromDate}` : ""}${params.toDate ? ` to ${params.toDate}` : ""}`;
+      return `delete expenses${params.category ? ` category ${params.category}` : ""}${params.from ? ` from ${params.from}` : ""}${params.to ? ` to ${params.to}` : ""}`;
     case "recategorize_expenses":
       return `recategorize expenses from ${params.fromCategory} to ${params.toCategory}`;
     default:
@@ -204,5 +204,16 @@ export function dispatchDataEvents(toolName: string) {
   if (toolName === "set_category_icon") window.dispatchEvent(new CustomEvent("gastosai:category-changed"));
   if (toolName === "delete_expenses" || toolName === "recategorize_expenses") {
     window.dispatchEvent(new CustomEvent("gastosai:expense-changed"));
+  }
+}
+
+/**
+ * Fire every data-changed event. Used when a chat action executed directly (not via the
+ * preview/confirm flow) so we don't know the exact tool name — over-refreshing mounted
+ * pages is harmless and guarantees the UI reflects the change.
+ */
+export function dispatchAllDataEvents() {
+  for (const e of ["expense", "budget", "goal", "recurring", "category", "profile", "alert"]) {
+    window.dispatchEvent(new CustomEvent(`gastosai:${e}-changed`));
   }
 }
