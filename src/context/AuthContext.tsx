@@ -1,7 +1,7 @@
 import { createContext, useContext, useState } from "react";
 import type { ReactNode } from "react";
 import { login as apiLogin, register as apiRegister } from "../api/auth";
-import type { LoginRequest, RegisterRequest } from "../api/auth";
+import type { AuthResponse, LoginRequest, RegisterRequest } from "../api/auth";
 import { updateProfile as apiUpdateProfile } from "../api/profile";
 import type { UpdateProfileRequest } from "../api/profile";
 
@@ -23,6 +23,7 @@ interface AuthContextValue {
   register: (data: RegisterRequest) => Promise<void>;
   logout: () => void;
   updateProfile: (data: UpdateProfileRequest) => Promise<void>;
+  applySession: (res: AuthResponse) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -75,8 +76,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     persistUser({ email: res.email, name: res.name, nickname: res.nickname ?? null, avatarColor: res.avatarColor ?? null, defaultCategory: res.defaultCategory ?? null, avatar: res.avatar ?? null, role: user?.role ?? "USER" });
   };
 
+  const applySession = (res: AuthResponse) => {
+    localStorage.setItem("token", res.token);
+    persistUser({ email: res.email, name: res.name, nickname: res.nickname ?? null, avatarColor: res.avatarColor ?? null, defaultCategory: res.defaultCategory ?? null, avatar: res.avatar ?? null, role: res.role });
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isAdmin: user?.role === "ADMIN", isLoading: false, login, register, logout, updateProfile }}>
+    <AuthContext.Provider value={{ user, isAdmin: user?.role === "ADMIN", isLoading: false, login, register, logout, updateProfile, applySession }}>
       {children}
     </AuthContext.Provider>
   );
