@@ -21,6 +21,7 @@ import Feedback from "./pages/Feedback";
 import Goals from "./pages/Goals";
 import LoginPage from "./pages/LoginPage";
 import NotFound from "./pages/NotFound";
+import VerifyMagicLink from "./pages/VerifyMagicLink";
 import Privacy from "./pages/Privacy";
 import Recurring from "./pages/Recurring";
 import RegisterPage from "./pages/RegisterPage";
@@ -43,6 +44,7 @@ function AppShell({ darkMode, onToggleDark, onResetDark }: { darkMode: boolean; 
       <Routes>
         <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
         <Route path="/register" element={user ? <Navigate to="/" replace /> : <RegisterPage />} />
+        <Route path="/auth/verify" element={<VerifyMagicLink />} />
         <Route path="/contact" element={<PublicLayout><Contact /></PublicLayout>} />
         <Route path="/feedback" element={<PublicLayout><Feedback /></PublicLayout>} />
         <Route path="/about" element={<PublicLayout><About /></PublicLayout>} />
