@@ -1,7 +1,9 @@
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { askQuery, askWithAttachment, chatAction, type ChatMode } from "../api/ai";
+import { askQuery, askWithAttachment, chatAction, getConversationMessages, type ChatMode } from "../api/ai";
+import { useConversations } from "../hooks/useConversations";
+import ChatHistoryDrawer from "./ChatHistoryDrawer";
 import { updateAiSettings } from "../api/aiSettings";
 import { updateBudget } from "../api/budgets";
 import { getCategories } from "../api/categories";
@@ -680,6 +682,9 @@ export default function ChatWidget() {
   const [error, setError] = useState<string | null>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [pendingFileUrl, setPendingFileUrl] = useState<string | null>(null);
+  const [conversationId, setConversationId] = useState<number | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
+  const { conversations, loading: convLoading, refresh: refreshConversations, remove: removeConversation } = useConversations();
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -827,7 +832,8 @@ export default function ChatWidget() {
             ]);
           }
         } else {
-          const res = await chatAction(trimmed, mode);
+          const res = await chatAction(trimmed, mode, conversationId ?? undefined);
+          if (res.conversationId) setConversationId(res.conversationId);
           if (res.type === "preview") {
             const previewData = res.result as { toolName: string; params: Record<string, unknown> };
             setMessages((prev) => [
@@ -904,8 +910,37 @@ export default function ChatWidget() {
 
   const clearConversation = () => {
     setMessages([makeWelcomeMessage(user?.nickname || user?.name)]);
+    setConversationId(null);
     setError(null);
     inputRef.current?.focus();
+  };
+
+  const startNewConversation = () => {
+    clearConversation();
+    setShowHistory(false);
+    void refreshConversations();
+  };
+
+  const openConversation = async (id: number) => {
+    try {
+      const msgs = await getConversationMessages(id);
+      setMessages(
+        msgs.map((m) => ({
+          role: m.role === "USER" ? "user" : "assistant",
+          content: m.content ?? "",
+          timestamp: new Date(m.createdAt),
+        })),
+      );
+      setConversationId(id);
+      setShowHistory(false);
+    } catch {
+      setError("Failed to load that conversation.");
+    }
+  };
+
+  const deleteConversationAndMaybeReset = async (id: number) => {
+    await removeConversation(id);
+    if (id === conversationId) clearConversation();
   };
 
   const confirmPreview = async (msgIndex: number, toolName: string, params: Record<string, unknown>, editedParams: Record<string, unknown>) => {
@@ -942,7 +977,8 @@ export default function ChatWidget() {
 
     const confirmMsg = buildConfirmMessage(toolName, mergedParams);
     try {
-      const res = await chatAction(confirmMsg, "execute");
+      const res = await chatAction(confirmMsg, "execute", conversationId ?? undefined);
+      if (res.conversationId) setConversationId(res.conversationId);
       if (res.type === "action") {
         setMessages((prev) =>
           prev.map((m, i) =>
@@ -1074,6 +1110,16 @@ export default function ChatWidget() {
               : "fixed bottom-24 right-6 z-50 w-96 h-[32rem] bg-surface border border-edge rounded-[20px] shadow-2xl flex flex-col overflow-hidden"
           }
         >
+          <ChatHistoryDrawer
+            open={showHistory}
+            onClose={() => setShowHistory(false)}
+            conversations={conversations}
+            loading={convLoading}
+            activeId={conversationId}
+            onSelect={(id) => void openConversation(id)}
+            onDelete={(id) => void deleteConversationAndMaybeReset(id)}
+            onNew={startNewConversation}
+          />
           {/* Header — themed gradient */}
           <div
             className={`bg-gradient-to-r ${theme.headerGradient} px-4 py-3 flex flex-col gap-2 flex-shrink-0`}
@@ -1090,12 +1136,18 @@ export default function ChatWidget() {
                 </div>
               </div>
               <div className="flex items-center gap-1">
+                <button
+                  onClick={() => { setShowHistory(true); void refreshConversations(); }}
+                  className="text-xs text-white/70 hover:text-white px-2.5 py-1.5 rounded-lg hover:bg-white/15 transition-colors"
+                >
+                  History
+                </button>
                 {messages.length > 1 && (
                   <button
-                    onClick={clearConversation}
+                    onClick={startNewConversation}
                     className="text-xs text-white/70 hover:text-white px-2.5 py-1.5 rounded-lg hover:bg-white/15 transition-colors"
                   >
-                    Clear
+                    New
                   </button>
                 )}
                 <button
