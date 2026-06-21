@@ -10,6 +10,7 @@ import PublicLayout from "./components/PublicLayout";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import About from "./pages/About";
 import AdminSubmissions from "./pages/AdminSubmissions";
+import AdminChatAudit from "./pages/AdminChatAudit";
 import Budget from "./pages/Budget";
 import Categories from "./pages/Categories";
 import Contact from "./pages/Contact";
@@ -69,6 +70,7 @@ function AppShell({ darkMode, onToggleDark, onResetDark }: { darkMode: boolean; 
                     <Route path="/alerts" element={<Alerts />} />
                     <Route path="/settings" element={<Settings />} />
                     <Route path="/admin/submissions" element={<AdminSubmissions />} />
+                    <Route path="/admin/chat-audit" element={<AdminChatAudit />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </main>

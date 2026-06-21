@@ -199,6 +199,16 @@ export interface ChatMessageDto {
   createdAt: string;
 }
 
+export interface ChatAuditLogDto {
+  id: number;
+  userId: number;
+  conversationId: number | null;
+  toolName: string;
+  status: "SUCCESS" | "FAILED";
+  detail: string | null;
+  createdAt: string;
+}
+
 export interface GoalChatItem {
   id: number;
   name: string;
