@@ -372,8 +372,9 @@ export default function Dashboard() {
         <AiInsightsCard month={currentMonth} />
       </FeatureGate>
 
-      {/* Row 3: Spending breakdown vs budget */}
-      <div className="grid grid-cols-1 gap-7 lg:grid-cols-[1.7fr_1fr]">
+      {/* Row 3: Spending breakdown vs budget — items-start so the shorter card keeps its
+          natural height instead of stretching into a tall empty panel. */}
+      <div className="grid grid-cols-1 items-start gap-7 lg:grid-cols-[1.7fr_1fr]">
         {spendingByCategoryCard}
         <BudgetOverviewCard month={currentMonth} />
       </div>
@@ -387,8 +388,9 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Row 6: Forward-looking + ranked */}
-      <div className="grid grid-cols-1 gap-7 md:grid-cols-2 lg:grid-cols-3">
+      {/* Row 6: Forward-looking + ranked — go straight 1→3 columns (no 2-col stage that
+          would orphan the third card) and items-start so shorter cards don't stretch. */}
+      <div className="grid grid-cols-1 items-start gap-7 md:grid-cols-3">
         <UpcomingBillsCard month={currentMonth} />
         <GoalProgressCard />
         <TopExpensesCard month={currentMonth} />
