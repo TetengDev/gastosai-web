@@ -7,7 +7,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 /**
  * End-to-end verification of the paginated Expenses feature (Slice B, 0.47.0).
  * Runs against the live app; produces a video per test plus explicit screenshots
- * in e2e/artifacts/ for sharing to Slack.
+ * in e2e/artifacts/ for sharing to Telegram.
  */
 
 const ARTIFACTS = path.join(here, "artifacts");
