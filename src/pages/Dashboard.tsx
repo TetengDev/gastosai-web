@@ -10,7 +10,7 @@ import {
   YAxis,
 } from "recharts";
 import { getBudgetSummary } from "../api/budgets";
-import { getCategoryReport, getExpenses, getMonthlyComparison, getMonthlyReport } from "../api/expenses";
+import { getCategoryReport, getExpensesPage, getMonthlyComparison, getMonthlyReport } from "../api/expenses";
 import type { BudgetSummaryResponse, CategoryReport, Expense, MonthlyComparison, MonthlyReport } from "../api/types";
 import AiInsightsCard from "../components/AiInsightsCard";
 import FeatureGate from "../components/FeatureGate";
@@ -71,14 +71,14 @@ export default function Dashboard() {
   const fetchData = useCallback(() => {
     void Promise.all([
       getCategoryReport(),
-      getExpenses(),
+      getExpensesPage({ page: 0, size: 15 }),
       getMonthlyReport(),
       getMonthlyComparison(currentMonth),
       getBudgetSummary(currentMonth).catch(() => null),
     ])
       .then(([cats, expenses, monthly, mom, budget]) => {
         setCategoryData(cats);
-        setRecentExpenses(expenses.slice(0, 15));
+        setRecentExpenses(expenses.content);
         setMonthlyData(monthly);
         setMomData(mom);
         setBudgetSummary(budget);
