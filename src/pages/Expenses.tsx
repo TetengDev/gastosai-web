@@ -11,7 +11,7 @@ import CategoryChip from "../components/CategoryChip";
 
 export default function Expenses() {
   const features = useFeatures();
-  const { expenses, loading, error, add, update, remove, removeAll, refresh } = useExpenses();
+  const { expenses, loading, loadingMore, error, total, hasMore, add, update, remove, removeAll, refresh, loadMore } = useExpenses();
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [filteredExpenses, setFilteredExpenses] = useState<Expense[] | null>(null);
@@ -113,13 +113,13 @@ export default function Expenses() {
       <PageHeader
         title="Expenses"
         subtitle={
-          expenses.length > 0 ? (
+          total > 0 ? (
             <span>
-              {(from || to) ? `${displayExpenses.length} of ${expenses.length}` : `${expenses.length} total`} entries
+              {(from || to) ? `${displayExpenses.length} of ${total}` : `${total} total`} entries
             </span>
           ) : undefined
         }
-        onDeleteAll={expenses.length > 0 ? () => setConfirmDeleteAll(true) : undefined}
+        onDeleteAll={total > 0 ? () => setConfirmDeleteAll(true) : undefined}
         actions={
           <>
             {features?.csvImport && (
@@ -169,7 +169,7 @@ export default function Expenses() {
             Clear
           </button>
         )}
-        {expenses.length > 0 && (
+        {total > 0 && (
           <Button
             variant="secondary"
             size="sm"
@@ -218,7 +218,7 @@ export default function Expenses() {
         </div>
       )}
 
-      {expenses.length === 0 ? (
+      {total === 0 ? (
         <div className="rounded-2xl border border-edge bg-surface p-16 text-center">
           <p className="mb-3 text-4xl">🧾</p>
           <p className="text-lg font-semibold text-ink-hi">No expenses yet</p>
@@ -323,6 +323,14 @@ export default function Expenses() {
               </tbody>
             </table>
           </div>
+          {!(from || to) && hasMore && (
+            <div className="flex items-center justify-center border-t border-edge-2 bg-surface-2 px-6 py-3">
+              <Button variant="secondary" size="sm" onClick={() => void loadMore()} disabled={loadingMore}>
+                {loadingMore ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                {loadingMore ? "Loading…" : `Load more (${displayExpenses.length} of ${total})`}
+              </Button>
+            </div>
+          )}
         </div>
       )}
 
