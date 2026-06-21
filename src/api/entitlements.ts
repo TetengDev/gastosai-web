@@ -10,7 +10,8 @@ export type FeatureKey =
   | "CUSTOM_CATEGORIES"
   | "UNLIMITED_TRANSACTIONS"
   | "ADVANCED_INSIGHTS"
-  | "ANOMALY_DETECTION";
+  | "ANOMALY_DETECTION"
+  | "CHAT_PERSONAS";
 
 export type PlanKey = "FREE" | "PREMIUM" | "TRIAL";
 
