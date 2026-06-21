@@ -1,5 +1,5 @@
 import api from "./client";
-import type { CategoryReport, DailyReport, Expense, ExpenseRequest, MonthlyComparison, MonthlyReport, ParsedExpenseResult } from "./types";
+import type { CategoryReport, DailyReport, Expense, ExpenseRequest, MonthlyComparison, MonthlyReport, PageResponse, ParsedExpenseResult } from "./types";
 
 export interface ImportResult {
   imported: number;
@@ -9,6 +9,9 @@ export interface ImportResult {
 
 export const getExpenses = (params?: { from?: string; to?: string }) =>
   api.get<Expense[]>("/expenses", { params }).then((r) => r.data);
+
+export const getExpensesPage = (params: { page: number; size: number; from?: string; to?: string }) =>
+  api.get<PageResponse<Expense>>("/expenses/page", { params }).then((r) => r.data);
 
 export const createExpense = (data: ExpenseRequest) =>
   api.post<Expense>("/expenses", data).then((r) => r.data);
