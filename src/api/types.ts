@@ -1,5 +1,14 @@
 export type ExpenseType = "PERSONAL" | "BUSINESS";
 
+export interface PageResponse<T> {
+  content: T[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  last: boolean;
+}
+
 export interface Expense {
   id: number;
   amount: number;
