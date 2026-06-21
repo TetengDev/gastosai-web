@@ -180,6 +180,23 @@ export interface ChatResponse {
   type: "action" | "text" | "query" | "preview" | "disambiguate";
   message: string;
   result: unknown;
+  conversationId?: number;
+}
+
+export interface Conversation {
+  id: number;
+  title: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ChatMessageDto {
+  id: number;
+  role: "USER" | "ASSISTANT";
+  content: string | null;
+  toolName: string | null;
+  responseType: string | null;
+  createdAt: string;
 }
 
 export interface GoalChatItem {
