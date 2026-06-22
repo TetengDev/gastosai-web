@@ -26,9 +26,8 @@ export default function RegisterPage() {
       await register({ name, email, password });
       navigate("/", { replace: true });
     } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message ?? "Registration failed. Please try again.";
+      const data = (err as { response?: { data?: { message?: string; detail?: string } } })?.response?.data;
+      const msg = data?.detail ?? data?.message ?? "Registration failed. Please try again.";
       setError(msg);
     } finally {
       setLoading(false);
@@ -43,9 +42,8 @@ export default function RegisterPage() {
       await requestMagicLink(magicEmail);
       setMagicSent(true);
     } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message ?? "Failed to send link. Please try again.";
+      const data = (err as { response?: { data?: { message?: string; detail?: string } } })?.response?.data;
+      const msg = data?.detail ?? data?.message ?? "Failed to send link. Please try again.";
       setMagicError(msg);
     } finally {
       setMagicLoading(false);
