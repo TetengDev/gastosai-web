@@ -15,6 +15,9 @@ export const getBudgetRule = () =>
 export const putBudgetRule = (payload: BudgetRulePayload) =>
   api.put<BudgetRule>("/budget-rules", payload).then((r) => r.data);
 
+export const setBudgetRuleEnabled = (enabled: boolean) =>
+  api.put<BudgetRule>("/budget-rules/enabled", { enabled }).then((r) => r.data);
+
 export const assignBuckets = (assignments: { categoryId: number; bucket: Bucket | null }[]) =>
   api.put("/budget-rules/buckets", { assignments }).then((r) => r.data);
 

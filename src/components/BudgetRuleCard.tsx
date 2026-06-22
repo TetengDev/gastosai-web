@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { assignBuckets, getBudgetRule, getBudgetRuleSummary, putBudgetRule } from "../api/budgetRules";
+import { Sparkles } from "lucide-react";
+import { assignBuckets, getBudgetRule, getBudgetRuleSummary, putBudgetRule, setBudgetRuleEnabled } from "../api/budgetRules";
 import type { Bucket, BudgetRuleSummary, BudgetRuleType, Category } from "../api/types";
 import { Button, InfoTip } from "./ui";
 import { formatCurrency } from "../lib/formatters";
@@ -32,12 +33,14 @@ export default function BudgetRuleCard({ month, categories, onCategoriesChanged 
   const [wants, setWants] = useState(30);
   const [savings, setSavings] = useState(20);
   const [summary, setSummary] = useState<BudgetRuleSummary | null>(null);
+  const [enabled, setEnabledState] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
       const [rule, sum] = await Promise.all([getBudgetRule(), getBudgetRuleSummary(month)]);
+      setEnabledState(rule.enabled);
       setRuleType(rule.ruleType);
       setIncome(String(rule.monthlyIncome));
       setNeeds(rule.needsPct);
@@ -48,6 +51,13 @@ export default function BudgetRuleCard({ month, categories, onCategoriesChanged 
       setError("Failed to load budgeting rule.");
     }
   }, [month]);
+
+  const toggleFeature = async (value: boolean) => {
+    await setBudgetRuleEnabled(value);
+    setEnabledState(value);
+    if (value) await load();
+    window.dispatchEvent(new CustomEvent("gastosai:budget-changed"));
+  };
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -86,11 +96,38 @@ export default function BudgetRuleCard({ month, categories, onCategoriesChanged 
   const customSum = needs + wants + savings;
   const inputClass = "rounded-xl border border-edge-input bg-input px-3 py-2 text-sm text-ink";
 
+  // Opt-in: until the user turns the feature on, just invite them to try it.
+  if (!enabled) {
+    return (
+      <div className="flex flex-col items-start gap-3 rounded-2xl border border-edge bg-surface p-6 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-3">
+          <Sparkles className="h-5 w-5 shrink-0 text-brand" />
+          <div>
+            <p className="font-display text-[17px] font-medium text-ink-hi">New — Budgeting Rules</p>
+            <p className="mt-0.5 text-sm text-ink-2">
+              Try a 50-30-20 plan: split your income across Needs, Wants & Savings and track each bucket. Optional — turn it off anytime.
+            </p>
+          </div>
+        </div>
+        <Button onClick={() => void toggleFeature(true)}>Try it</Button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 rounded-2xl border border-edge bg-surface p-6">
-      <div className="flex items-center gap-1.5">
-        <h2 className="font-display text-[19px] font-medium text-ink-hi">Budgeting Rule</h2>
-        <InfoTip text="Split your monthly income across Needs / Wants / Savings and track spend per bucket." />
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5">
+          <h2 className="font-display text-[19px] font-medium text-ink-hi">Budgeting Rule</h2>
+          <InfoTip text="Split your monthly income across Needs / Wants / Savings and track spend per bucket." />
+        </div>
+        <button
+          type="button"
+          onClick={() => void toggleFeature(false)}
+          className="text-xs font-medium text-ink-3 hover:text-ink-hi hover:underline"
+        >
+          Hide
+        </button>
       </div>
 
       {/* Preset + income */}

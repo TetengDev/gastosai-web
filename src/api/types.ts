@@ -45,6 +45,7 @@ export interface Category {
 export type BudgetRuleType = "FIFTY_THIRTY_TWENTY" | "SEVENTY_TWENTY_TEN" | "CUSTOM";
 
 export interface BudgetRule {
+  enabled: boolean;
   ruleType: BudgetRuleType;
   monthlyIncome: number;
   needsPct: number;
