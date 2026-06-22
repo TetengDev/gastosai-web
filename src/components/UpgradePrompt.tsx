@@ -11,6 +11,7 @@ const FEATURE_LABELS: Record<FeatureKey, string> = {
   UNLIMITED_TRANSACTIONS: "Unlimited transactions",
   ADVANCED_INSIGHTS: "Advanced insights",
   ANOMALY_DETECTION: "Spending anomaly detection",
+  CHAT_PERSONAS: "Professional & Gen Z chat tones",
 };
 
 interface Props {
