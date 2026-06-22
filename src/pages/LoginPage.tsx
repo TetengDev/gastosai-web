@@ -42,9 +42,8 @@ export default function LoginPage() {
       await requestMagicLink(magicEmail);
       setMagicSent(true);
     } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message ?? "Failed to send link. Please try again.";
+      const data = (err as { response?: { data?: { message?: string; detail?: string } } })?.response?.data;
+      const msg = data?.detail ?? data?.message ?? "Failed to send link. Please try again.";
       setMagicError(msg);
     } finally {
       setMagicLoading(false);
