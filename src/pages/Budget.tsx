@@ -40,6 +40,7 @@ export default function Budget() {
   const [modalMonth, setModalMonth] = useState(currentMonth);
   const [budgetCurrency, setBudgetCurrency] = useState("PHP");
   const [budgetExchangeRate, setBudgetExchangeRate] = useState(1);
+  const [recurring, setRecurring] = useState(false);
   const [rateFetching, setRateFetching] = useState(false);
   const [suggestedRate, setSuggestedRate] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
@@ -109,6 +110,7 @@ export default function Budget() {
     setBudgetCurrency("PHP");
     setBudgetExchangeRate(1);
     setSuggestedRate(null);
+    setRecurring(false);
     setModalOpen(true);
   };
 
@@ -123,6 +125,7 @@ export default function Budget() {
     setBudgetCurrency(budget.currency ?? "PHP");
     setBudgetExchangeRate(budget.exchangeRate ?? 1);
     setSuggestedRate(null);
+    setRecurring(budget.recurring ?? false);
     setModalOpen(true);
   };
 
@@ -137,6 +140,7 @@ export default function Budget() {
     setBudgetCurrency("PHP");
     setBudgetExchangeRate(1);
     setSuggestedRate(null);
+    setRecurring(false);
   };
 
   const handleCreateCategory = async (name: string) => {
@@ -159,6 +163,7 @@ export default function Budget() {
     amountLimit: parseFloat(amountLimit),
     currency: budgetCurrency,
     exchangeRate: budgetExchangeRate,
+    recurring,
   });
 
   const handleSave = async (e: React.FormEvent) => {
@@ -333,6 +338,11 @@ export default function Budget() {
                     <span className="inline-flex items-center gap-2">
                       {(() => { const Ic = categoryIcon(b.categoryName); return <Ic className="h-4 w-4 shrink-0 text-ink-3" />; })()}
                       {b.categoryName}
+                      {b.recurring && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-[#1f8a5b]/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] text-[#1f8a5b]">
+                          ↻ Monthly
+                        </span>
+                      )}
                     </span>
                   </td>
                   <td className="px-6 py-5 text-right">
@@ -455,6 +465,18 @@ export default function Budget() {
               </p>
             </div>
           )}
+          <label className="flex items-center gap-2.5 rounded-xl border border-edge-input bg-surface px-4 py-2.5 text-sm text-ink">
+            <input
+              type="checkbox"
+              checked={recurring}
+              onChange={(e) => setRecurring(e.target.checked)}
+              className="rounded accent-[#1f8a5b]"
+            />
+            <span>
+              Repeat every month
+              <span className="ml-1 text-xs text-ink-3">— auto-carry this limit into future months</span>
+            </span>
+          </label>
           {modalError && <p className="text-sm text-[#b30000]">{modalError}</p>}
           <div className="flex gap-3 pt-2">
             <Button type="button" variant="secondary" className="flex-1" onClick={closeModal} disabled={saving}>

@@ -109,6 +109,7 @@ export interface BudgetRequest {
   amountLimit: number;
   currency?: string;
   exchangeRate?: number;
+  recurring?: boolean;
 }
 
 export interface BudgetResponse {
@@ -120,6 +121,7 @@ export interface BudgetResponse {
   currency: string;
   exchangeRate: number;
   amountLimitInBaseCurrency: number;
+  recurring: boolean;
 }
 
 export interface BudgetSummaryItem {
