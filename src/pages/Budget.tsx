@@ -10,6 +10,7 @@ import {
 import { createCategory, getCategories } from "../api/categories";
 import type { BudgetRequest, BudgetResponse } from "../api/types";
 import type { Category } from "../api/types";
+import BudgetRuleCard from "../components/BudgetRuleCard";
 import CategoryCombobox from "../components/CategoryCombobox";
 import CurrencySelect from "../components/CurrencySelect";
 import { Button, ConfirmDialog, IconButton, Modal, PageHeader, SelectionBar } from "../components/ui";
@@ -294,6 +295,8 @@ export default function Budget() {
           </>
         }
       />
+
+      <BudgetRuleCard month={month} categories={categories} onCategoriesChanged={() => { void load(); }} />
 
       {budgets.length === 0 ? (
         <div className="rounded-2xl border border-edge bg-surface p-16 text-center">
