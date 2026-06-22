@@ -204,12 +204,12 @@ export default function Expenses() {
             <p className="font-medium">
               {importResult.imported} expense{importResult.imported !== 1 ? "s" : ""} imported
               {importResult.skipped > 0 && `, ${importResult.skipped} skipped`}
+              {importResult.errors.length > 0 && `, ${importResult.errors.length} not imported`}
             </p>
             {importResult.errors.length > 0 && (
-              <ul className="mt-1 space-y-0.5 text-xs opacity-80">
-                {importResult.errors.slice(0, 3).map((e, i) => <li key={i}>{e}</li>)}
-                {importResult.errors.length > 3 && <li>…and {importResult.errors.length - 3} more</li>}
-              </ul>
+              <p className="mt-1 text-xs opacity-80">
+                Some rows couldn’t be imported. Check the format (amount required, one row per expense) or download the template.
+              </p>
             )}
           </div>
           <button onClick={() => setImportResult(null)} className="text-base leading-none opacity-60 transition-opacity hover:opacity-100">
