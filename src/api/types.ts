@@ -33,10 +33,41 @@ export interface ExpenseRequest {
   exchangeRate?: number;
 }
 
+export type Bucket = "NEEDS" | "WANTS" | "SAVINGS";
+
 export interface Category {
   id: number;
   name: string;
   icon: string | null;
+  bucket?: Bucket | null;
+}
+
+export type BudgetRuleType = "FIFTY_THIRTY_TWENTY" | "SEVENTY_TWENTY_TEN" | "CUSTOM";
+
+export interface BudgetRule {
+  enabled: boolean;
+  ruleType: BudgetRuleType;
+  monthlyIncome: number;
+  needsPct: number;
+  wantsPct: number;
+  savingsPct: number;
+}
+
+export interface BucketSummaryItem {
+  bucket: Bucket;
+  percent: number;
+  target: number;
+  spent: number;
+  remaining: number;
+  percentUsed: number;
+}
+
+export interface BudgetRuleSummary {
+  month: string;
+  ruleType: BudgetRuleType;
+  monthlyIncome: number;
+  buckets: BucketSummaryItem[];
+  unassignedSpent: number;
 }
 
 export interface CategoryRequest {
@@ -78,6 +109,7 @@ export interface BudgetRequest {
   amountLimit: number;
   currency?: string;
   exchangeRate?: number;
+  recurring?: boolean;
 }
 
 export interface BudgetResponse {
@@ -89,6 +121,7 @@ export interface BudgetResponse {
   currency: string;
   exchangeRate: number;
   amountLimitInBaseCurrency: number;
+  recurring: boolean;
 }
 
 export interface BudgetSummaryItem {
