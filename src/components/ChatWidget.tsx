@@ -12,6 +12,7 @@ import type { AlertChatItem, BudgetSummaryChatResult, Category, CategoryTotalCha
 import { useAuth } from "../context/AuthContext";
 import { useFeatures } from "../hooks/useFeatures";
 import { useAiAvailability } from "../hooks/useAiAvailability";
+import { useEntitlements } from "../hooks/useEntitlements";
 import { formatCurrency, formatDate } from "../lib/formatters";
 import { looksLikeExpenseLog, looksLikeNlQuery } from "../lib/intentDetection";
 import { TypingDots, BotAvatar, ExpandIcon, CollapseIcon } from "./chat/ChatChrome";
@@ -669,6 +670,9 @@ function renderActionResult(msg: Message, accentText: string) {
 export default function ChatWidget() {
   const features = useFeatures();
   const aiAvailable = useAiAvailability();
+  const { has: hasFeature, loading: entLoading } = useEntitlements();
+  // Professional / GenZ tones require CHAT_PERSONAS. Optimistic while entitlements load.
+  const personasLocked = !entLoading && !hasFeature("CHAT_PERSONAS");
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
@@ -1169,19 +1173,24 @@ export default function ChatWidget() {
               </div>
             </div>
 
-            {/* Mode toggle — inside header */}
+            {/* Mode toggle — inside header. Professional/GenZ tones are a paid feature. */}
             <div className="flex items-center gap-1">
-              {MODES.map(({ value, label, emoji }) => (
-                <button
-                  key={value}
-                  onClick={() => setMode(value)}
-                  className={`px-2.5 py-1 rounded-full text-xs font-medium transition-all duration-200 ${
-                    mode === value ? theme.activePill : theme.inactivePill
-                  }`}
-                >
-                  {emoji} {label}
-                </button>
-              ))}
+              {MODES.map(({ value, label, emoji }) => {
+                const locked = personasLocked && value !== "plain";
+                return (
+                  <button
+                    key={value}
+                    onClick={() => { if (!locked) setMode(value); }}
+                    disabled={locked}
+                    title={locked ? "Professional & Gen Z tones are a Premium feature" : undefined}
+                    className={`px-2.5 py-1 rounded-full text-xs font-medium transition-all duration-200 ${
+                      mode === value ? theme.activePill : theme.inactivePill
+                    } ${locked ? "opacity-50 cursor-not-allowed" : ""}`}
+                  >
+                    {locked ? "🔒" : emoji} {label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
