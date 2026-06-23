@@ -34,3 +34,6 @@ export const requestMagicLink = (email: string): Promise<void> =>
 
 export const verifyMagicLink = (token: string): Promise<AuthResponse> =>
   api.post<AuthResponse>("/auth/magic-link/verify", { token }).then((r) => r.data);
+
+export const googleLogin = (idToken: string): Promise<AuthResponse> =>
+  api.post<AuthResponse>("/auth/google", { idToken }).then((r) => r.data);

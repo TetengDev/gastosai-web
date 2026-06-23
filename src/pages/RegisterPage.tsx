@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { Button } from "../components/ui";
 import AuthModeTabs from "../components/AuthModeTabs";
+import GoogleSignInButton from "../components/GoogleSignInButton";
 import { requestMagicLink } from "../api/auth";
 
 export default function RegisterPage() {
@@ -150,6 +151,10 @@ export default function RegisterPage() {
               </Button>
             </form>
           )}
+
+          <div className="mt-4 flex justify-center">
+            <GoogleSignInButton />
+          </div>
 
           <p className="mt-6 text-center text-sm text-ink-2">
             Already have an account?{" "}
