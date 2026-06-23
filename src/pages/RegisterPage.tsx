@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { Button } from "../components/ui";
+import AuthModeTabs from "../components/AuthModeTabs";
 import { requestMagicLink } from "../api/auth";
 
 export default function RegisterPage() {
@@ -60,10 +61,11 @@ export default function RegisterPage() {
           <h1 className="select-none font-display text-4xl font-bold tracking-tight text-ink-hi">
             Gastos<span className="text-brand">AI</span>
           </h1>
-          <p className="mt-2 text-sm text-ink-2">Create your account</p>
+          <p className="mt-2 text-sm text-ink-2">New here — create your account</p>
         </div>
 
         <div className="rounded-2xl border border-edge bg-surface p-8 shadow-sm">
+          <AuthModeTabs active="register" />
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-ink">Name</label>
