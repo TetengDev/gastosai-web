@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { Button } from "../components/ui";
 import AuthModeTabs from "../components/AuthModeTabs";
 import GoogleSignInButton from "../components/GoogleSignInButton";
+import Footer from "../components/Footer";
 import { requestMagicLink } from "../api/auth";
 
 export default function RegisterPage() {
@@ -56,8 +57,9 @@ export default function RegisterPage() {
     "w-full rounded-xl border border-edge-input bg-input px-4 py-2.5 text-sm text-ink";
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-page px-4">
-      <div className="w-full max-w-md">
+    <div className="flex min-h-screen flex-col bg-page">
+      <div className="flex flex-1 items-center justify-center px-4 py-10">
+        <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <h1 className="select-none font-display text-4xl font-bold tracking-tight text-ink-hi">
             Gastos<span className="text-brand">AI</span>
@@ -163,7 +165,9 @@ export default function RegisterPage() {
             </Link>
           </p>
         </div>
+        </div>
       </div>
+      <Footer />
     </div>
   );
 }
