@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import type { FeatureKey } from "../api/entitlements";
 
 const FEATURE_LABELS: Record<FeatureKey, string> = {
@@ -21,25 +22,27 @@ interface Props {
 
 /** Locked-state placeholder shown when a user lacks entitlement to a feature. */
 export default function UpgradePrompt({ feature, compact = false }: Props) {
+  const navigate = useNavigate();
   const label = FEATURE_LABELS[feature] ?? "This feature";
   return (
     <div
-      className={`rounded-2xl border border-dashed border-indigo-300 dark:border-indigo-700 bg-indigo-50/50 dark:bg-indigo-900/20 text-center ${
+      className={`rounded-2xl border border-dashed border-brand/40 bg-brand/5 text-center ${
         compact ? "p-3" : "p-6"
       }`}
     >
       <p className="text-xl" aria-hidden="true">🔒</p>
-      <p className="mt-1 text-sm font-semibold text-indigo-700 dark:text-indigo-300">
+      <p className="mt-1 text-sm font-semibold text-brand">
         {label} is a Premium feature
       </p>
       {!compact && (
-        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+        <p className="mt-1 text-xs text-ink-3">
           Upgrade your plan to unlock it.
         </p>
       )}
       <button
         type="button"
-        className="mt-3 rounded-lg bg-indigo-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-indigo-700"
+        onClick={() => navigate("/pricing")}
+        className="mt-3 rounded-full bg-cta px-4 py-1.5 text-sm font-medium text-cta-fg hover:opacity-90"
       >
         Upgrade to Premium
       </button>
