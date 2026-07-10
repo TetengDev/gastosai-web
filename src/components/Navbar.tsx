@@ -1,5 +1,5 @@
 import { createElement } from "react";
-import { LogOut, Moon, Sun } from "lucide-react";
+import { LogOut, Moon, Sun, Zap } from "lucide-react";
 import { Link, NavLink } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { getAvatarGradient, getInitials } from "../lib/formatters";
@@ -7,6 +7,7 @@ import { avatarIconFor } from "../lib/avatarIcons";
 import AdminViewAsToggle from "./AdminViewAsToggle";
 import { NotificationBell } from "./NotificationBell";
 import TipsPopover from "./TipsPopover";
+import { useEntitlements } from "../hooks/useEntitlements";
 
 interface Props {
   isDark: boolean;
@@ -24,6 +25,7 @@ const NAV_ITEMS = [
 
 export default function Navbar({ isDark, onToggleDark }: Props) {
   const { user, isAdmin, logout } = useAuth();
+  const { entitlements } = useEntitlements();
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     `rounded-full px-4 py-2 text-[15px] font-medium transition-colors ${
@@ -60,6 +62,12 @@ export default function Navbar({ isDark, onToggleDark }: Props) {
         {isAdmin && (
           <NavLink to="/admin/chat-audit" className={linkClass}>
             Chat Audit
+          </NavLink>
+        )}
+        {!isAdmin && entitlements?.plan !== "PREMIUM" && (
+          <NavLink to="/pricing" className={linkClass}>
+            <Zap className="h-3.5 w-3.5" />
+            Upgrade
           </NavLink>
         )}
       </div>

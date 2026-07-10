@@ -316,3 +316,19 @@ export interface MonthlyReportChatResult {
   categoryBreakdown: CategoryTotalChatItem[];
   topExpenses: ExpenseChatItem[];
 }
+
+export type BillingPeriod = "MONTHLY" | "ANNUAL";
+
+export interface PricingItem {
+  planKey: "PREMIUM";
+  period: BillingPeriod;
+  amountCentavos: number;
+  currency: "PHP";
+}
+
+export interface SubscriptionInfo {
+  plan: "FREE" | "PREMIUM" | "TRIAL";
+  status: "ACTIVE" | "TRIAL" | "INACTIVE" | "EXPIRED" | "CANCELLED";
+  currentPeriodEnd: string | null;
+  billingPeriod: BillingPeriod | null;
+}

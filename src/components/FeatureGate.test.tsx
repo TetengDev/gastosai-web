@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import FeatureGate from "./FeatureGate";
 import { useEntitlements, type UseEntitlements } from "../hooks/useEntitlements";
@@ -28,7 +29,11 @@ describe("FeatureGate", () => {
 
   it("shows an upgrade prompt when locked", () => {
     mockUseEntitlements.mockReturnValue(stub(false, false));
-    render(<FeatureGate feature="ADVANCED_INSIGHTS"><div>secret</div></FeatureGate>);
+    render(
+      <MemoryRouter>
+        <FeatureGate feature="ADVANCED_INSIGHTS"><div>secret</div></FeatureGate>
+      </MemoryRouter>
+    );
     expect(screen.queryByText("secret")).toBeNull();
     expect(screen.queryByText(/Premium feature/i)).not.toBeNull();
   });
