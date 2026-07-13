@@ -24,6 +24,10 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "jsdom",
+    // Deterministic tests: don't let a developer's real root .env flip billing UI.
+    env: {
+      VITE_BILLING_ENABLED: "",
+    },
     setupFiles: ["./src/test/setup.ts"],
     coverage: {
       provider: "v8",

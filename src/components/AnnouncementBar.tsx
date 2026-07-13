@@ -2,7 +2,7 @@ import { useState } from "react";
 import { X } from "lucide-react";
 import { Link } from "react-router-dom";
 
-const STORAGE_KEY = "ga-announcement-dismissed-v1";
+const STORAGE_KEY = "ga-announcement-dismissed-v2";
 
 export default function AnnouncementBar() {
   const [dismissed, setDismissed] = useState(
@@ -19,13 +19,13 @@ export default function AnnouncementBar() {
   return (
     <div className="relative flex h-9 flex-shrink-0 items-center justify-center gap-3.5 bg-hero px-12 text-[13px] text-white">
       <span className="opacity-85">
-        Bring your own AI key for personalized insights, chat, and receipt scanning.
+        AI insights, chat, and receipt scanning are built in — no setup needed.
       </span>
       <Link
         to="/settings"
         className="underline decoration-1 underline-offset-[3px] hover:opacity-90"
       >
-        Add it in Settings
+        Prefer your own AI key? Add it in Settings
       </Link>
       <button
         onClick={dismiss}
