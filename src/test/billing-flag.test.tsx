@@ -10,7 +10,6 @@ describe("BILLING_ENABLED flag", () => {
   });
 
   it("defaults to true when the env var is unset", async () => {
-    vi.resetModules();
     const { BILLING_ENABLED } = await import("../config/billing");
     expect(BILLING_ENABLED).toBe(true);
   });
@@ -44,8 +43,8 @@ describe("UpgradePrompt with billing disabled", () => {
         <UpgradePrompt feature="ADVANCED_INSIGHTS" />
       </MemoryRouter>,
     );
-    expect(screen.queryByText(/Premium feature/i)).not.toBeNull();
-    expect(screen.queryByRole("button", { name: /Upgrade to Premium/i })).toBeNull();
+    expect(screen.getByText(/Premium feature/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Upgrade to Premium/i })).not.toBeInTheDocument();
   });
 
   it("shows the upgrade CTA when billing is enabled", async () => {
@@ -56,6 +55,6 @@ describe("UpgradePrompt with billing disabled", () => {
         <UpgradePrompt feature="ADVANCED_INSIGHTS" />
       </MemoryRouter>,
     );
-    expect(screen.queryByRole("button", { name: /Upgrade to Premium/i })).not.toBeNull();
+    expect(screen.getByRole("button", { name: /Upgrade to Premium/i })).toBeInTheDocument();
   });
 });
