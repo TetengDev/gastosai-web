@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import type { FeatureKey } from "../api/entitlements";
+import { BILLING_ENABLED } from "../config/billing";
 
 const FEATURE_LABELS: Record<FeatureKey, string> = {
   AI_ANALYTICS: "AI-powered analytics",
@@ -39,13 +40,15 @@ export default function UpgradePrompt({ feature, compact = false }: Props) {
           Upgrade your plan to unlock it.
         </p>
       )}
-      <button
-        type="button"
-        onClick={() => navigate("/pricing")}
-        className="mt-3 rounded-full bg-cta px-4 py-1.5 text-sm font-medium text-cta-fg hover:opacity-90"
-      >
-        Upgrade to Premium
-      </button>
+      {BILLING_ENABLED && (
+        <button
+          type="button"
+          onClick={() => navigate("/pricing")}
+          className="mt-3 rounded-full bg-cta px-4 py-1.5 text-sm font-medium text-cta-fg hover:opacity-90"
+        >
+          Upgrade to Premium
+        </button>
+      )}
     </div>
   );
 }

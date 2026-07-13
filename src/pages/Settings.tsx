@@ -4,6 +4,7 @@ import { AVATAR_COLORS, getAvatarGradient, getInitials } from "../lib/formatters
 import { AVATAR_ICONS, avatarIconFor } from "../lib/avatarIcons";
 import AiKeySection from "../components/AiKeySection";
 import BillingSection from "../components/BillingSection";
+import { BILLING_ENABLED } from "../config/billing";
 import { startTour } from "../components/FirstRunTour";
 import { Button } from "../components/ui";
 
@@ -170,7 +171,7 @@ export default function Settings() {
 
       <AiKeySection />
 
-      <BillingSection />
+      {BILLING_ENABLED && <BillingSection />}
 
       <section className="mt-6 flex items-center justify-between gap-4 rounded-2xl border border-edge bg-surface p-8">
         <div>

@@ -8,6 +8,7 @@ import AdminViewAsToggle from "./AdminViewAsToggle";
 import { NotificationBell } from "./NotificationBell";
 import TipsPopover from "./TipsPopover";
 import { useEntitlements } from "../hooks/useEntitlements";
+import { BILLING_ENABLED } from "../config/billing";
 
 interface Props {
   isDark: boolean;
@@ -64,7 +65,7 @@ export default function Navbar({ isDark, onToggleDark }: Props) {
             Chat Audit
           </NavLink>
         )}
-        {!isAdmin && entitlements?.plan !== "PREMIUM" && (
+        {BILLING_ENABLED && !isAdmin && entitlements?.plan !== "PREMIUM" && (
           <NavLink to="/pricing" className={linkClass}>
             <Zap className="h-3.5 w-3.5" />
             Upgrade
