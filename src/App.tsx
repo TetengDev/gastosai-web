@@ -30,6 +30,7 @@ import Settings from "./pages/Settings";
 import Terms from "./pages/Terms";
 import Pricing from "./pages/Pricing";
 import CheckoutReturn from "./pages/CheckoutReturn";
+import { BILLING_ENABLED } from "./config/billing";
 
 function AppShell({ darkMode, onToggleDark, onResetDark }: { darkMode: boolean; onToggleDark: () => void; onResetDark: () => void }) {
   const { user } = useAuth();
@@ -73,8 +74,12 @@ function AppShell({ darkMode, onToggleDark, onResetDark }: { darkMode: boolean; 
                     <Route path="/settings" element={<Settings />} />
                     <Route path="/admin/submissions" element={<AdminSubmissions />} />
                     <Route path="/admin/chat-audit" element={<AdminChatAudit />} />
-                    <Route path="/pricing" element={<Pricing />} />
-                    <Route path="/billing/return" element={<CheckoutReturn />} />
+                    {BILLING_ENABLED && (
+                      <Route path="/pricing" element={<Pricing />} />
+                    )}
+                    {BILLING_ENABLED && (
+                      <Route path="/billing/return" element={<CheckoutReturn />} />
+                    )}
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </main>
