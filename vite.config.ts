@@ -9,6 +9,9 @@ const { version } = JSON.parse(readFileSync("./package.json", "utf-8")) as {
 };
 
 export default defineConfig({
+  // Env files live at the repo root (single .env for the whole stack).
+  // Only VITE_*-prefixed vars are exposed to client code.
+  envDir: "..",
   plugins: [react(), tailwindcss()],
   define: {
     __APP_VERSION__: JSON.stringify(version),
