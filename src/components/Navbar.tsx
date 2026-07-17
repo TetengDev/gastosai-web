@@ -65,6 +65,11 @@ export default function Navbar({ isDark, onToggleDark }: Props) {
             Chat Audit
           </NavLink>
         )}
+        {isAdmin && (
+          <NavLink to="/admin/observability" className={linkClass}>
+            Observability
+          </NavLink>
+        )}
         {BILLING_ENABLED && !isAdmin && entitlements?.plan !== "PREMIUM" && (
           <NavLink to="/pricing" className={linkClass}>
             <Zap className="h-3.5 w-3.5" />

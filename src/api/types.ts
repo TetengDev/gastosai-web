@@ -242,6 +242,50 @@ export interface ChatAuditLogDto {
   createdAt: string;
 }
 
+export interface AiUsageSummaryItem {
+  feature: string;
+  model: string;
+  requests: number;
+  inputTokens: number | null;
+  outputTokens: number | null;
+  estimatedCostUsd: string | null;
+}
+
+export interface ObservabilitySummary {
+  totalUsers: number;
+  signupsToday: number;
+  signups7d: number;
+  signups30d: number;
+  activeUsers24h: number;
+  activeUsers7d: number;
+  topUsers30d: { userId: number | null; requests: number }[];
+}
+
+export interface ObservabilityCost {
+  todayCostUsd: string | null;
+  successToday: number;
+  failedToday: number;
+  monthToDate: AiUsageSummaryItem[];
+}
+
+export interface AppEventDto {
+  id: number;
+  eventType: string;
+  severity: string;
+  requestId: string | null;
+  userId: number | null;
+  path: string | null;
+  httpStatus: number | null;
+  message: string | null;
+  createdAt: string;
+}
+
+export interface ObservabilityHealth {
+  dbUp: boolean;
+  version: string;
+  uptimeSeconds: number;
+}
+
 export interface GoalChatItem {
   id: number;
   name: string;
