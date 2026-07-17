@@ -100,7 +100,7 @@ export default function AdminObservability() {
 
   if (!isAdmin) return <Navigate to="/" replace />;
 
-  const mtdCost = cost?.monthToDate.reduce((sum, i) => sum + Number(i.estimatedCostUsd ?? 0), 0) ?? 0;
+  const mtdCost = cost?.monthToDate.reduce((sum, i) => sum + Number(i.estimatedCostUsd ?? "0"), 0) ?? 0;
   const errors = events.filter((e) => e.severity === "ERROR");
   const abuse = events.filter((e) => e.severity === "WARN");
 
@@ -138,6 +138,30 @@ export default function AdminObservability() {
             <Stat label="Success today" value={cost?.successToday ?? 0} />
             <Stat label="Failed today" value={cost?.failedToday ?? 0} />
           </div>
+
+          <h2 className="mt-8 font-display text-xl font-medium text-ink-hi">Top users by AI requests (30d)</h2>
+          {summary && summary.topUsers30d.length > 0 ? (
+            <div className="mt-3 overflow-hidden rounded-2xl border border-edge">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-edge-2 bg-surface-2 font-mono text-[11px] uppercase tracking-[0.1em] text-ink-3">
+                    <th className="px-5 py-4 text-left font-normal">User</th>
+                    <th className="px-5 py-4 text-left font-normal">AI requests</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {summary.topUsers30d.map((u) => (
+                    <tr key={u.userId ?? "unknown"} className="border-b border-edge-3 last:border-0">
+                      <td className="px-5 py-3 text-ink">{u.userId ? "#" + u.userId : "—"}</td>
+                      <td className="px-5 py-3 text-ink-2">{u.requests}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="mt-3 text-sm text-ink-3">No AI activity yet.</p>
+          )}
 
           <EventTable title="Recent errors" rows={errors} empty="No server errors recorded." />
           <EventTable title="Abuse-guard trips" rows={abuse} empty="No abuse-guard trips recorded." />
