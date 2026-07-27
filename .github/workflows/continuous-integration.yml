@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request' && github.base_ref == 'main'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -75,9 +75,9 @@ jobs:
     name: Frontend audit & lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '20'
           cache: 'npm'
@@ -97,10 +97,14 @@ jobs:
           PACKAGE_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
         run: npm ci
 
+      # Blocking, but with expiring justified exceptions. Plain `npm audit --audit-level=high`
+      # is all-or-nothing: a single advisory with no published fix forces you to either drop
+      # the gate or take a risky downgrade. See scripts/audit-check.mjs for the current waivers
+      # — each carries a reason and an expiry, and an expired one fails the build.
       - name: Audit for vulnerabilities
         env:
           PACKAGE_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
-        run: npm audit --audit-level=high
+        run: node scripts/audit-check.mjs
 
       - name: Lint
         run: npm run lint
@@ -139,7 +143,7 @@ jobs:
     name: Dependency vulnerability scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Report-only (exit-code 0): surfaces vulnerable dependencies without blocking the build.
       # Promote to --exit-code 1 once the baseline is clean. Uses the official installer to avoid
