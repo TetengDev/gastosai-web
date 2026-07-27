@@ -55,7 +55,46 @@ Until then: never parse an amount into a float and round-trip it, and keep all f
 
 ---
 
-## 3. `CONTRACT.md` referred to a Supabase anon key
+## 3. Tests fail on Node 26 locally; CI pins Node 20
+
+`src/test/tips.test.ts` and `src/test/TipsPopover.test.tsx` fail on **Node 26** with
+`localStorage is undefined`. Node 26 ships a native experimental `localStorage` global that
+displaces the one jsdom installs on `window`, and it is inert without `--localstorage-file`:
+
+```
+ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+```
+
+This is an environment artifact, not a code defect — all 185 tests pass on Node 20, which is
+what `.github/workflows/continuous-integration.yml` pins and what CI actually runs.
+
+**If you develop on Node 26**, either use Node 20 locally (`nvm use 20`) or expect those six
+failures. The real fix is to stop relying on the ambient global — have the tips helpers take
+storage as a dependency, or stub it in `src/test/setup.ts` — which would make the suite
+independent of the runtime's built-ins.
+
+---
+
+## 4. `openapi-typescript` needs a peer-dependency override
+
+`openapi-typescript@7.13.0` declares `peer typescript@^5.x`, but this project is on
+`typescript@6.0.3`, so a plain `npm install` fails with `ERESOLVE`. `package.json` carries a
+narrow override:
+
+```json
+"overrides": { "openapi-typescript": { "typescript": "$typescript" } }
+```
+
+This pins openapi-typescript's `typescript` to the root version rather than disabling peer
+resolution project-wide (`legacy-peer-deps`), which would mask unrelated conflicts — the same
+concern that made the monorepo hold TypeScript majors back manually.
+
+Verified working: codegen runs and the emitted `schema.d.ts` type-checks cleanly under
+TypeScript 6. Remove the override once openapi-typescript widens its peer range.
+
+---
+
+## 5. `CONTRACT.md` referred to a Supabase anon key
 
 The shared contract text originally described the Supabase anon key as the client's only
 credential. That is not this app: auth is a **backend-issued JWT** held in `localStorage`, and
