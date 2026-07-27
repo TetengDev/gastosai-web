@@ -1,7 +1,9 @@
-import { describe, it, expect } from "vitest";
+import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
 import {
   formatCurrency,
   formatDate,
+  formatDateOnly,
+  formatDayMonth,
   getInitials,
   getCategoryColor,
   getAvatarGradient,
@@ -162,5 +164,48 @@ describe("toDateTimeLocal", () => {
 
   it("returns the first 16 chars for a datetime with timezone offset", () => {
     expect(toDateTimeLocal("2024-06-01T08:00:00+08:00")).toBe("2024-06-01T08:00");
+  });
+});
+
+
+describe("timezone pinning", () => {
+  // These run with the process timezone forced away from Manila. Without an explicit
+  // `timeZone: "Asia/Manila"` the formatters resolve the API's +08:00 timestamps in the
+  // device's zone, which silently shifts an expense into the wrong day — and therefore the
+  // wrong monthly total, since the backend rolls months up in Asia/Manila.
+  //
+  // 01:00 Manila is the previous calendar day in both New York and UTC, so an unpinned
+  // formatter fails these regardless of which machine runs them.
+  const EARLY_MORNING_MANILA = "2026-06-26T01:00:00+08:00";
+  // vi.stubEnv rather than touching process.env directly: it is typed by vitest, so this
+  // needs no node types in the app tsconfig, and it restores cleanly.
+  beforeEach(() => {
+    vi.stubEnv("TZ", "America/New_York");
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("formatDate keeps the Manila calendar day on a non-Manila device", () => {
+    expect(formatDate(EARLY_MORNING_MANILA)).toContain("Jun 26");
+  });
+
+  it("formatDate keeps the Manila wall-clock hour", () => {
+    // 01:00 in Manila, not 13:00 the previous day in New York.
+    expect(formatDate(EARLY_MORNING_MANILA)).toMatch(/01:00\s*AM/i);
+  });
+
+  it("formatDayMonth keeps the Manila calendar day", () => {
+    expect(formatDayMonth(EARLY_MORNING_MANILA)).toBe("Jun 26");
+  });
+
+  it("formatDateOnly keeps the Manila calendar day", () => {
+    expect(formatDateOnly(EARLY_MORNING_MANILA)).toContain("Jun 26");
+  });
+
+  it("toDateTimeLocal returns the wall-clock reading unchanged", () => {
+    // Slices the string rather than parsing it, so the form input is never re-zoned.
+    expect(toDateTimeLocal(EARLY_MORNING_MANILA)).toBe("2026-06-26T01:00");
   });
 });
