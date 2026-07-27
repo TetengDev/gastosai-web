@@ -1,0 +1,51 @@
+version: 2
+# Split from the monorepo config: the maven/backend ecosystem moved to gastosai-backend, and the
+# npm directory is now the repo root. Grouped updates so all npm bumps land in ONE PR rather than
+# a PR per dependency; both version- and security-updates are grouped. Dependabot's smallest
+# interval is weekly (no native biweekly); the biweekly vulnerability *report* is produced
+# separately by .github/workflows/security-scan.yml.
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Asia/Manila"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "frontend"
+    # typescript-eslint pins a peer range of typescript <6.1.0; a grouped bump to
+    # typescript 7.x makes `npm ci` fail with ERESOLVE (broke PR #236). Take TS
+    # majors manually once typescript-eslint supports them.
+    #
+    # @tetengdev/gastosai-api-contract is deliberately excluded: the pin is an API-compatibility
+    # decision, not a dependency bump. Upgrading it means regenerating the client and migrating
+    # the resulting type errors by hand (CONTRACT.md).
+    ignore:
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@tetengdev/gastosai-api-contract"
+    groups:
+      frontend-version-updates:
+        applies-to: version-updates
+        patterns: ["*"]
+      frontend-security-updates:
+        applies-to: security-updates
+        patterns: ["*"]
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Asia/Manila"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "ci"
+    groups:
+      actions-updates:
+        patterns: ["*"]

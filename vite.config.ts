@@ -9,9 +9,6 @@ const { version } = JSON.parse(readFileSync("./package.json", "utf-8")) as {
 };
 
 export default defineConfig({
-  // Env files live at the repo root (single .env for the whole stack).
-  // Only VITE_*-prefixed vars are exposed to client code.
-  envDir: "..",
   plugins: [react(), tailwindcss()],
   define: {
     __APP_VERSION__: JSON.stringify(version),
@@ -24,7 +21,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "jsdom",
-    // Deterministic tests: don't let a developer's real root .env flip billing UI.
+    // Deterministic tests: don't let a developer's real .env flip billing UI.
     env: {
       VITE_BILLING_ENABLED: "",
     },

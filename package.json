@@ -1,5 +1,5 @@
 {
-  "name": "frontend",
+  "name": "gastosai-web",
   "private": true,
   "version": "0.64.0",
   "type": "module",
@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "typecheck": "tsc --noEmit -p tsconfig.app.json",
+    "gen:api": "openapi-typescript node_modules/@tetengdev/gastosai-api-contract/openapi.json -o src/api/generated/schema.d.ts",
     "preview": "vite preview",
     "test": "vitest",
     "test:run": "vitest run",
@@ -16,6 +18,7 @@
     "e2e:demo": "playwright test --config playwright.demo.config.ts"
   },
   "dependencies": {
+    "@tetengdev/gastosai-api-contract": "1.0.0",
     "axios": "^1.18.1",
     "lucide-react": "^1.25.0",
     "react": "^19.2.6",
@@ -41,6 +44,7 @@
     "eslint-plugin-react-refresh": "^0.5.3",
     "globals": "^17.7.0",
     "jsdom": "^29.1.1",
+    "openapi-typescript": "^7.13.0",
     "tailwindcss": "^4.3.1",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.64.0",

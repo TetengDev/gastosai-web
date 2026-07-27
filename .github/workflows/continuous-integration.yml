@@ -1,0 +1,151 @@
+name: Continuous Integration
+
+# Carried over from the monorepo, rewritten to run at repo root (this whole repo is the web app
+# now — no `frontend/` prefix, no path filters). The backend jobs moved to gastosai-backend.
+# Job names are unchanged where the check is the same, because they are referenced by the branch
+# ruleset's required status checks.
+#
+# New here: the contract loop (CONTRACT.md). Installing needs PACKAGE_TOKEN because
+# @tetengdev/gastosai-api-contract lives on GitHub Packages, and the drift guard below is what
+# replaces the monorepo's shared visibility of the API surface.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main, release/**]
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  validate-release-branch:
+    name: Validate release branch
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Enforce main merge policy
+        env:
+          HEAD: ${{ github.head_ref }}
+          BASE: ${{ github.base_ref }}
+        run: |
+          set -euo pipefail
+
+          # release/* is the only path for application changes and version bumps; auto-release.yml tags it.
+          if [[ "$HEAD" == release/* ]]; then
+            echo "Branch '$HEAD' is a release branch — allowed."
+            exit 0
+          fi
+
+          # meta/* and dependabot/* are non-application lanes: CI/workflows, repo docs,
+          # .gitignore (meta), or dependency-only bumps (dependabot). Both are subject to the
+          # guards below. Everything else must go through release/*.
+          if [[ "$HEAD" != meta/* && "$HEAD" != dependabot/* ]]; then
+            echo "::error::PRs to main must come from release/* (application changes + version bumps), meta/* (non-application changes), or dependabot/* (dependency updates). Got: $HEAD"
+            exit 1
+          fi
+
+          git fetch origin "$BASE" --depth=1
+
+          # Guard 1: a non-application PR must not change the project's own version
+          # (that belongs on release/*). Dependabot bumps dependency versions, not the
+          # top-level package version, so this stays green for legitimate dep updates.
+          base_ver=$(git show "origin/$BASE:package.json" | jq -r .version)
+          head_ver=$(jq -r .version package.json)
+          if [[ "$base_ver" != "$head_ver" ]]; then
+            echo "::error::$HEAD must not change the project version ($base_ver -> $head_ver). Version bumps belong on release/*."
+            exit 1
+          fi
+
+          # Guard 2: a non-application PR must not touch application source.
+          app_changes=$(git diff --name-only "origin/$BASE" -- src)
+          if [[ -n "$app_changes" ]]; then
+            echo "::error::$HEAD must not modify application source. Route these through release/*:"
+            echo "$app_changes" | sed 's/^/  - /'
+            exit 1
+          fi
+
+          echo "Branch '$HEAD' is a non-application lane ($HEAD) — no version change, no app-source changes — allowed."
+
+  frontend:
+    name: Frontend audit & lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Sync package-lock.json if out of date
+        env:
+          PACKAGE_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
+        run: |
+          npm install --package-lock-only
+          if ! git diff --quiet package-lock.json; then
+            echo "::warning::package-lock.json was out of sync with package.json. Commit the updated lock file."
+          fi
+
+      - name: Install dependencies
+        env:
+          PACKAGE_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
+        run: npm ci
+
+      - name: Audit for vulnerabilities
+        env:
+          PACKAGE_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
+        run: npm audit --audit-level=high
+
+      - name: Lint
+        run: npm run lint
+
+      # The drift guard. src/api/generated/ is produced from the EXACT pinned contract version;
+      # if the committed output differs from a fresh generation, the repo is describing an API
+      # that is not the one it pinned. In a monorepo a stale type was caught by a shared build —
+      # here this check is the only thing standing in for that.
+      - name: Regenerate API types from the pinned contract
+        run: npm run gen:api
+
+      - name: Fail if generated client is stale
+        run: |
+          set -euo pipefail
+          # --porcelain, not `git diff`: a never-committed src/api/generated/ is UNTRACKED, and
+          # git diff ignores untracked files — the guard would pass without checking anything.
+          CHANGES=$(git status --porcelain -- src/api/generated)
+          if [ -n "$CHANGES" ]; then
+            echo "::error::src/api/generated/ is stale or uncommitted versus the pinned contract version. Run 'npm run gen:api' and commit the result."
+            echo "$CHANGES"
+            exit 1
+          fi
+          if [ ! -d src/api/generated ]; then
+            echo "::error::src/api/generated/ does not exist after running gen:api — check the pinned contract package."
+            exit 1
+          fi
+          echo "Generated client matches the pinned contract."
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Tests
+        run: npm run test:run
+
+  security-scan:
+    name: Dependency vulnerability scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Report-only (exit-code 0): surfaces vulnerable dependencies without blocking the build.
+      # Promote to --exit-code 1 once the baseline is clean. Uses the official installer to avoid
+      # pinning a marketplace action version.
+      - name: Trivy filesystem scan
+        continue-on-error: true
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b "$RUNNER_TEMP/bin"
+          "$RUNNER_TEMP/bin/trivy" fs --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --offline-scan --exit-code 0 .
