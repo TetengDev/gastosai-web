@@ -66,6 +66,17 @@ predate the contract and are still hand-written. They are being re-typed against
 
 ---
 
+## Before opening a PR
+
+Run the gate in `ai/skills/shared/pre-pr-checklist.md`, or the `pre-pr` agent
+(`.claude/agents/pre-pr.md`) which executes it and reports a table.
+
+The item that is not automatable and is skipped most often: **runtime execution.** A green test
+suite is not evidence that the code was run. State in the PR body what you executed and what you
+observed.
+
+---
+
 ## 5. Definition of done
 
 1. `npm run typecheck`, `npm run lint`, and `npm run test:run` pass.
