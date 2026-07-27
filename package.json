@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit -p tsconfig.app.json",
+    "typecheck": "tsc -b",
     "gen:api": "openapi-typescript node_modules/@tetengdev/gastosai-api-contract/openapi.json -o src/api/generated/schema.d.ts",
     "preview": "vite preview",
     "test": "vitest",
