@@ -97,10 +97,14 @@ jobs:
           PACKAGE_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
         run: npm ci
 
+      # Blocking, but with expiring justified exceptions. Plain `npm audit --audit-level=high`
+      # is all-or-nothing: a single advisory with no published fix forces you to either drop
+      # the gate or take a risky downgrade. See scripts/audit-check.mjs for the current waivers
+      # — each carries a reason and an expiry, and an expired one fails the build.
       - name: Audit for vulnerabilities
         env:
           PACKAGE_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
-        run: npm audit --audit-level=high
+        run: node scripts/audit-check.mjs
 
       - name: Lint
         run: npm run lint

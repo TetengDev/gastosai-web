@@ -94,7 +94,32 @@ TypeScript 6. Remove the override once openapi-typescript widens its peer range.
 
 ---
 
-## 5. `CONTRACT.md` referred to a Supabase anon key
+## 5. `react-router` carries an unfixed CSRF advisory (waived, expires 2026-10-31)
+
+`GHSA-qwww-vcr4-c8h2` — "RSC Mode CSRF Bypass Allows Action Execution Before 400 Response",
+high severity, affects `react-router` 7.12.0–8.2.0. This repo is on 7.18.1.
+
+**Not exploitable here.** The vulnerable path is server-side action execution in React Server
+Components mode. This app is a pure client-side SPA: `BrowserRouter` + `Routes` only, no
+loaders or actions, no server entry, no SSR, and `vercel.json` serves it as static files. That
+code path does not exist in the bundle.
+
+**No fix is available** — 7.18.1 is the latest published version and is still in range. npm's
+suggested remedy is a downgrade to `react-router-dom@7.11.0`, i.e. a routing regression across
+seven minor versions in exchange for no security benefit.
+
+So it is waived in `scripts/audit-check.mjs` rather than "fixed". The waiver carries an expiry
+and **an expired waiver fails the build**, so it cannot quietly become permanent.
+
+Revisit when a patched release lands — or immediately if this app ever adopts RSC or SSR, at
+which point the advisory becomes live and the waiver must be removed.
+
+This predates the split; the monorepo's `npm audit --audit-level=high` gate would fail on it
+today too.
+
+---
+
+## 6. `CONTRACT.md` referred to a Supabase anon key
 
 The shared contract text originally described the Supabase anon key as the client's only
 credential. That is not this app: auth is a **backend-issued JWT** held in `localStorage`, and
