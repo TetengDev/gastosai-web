@@ -126,3 +126,34 @@ credential. That is not this app: auth is a **backend-issued JWT** held in `loca
 Supabase is the managed Postgres host only — there is no Supabase client SDK or anon key in
 this repo. `CONTRACT.md` has been corrected in both repos; noted here because the mobile repo's
 `CLAUDE.md` still carries the original wording and needs the same fix when it is created.
+
+---
+
+## 7. Branch protection is not enabled (blocked by plan/visibility)
+
+The monorepo had two active rulesets — `Protect master` (block deletion and force-push,
+require a PR, and require `Backend tests` / `Frontend audit & lint` / `Validate release branch`
+as **strict** status checks) and `Protect release branches`. Neither transferred: rulesets are
+repository settings, not files.
+
+Recreating them via the API fails:
+
+```
+POST /repos/TetengDev/<repo>/rulesets
+-> 403 Upgrade to GitHub Pro or make this repository public to enable this feature.
+```
+
+The monorepo is **public**, where rulesets are free. These repos are **private** under an org
+on the **free** plan, where they are not.
+
+Until this is resolved, nothing prevents a direct push to `main` or a force-push, and CI
+passing is a convention rather than an enforced gate. Three ways out:
+
+1. **Make the repos public** — matches the monorepo, costs nothing, and the source is already
+   public there, so it exposes nothing new. Would also allow making the contract package
+   public, removing the install token entirely.
+2. **Upgrade the org to GitHub Team** — keeps them private and enables rulesets.
+3. **Accept it** — rely on discipline. Weakest option; the release-branch guard in CI still
+   runs on PRs, it just cannot be *required*.
+
+The exact ruleset definitions are ready to apply the moment one of the above lands.
