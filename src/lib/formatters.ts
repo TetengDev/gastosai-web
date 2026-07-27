@@ -51,6 +51,16 @@ export const formatCurrency = (amount: number | string): string => {
   })}`;
 };
 
+/**
+ * The app's business timezone. Day and month rollups are computed in Asia/Manila on the
+ * backend, so every rendered timestamp must be resolved in that zone — not the device's.
+ *
+ * Without pinning this, `2026-06-26T12:00:00+08:00` renders as 12:00 PM in Manila but
+ * 12:00 AM in New York and 05:00 AM in London. That silently places an expense in the wrong
+ * day, and therefore the wrong monthly total, for anyone whose device is not set to PHT.
+ */
+export const APP_TIME_ZONE = "Asia/Manila";
+
 export const formatDate = (date: string | null | undefined): string => {
   if (!date) return "-";
   return new Date(date).toLocaleString("en-PH", {
@@ -59,9 +69,38 @@ export const formatDate = (date: string | null | undefined): string => {
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: APP_TIME_ZONE,
   });
 };
 
+/** Day-and-month only, in the app's timezone. For compact lists and cards. */
+export const formatDayMonth = (date: string | null | undefined): string => {
+  if (!date) return "-";
+  return new Date(date).toLocaleString("en-PH", {
+    month: "short",
+    day: "numeric",
+    timeZone: APP_TIME_ZONE,
+  });
+};
+
+/** Calendar date only, in the app's timezone. */
+export const formatDateOnly = (date: string | null | undefined): string => {
+  if (!date) return "-";
+  return new Date(date).toLocaleDateString("en-PH", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    timeZone: APP_TIME_ZONE,
+  });
+};
+
+/**
+ * Value for a `<input type="datetime-local">`, which expects `YYYY-MM-DDTHH:mm` with no zone.
+ *
+ * Slicing rather than going through `Date` is deliberate: the API already serves the wall-clock
+ * reading in Manila time, so the first 16 characters are exactly what the input needs. Parsing
+ * into a `Date` would re-resolve it into the device's zone and shift the value in the form.
+ */
 export const toDateTimeLocal = (date: string | null | undefined): string => {
   if (!date) return "";
   return date.slice(0, 16);

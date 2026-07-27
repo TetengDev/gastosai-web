@@ -3,16 +3,14 @@ import { getTopTransactions } from "../api/expenses";
 import type { Expense } from "../api/types";
 import { Card, InfoTip } from "./ui";
 import CategoryChip from "./CategoryChip";
-import { formatCurrency } from "../lib/formatters";
+import { formatCurrency, formatDayMonth } from "../lib/formatters";
 
 interface Props {
   month: string;
 }
 
-function formatShortDate(dateStr: string): string {
-  const d = new Date(dateStr);
-  return d.toLocaleString("default", { month: "short", day: "numeric" });
-}
+// formatDayMonth pins Asia/Manila. Formatting inline would resolve the API's +08:00
+// timestamp in the device's zone and could show the previous day.
 
 export default function TopExpensesCard({ month }: Props) {
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -72,7 +70,7 @@ export default function TopExpensesCard({ month }: Props) {
                   <div className="text-sm font-semibold text-ink-hi">
                     {formatCurrency(e.amount)}
                   </div>
-                  <div className="text-xs text-ink-3">{formatShortDate(e.date)}</div>
+                  <div className="text-xs text-ink-3">{formatDayMonth(e.date)}</div>
                 </div>
               </li>
             );

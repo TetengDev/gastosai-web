@@ -1,4 +1,5 @@
 import type { Conversation } from "../api/types";
+import { formatDateOnly } from "../lib/formatters";
 
 interface Props {
   open: boolean;
@@ -18,7 +19,9 @@ function relativeTime(iso: string): string {
   if (diffMin < 60) return `${diffMin}m ago`;
   const diffH = Math.round(diffMin / 60);
   if (diffH < 24) return `${diffH}h ago`;
-  return new Date(iso).toLocaleDateString();
+  // Pinned to Asia/Manila; the bare toLocaleDateString() used the device zone and
+  // had no locale either, so the format varied by machine.
+  return formatDateOnly(iso);
 }
 
 /** Slide-over panel listing the user's past chat conversations (covers the widget body). */

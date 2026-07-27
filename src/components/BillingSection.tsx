@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { getSubscription } from "../api/subscription";
 import type { SubscriptionInfo } from "../api/types";
 import { Button } from "./ui";
+import { formatDateOnly } from "../lib/formatters";
 
 const PLAN_LABELS: Record<SubscriptionInfo["plan"], string> = {
   FREE: "Free",
@@ -18,13 +19,8 @@ const STATUS_STYLES: Record<SubscriptionInfo["status"], string> = {
   CANCELLED: "bg-warn-bg text-warn-ink border-warn-edge",
 };
 
-function formatPeriodEnd(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("en-PH", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-}
+// formatDateOnly pins Asia/Manila — a billing period end rendered in the device's zone
+// could show the wrong day and imply the wrong renewal date.
 
 export default function BillingSection() {
   const navigate = useNavigate();
@@ -74,7 +70,7 @@ export default function BillingSection() {
           {sub.currentPeriodEnd && (
             <p className="text-[13px] text-ink-2">
               {isExpiredOrCancelled ? "Expired" : "Renews"}:{" "}
-              <span className="font-medium text-ink">{formatPeriodEnd(sub.currentPeriodEnd)}</span>
+              <span className="font-medium text-ink">{formatDateOnly(sub.currentPeriodEnd)}</span>
               {sub.billingPeriod && (
                 <span className="ml-2 text-ink-3">
                   ({sub.billingPeriod === "MONTHLY" ? "monthly" : "annual"})
