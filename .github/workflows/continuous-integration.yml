@@ -77,9 +77,21 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # Node 24, not 20 and not 26, and the window is genuinely that narrow.
+      #
+      # Below 22 the dependency tree no longer runs at all: jsdom 30 requires
+      # ^22.22.2 || ^24.15.0 || >=26, undici 8 requires >=22.19.0, and undici calls
+      # `webidl.util.markAsUncloneable` — a Node 22+ API. On Node 20 every vitest worker dies
+      # before a single test runs.
+      #
+      # At 26 the suite runs but six tests fail: Node 26 ships a native `localStorage` global
+      # that displaces the one jsdom installs, and it is inert without --localstorage-file.
+      # That fragility is real and tracked (TEN-149) — the tips helpers should take storage as
+      # a dependency rather than reach for an ambient global — but it is a separate change and
+      # pinning 24 does not make it any less true.
       - uses: actions/setup-node@v7
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'npm'
           cache-dependency-path: package-lock.json
 

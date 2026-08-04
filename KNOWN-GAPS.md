@@ -55,23 +55,29 @@ Until then: never parse an amount into a float and round-trip it, and keep all f
 
 ---
 
-## 3. Tests fail on Node 26 locally; CI pins Node 20
+## 3. Tests fail on Node 26 locally; CI pins Node 24
 
-`src/test/tips.test.ts` and `src/test/TipsPopover.test.tsx` fail on **Node 26** with
-`localStorage is undefined`. Node 26 ships a native experimental `localStorage` global that
-displaces the one jsdom installs on `window`, and it is inert without `--localstorage-file`:
+`src/test/tips.test.ts` and `src/test/TipsPopover.test.tsx` fail on **Node 26** — six tests
+across two files. Node 26 ships a native experimental `localStorage` global that displaces the
+one jsdom installs on `window`, and it is inert without `--localstorage-file`:
 
 ```
 ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
 ```
 
-This is an environment artifact, not a code defect — all 185 tests pass on Node 20, which is
-what `.github/workflows/continuous-integration.yml` pins and what CI actually runs.
+This is an environment artifact, not a code defect. The suite is green on Node 24, which is what
+`.github/workflows/continuous-integration.yml` pins and what CI actually runs.
 
-**If you develop on Node 26**, either use Node 20 locally (`nvm use 20`) or expect those six
-failures. The real fix is to stop relying on the ambient global — have the tips helpers take
-storage as a dependency, or stub it in `src/test/setup.ts` — which would make the suite
-independent of the runtime's built-ins.
+**CI moved from Node 20 to 24** when the dependency tree outgrew 20: jsdom 30 requires
+`^22.22.2 || ^24.15.0 || >=26`, and undici 8 calls `webidl.util.markAsUncloneable`, a Node 22+
+API — on Node 20 every vitest worker now dies before a test runs. So the usable window is
+**22.22.2 or 24.15.0 and up, but below 26**, and 24 sits in the middle of it.
+
+**If you develop on Node 26**, either use Node 24 locally or expect those six failures. The real
+fix is to stop relying on the ambient global — have the tips helpers take storage as a
+dependency, or stub it in `src/test/setup.ts` — which would make the suite independent of the
+runtime's built-ins and reopen Node 26. That is tracked as a backlog item; until it lands, the
+Node pin is load-bearing rather than incidental.
 
 ---
 
