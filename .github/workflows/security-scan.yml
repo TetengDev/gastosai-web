@@ -21,9 +21,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # Kept in step with continuous-integration.yml, which explains the choice. A scan running
+      # on a Node the tree cannot install under would report on a resolution nobody ships.
       - uses: actions/setup-node@v7
         with:
-          node-version: "20"
+          node-version: "24"
           cache: "npm"
           cache-dependency-path: package-lock.json
 
