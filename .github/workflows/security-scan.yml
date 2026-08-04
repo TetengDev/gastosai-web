@@ -1,7 +1,7 @@
 name: Security Scan
 
 # Biweekly consolidated vulnerability scan. Compiles npm-audit + Trivy findings into ONE
-# tracking issue (label: security-report) and pings Telegram. Fixes are NOT opened here —
+# tracking issue (label: security-report) — that issue is the notification. Fixes are NOT opened here —
 # they arrive as grouped Dependabot PRs (see .github/dependabot.yml). Run on demand via the
 # "Run workflow" button (workflow_dispatch).
 on:
@@ -18,9 +18,6 @@ jobs:
   scan:
     name: Compile vulnerability report
     runs-on: ubuntu-latest
-    env:
-      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
     steps:
       - uses: actions/checkout@v7
 
@@ -75,14 +72,3 @@ jobs:
             echo "issue_url=$url" >> "$GITHUB_OUTPUT"
           fi
         id: issue
-
-      - name: Notify Telegram
-        if: ${{ env.TELEGRAM_BOT_TOKEN != '' && env.TELEGRAM_CHAT_ID != '' }}
-        run: |
-          summary=$(grep -oP 'VULN_SUMMARY \K[^|]+' "$RUNNER_TEMP/report.md" || echo "see report")
-          total=$(grep -oP 'TOTAL \K[0-9]+' "$RUNNER_TEMP/report.md" || echo "?")
-          text="gastosai-web security scan: ${total} finding(s). ${summary}. Report: ${{ steps.issue.outputs.issue_url }} . Fixes arrive as grouped Dependabot PRs."
-          curl -sS --max-time 30 \
-            "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-            --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
-            --data-urlencode "text=${text}" >/dev/null
