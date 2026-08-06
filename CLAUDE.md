@@ -1,9 +1,10 @@
 # CLAUDE.md — gastosai-web
 
 React 19 + TypeScript + Vite + Tailwind + Recharts. A presentation surface over the
-gastosai backend. **This repo pins and consumes the published API contract.** Read
-`CONTRACT.md` first, then `KNOWN-GAPS.md` for where today's code does not yet meet the
-invariants below.
+gastosai backend. **This repo pins and consumes the published API contract.**
+
+The invariants below are always in force. Everything else is conditional — see §8 for which
+document to open for which task, and do not preload the rest.
 
 ---
 
@@ -68,12 +69,12 @@ predate the contract and are still hand-written. They are being re-typed against
 
 ## Before opening a PR
 
-Run the gate in `ai/skills/shared/pre-pr-checklist.md`, or the `pre-pr` agent
-(`.claude/agents/pre-pr.md`) which executes it and reports a table.
+**When preparing a PR** — not while implementing — run the `pre-pr` agent
+(`.claude/agents/pre-pr.md`), which executes the full checklist and reports a table.
 
 The item that is not automatable and is skipped most often: **runtime execution.** A green test
 suite is not evidence that the code was run. State in the PR body what you executed and what you
-observed.
+observed. Use targeted tests while implementing; the full suite belongs here, once.
 
 ---
 
@@ -99,29 +100,18 @@ dependency, moving backend computation into the client, changing the auth flow.
 on money, ship any non-public key, hardcode `₱` formatting outside `formatters.ts`,
 generate from a live URL instead of the pinned package.
 
-### Tracking
+### Working with tracked issues
 
-Work is tracked as Linear issues in the **GastosAI** project (team `TEN`). The backlog and the
-cross-repo roadmap live in the `gastosai-app` workspace beside this repo — see its
-`docs/ROADMAP.md` and `docs/ownership.toml`.
+Shared workflow — Linear lifecycle, `Owns` restrictions, evidence, PR linking, `/ship`, dispatch,
+subagent policy, search discipline — lives in
+[`../docs/agent-workflow.md`](../docs/agent-workflow.md).
 
-- Assign the issue to its human owner and move it to `In Progress` when you start.
-- **Only write the files your issue's `Owns` block lists.** They are also in `ownership.toml`.
-- Attach the PR to its issue before review; `In Review` when the PR opens, `Done` only after merge.
-- A finding too large to fix in the PR becomes a new Linear issue, related to the current one and
-  mentioned in a PR comment.
-- **Finish with `/ship <ISSUE>`.** It runs `pre-pr`, opens the PR, links it to the issue, then puts
-  the diff through an independent `pr-reviewer` → `pr-review-auditor` pass, iterating on findings
-  until the verdict is `APPROVE` or three passes have gone by. Rules:
-  `../gastosai-app/docs/ship-loop.md`. Never merge — a human does that.
-- Evidence goes on the Linear issue via `../gastosai-app/scripts/attach_evidence.py`. GitHub
-  carries the conversation, Linear carries the artifacts; there is no third channel.
-- **Deployment is deferred.** Verify against a locally running backend, not a deployed one.
+**Read it when** you start tracked implementation, move an issue's state, prepare or open a PR,
+attach evidence, run `/ship`, or coordinate across repositories. **Not** for debugging, planning,
+reading code, or a local edit.
 
-### Generated, do not hand-edit
-
-`.agentic-team/` and the agent and command files under `.claude/` come from the `agentic-team`
-CLI. Regenerate through it; never edit them in place.
+Two rules from it worth repeating: **only write the files your issue's `Owns` block lists**, and
+**never merge** — a human does that.
 
 ---
 
@@ -135,3 +125,19 @@ npm run typecheck
 npm run test:run
 npm run build
 ```
+
+---
+
+## 8. Reference documents — read when the task calls for them
+
+**Do not preload linked reference documents for unrelated tasks.**
+
+| Read | When |
+|---|---|
+| `CONTRACT.md` | API calls, generated types, a contract version bump, client/back-end compatibility |
+| `KNOWN-GAPS.md` | the issue names a documented limitation, or you are touching one |
+| `.claude/agents/pre-pr.md` | preparing a PR, or running the gate by hand |
+| `../docs/ship-loop.md` | running `/ship`, or changing the review process |
+| `../docs/agent-workflow.md` | tracked work, issue state, PRs, evidence, cross-repo |
+
+Never search or read the `gastosai/` archive beside this repo during ordinary work.
