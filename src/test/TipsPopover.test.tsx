@@ -1,11 +1,10 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import TipsPopover from "../components/TipsPopover";
 import { getDismissedTips } from "../lib/tips";
 
+// Storage is installed and cleared between tests by src/test/setup.ts.
 describe("TipsPopover", () => {
-  beforeEach(() => localStorage.clear());
-
   it("opens the popover and shows a tip", () => {
     render(<TipsPopover />);
     fireEvent.click(screen.getByRole("button", { name: "Tips" }));
