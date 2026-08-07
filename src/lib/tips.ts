@@ -1,3 +1,5 @@
+import { getLocalStorage, type KeyValueStorage } from "./storage";
+
 export interface Tip {
   id: string;
   text: string;
@@ -20,21 +22,21 @@ export const TIPS: Tip[] = [
 
 const KEY = "gastosai:tips:dismissed";
 
-export function getDismissedTips(): string[] {
+export function getDismissedTips(storage: KeyValueStorage | null = getLocalStorage()): string[] {
   try {
-    const raw = localStorage.getItem(KEY);
+    const raw = storage?.getItem(KEY);
     return raw ? (JSON.parse(raw) as string[]) : [];
   } catch {
     return [];
   }
 }
 
-export function dismissTip(id: string): void {
-  const next = new Set(getDismissedTips());
+export function dismissTip(id: string, storage: KeyValueStorage | null = getLocalStorage()): void {
+  const next = new Set(getDismissedTips(storage));
   next.add(id);
-  localStorage.setItem(KEY, JSON.stringify([...next]));
+  storage?.setItem(KEY, JSON.stringify([...next]));
 }
 
-export function resetTips(): void {
-  localStorage.removeItem(KEY);
+export function resetTips(storage: KeyValueStorage | null = getLocalStorage()): void {
+  storage?.removeItem(KEY);
 }

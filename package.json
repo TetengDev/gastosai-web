@@ -1,7 +1,7 @@
 {
   "name": "gastosai-web",
   "private": true,
-  "version": "0.64.1",
+  "version": "0.64.2",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -55,7 +55,7 @@
     "openapi-typescript": {
       "typescript": "$typescript"
     },
-    "js-yaml": "^4.2.1",
+    "js-yaml": "^4.3.1",
     "minimatch": "^10.2.5",
     "brace-expansion": "^5.0.8"
   }
