@@ -46,6 +46,10 @@ Be terse: run each command once, report the table, do not re-explain checks that
    **Do not accept "tests pass" or "it type-checks" as evidence.** If none is present, ask:
    *"Was this run in a browser? Which flow, and what did you observe?"* and mark ❌ until answered.
 
+9. **Rollback** — state the answer to "how do I revert this in under 5 minutes?" A Vercel
+   redeploy of the previous build undoes the bundle; it does not undo anything already written
+   through the API, and it does not undo a contract pin the backend has since acted on.
+
 ## Report
 
 ```
@@ -59,6 +63,7 @@ Be terse: run each command once, report the table, do not re-explain checks that
 | Version bump       | ✅ PASS  | 0.64.1 → 0.65.0 (feat: MINOR)          |
 | Branch lane        | ✅ PASS  | release/0.65.0                         |
 | Browser execution  | ✅ PASS  | Expenses filter + empty state exercised |
+| Rollback           | ✅ PASS  | redeploy previous Vercel build         |
 
 Overall: PASS — ready to open the PR.
 ```
