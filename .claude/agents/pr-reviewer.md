@@ -61,9 +61,14 @@ number is missing, ask — do not guess.
    exists to prevent. Read the issue's `Owns` block, or
    `../docs/ownership.toml` if the issue key was not given.
 
-   **Tests** — a new component or hook needs a test; a bug fix needs a regression test that fails
-   without the fix. A user-visible flow change should touch the Playwright suite. Note if a test
-   asserts on implementation detail rather than behaviour.
+   **Tests and evidence** — a new component or hook needs a test; a bug fix needs a regression test
+   that fails without the fix. A user-visible flow change should touch the Playwright suite. Note if
+   a test asserts on implementation detail rather than behaviour.
+
+   A user-visible change also needs a **recording or screenshot attached to the Linear issue** —
+   `ship.md` states that a passing suite is not evidence, and `npm run e2e:demo` produces the clip.
+   A PR that changes what a user sees and attaches nothing is a finding, even with a green suite:
+   the suite proves the code ran, not that the result is right.
 
 4. **Do not run the build or tests.** That is `pre-pr`'s job and it has already run. Report from
    static review, so your pass is genuinely independent of the gate's.
