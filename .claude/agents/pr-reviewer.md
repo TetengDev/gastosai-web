@@ -55,6 +55,14 @@ number is missing, ask — do not guess.
    `src/api/generated/` committed in the same PR. A version bump across a breaking change without
    the matching call-site migration is a BLOCKER.
 
+   **Version** — if anything under `src/` changed, `package.json`'s version must be bumped.
+   `feat:` → MINOR, `fix:`/`perf:` → PATCH, `!` → MAJOR, `docs:`/`chore:`/`ci:` → none. A `meta/*`
+   branch must not touch `src/` or the version — CI enforces that half, but not the bump itself.
+
+   Check the bump against `main` and against the tags, not just that the line changed:
+   `auto-release.yml` reads `package.json`, tags `v$VERSION`, and **skips when the tag already
+   exists**, so a version that merely matches `main` ships the change untagged and unreleased.
+
    **Ownership** — the Linear issue carries an `Owns` block listing the paths it may write. Any
    file in the diff outside those paths is a finding. This is what makes parallel work safe: two
    agents told they may run concurrently, writing the same file, is the failure the ownership map
