@@ -1,17 +1,47 @@
 import api from "./client";
-import type { CategoryReport, DailyReport, Expense, ExpenseRequest, MonthlyComparison, MonthlyReport, PageResponse, ParsedExpenseResult } from "./types";
+import type { components } from "./generated/schema";
 
-export interface ImportResult {
-  imported: number;
-  skipped: number;
-  errors: string[];
-}
+type Schemas = components["schemas"];
+
+/**
+ * springdoc emits every response property as optional, because Java has no
+ * notion of a non-null field the serializer can advertise. The API always
+ * sends them, so responses are read through this.
+ */
+type Complete<T> = { [K in keyof T]-?: T[K] };
+
+/**
+ * The contract types `expenseType` as a bare string on both the request and
+ * the response — the backend's enum is not expressed in the spec, so this is
+ * the one field the generated types cannot narrow on their own. The values
+ * still come from the contract's own string type; only the domain is added.
+ */
+export type ExpenseType = "PERSONAL" | "BUSINESS";
+
+export type Expense = Omit<Complete<Schemas["ExpenseResponse"]>, "expenseType"> & {
+  expenseType: Extract<Schemas["ExpenseResponse"]["expenseType"], string> & ExpenseType;
+};
+
+export type ExpenseRequest = Omit<Schemas["ExpenseRequest"], "expenseType"> & {
+  expenseType?: Extract<Schemas["ExpenseRequest"]["expenseType"], string> & ExpenseType;
+};
+
+/** `Complete` is shallow, so the page's element type is narrowed explicitly. */
+export type ExpensePage = Omit<Complete<Schemas["PageResponseExpenseResponse"]>, "content"> & {
+  content: Expense[];
+};
+export type ImportResult = Complete<Schemas["ImportResult"]>;
+export type ParsedExpenseResult = Complete<Schemas["ParsedExpenseResult"]>;
+export type MonthlyReport = Complete<Schemas["MonthlyReportItem"]>;
+export type MonthlyComparison = Complete<Schemas["MonthlyComparisonResponse"]>;
+export type CategoryReport = Complete<Schemas["CategoryReportItem"]>;
+export type DailyReport = Complete<Schemas["DailyReportItem"]>;
 
 export const getExpenses = (params?: { from?: string; to?: string }) =>
   api.get<Expense[]>("/expenses", { params }).then((r) => r.data);
 
 export const getExpensesPage = (params: { page: number; size: number; from?: string; to?: string }) =>
-  api.get<PageResponse<Expense>>("/expenses/page", { params }).then((r) => r.data);
+  api.get<ExpensePage>("/expenses/page", { params }).then((r) => r.data);
 
 export const createExpense = (data: ExpenseRequest) =>
   api.post<Expense>("/expenses", data).then((r) => r.data);
