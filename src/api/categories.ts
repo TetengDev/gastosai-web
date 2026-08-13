@@ -4,19 +4,20 @@ import type { components } from "./generated/schema";
 type Schemas = components["schemas"];
 
 /**
- * springdoc emits every response property as optional, because Java has no
- * notion of a non-null field the serializer can advertise. The API always
- * sends them, so responses are read through this.
+ * springdoc expresses neither presence nor nullability: every response property
+ * arrives optional and never nullable, which is wrong in both directions. These
+ * two put it back — `Complete` for the fields the API always sends, `Nullable`
+ * for the ones it sends as `null`. Verified against the running API, not guessed:
+ * `GET /categories` returns `icon` and `bucket` as `null` on an unedited category.
  */
 type Complete<T> = { [K in keyof T]-?: T[K] };
+type Nullable<T, K extends keyof T> = Omit<Complete<T>, K> & {
+  [P in K]-?: Exclude<T[P], undefined> | null;
+};
 
-export type Category = Complete<Schemas["CategoryResponse"]>;
+export type Category = Nullable<Schemas["CategoryResponse"], "icon" | "bucket">;
 
-/**
- * springdoc does not emit nullability either: the API accepts `icon: null` to
- * clear an icon, so the request type keeps the key from the contract and
- * restores the null the spec cannot express.
- */
+/** `icon: null` clears an icon; the key still comes from the contract. */
 export type CategoryRequest = Omit<Schemas["CategoryRequest"], "icon"> & {
   icon?: Schemas["CategoryRequest"]["icon"] | null;
 };

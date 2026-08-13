@@ -4,11 +4,16 @@ import type { components } from "./generated/schema";
 type Schemas = components["schemas"];
 
 /**
- * springdoc emits every response property as optional, because Java has no
- * notion of a non-null field the serializer can advertise. The API always
- * sends them, so responses are read through this.
+ * springdoc expresses neither presence nor nullability: every response property
+ * arrives optional and never nullable, which is wrong in both directions. These
+ * two put it back — `Complete` for the fields the API always sends, `Nullable`
+ * for the ones it sends as `null` (an unparseable amount, a first month with no
+ * previous month to compare against).
  */
 type Complete<T> = { [K in keyof T]-?: T[K] };
+type Nullable<T, K extends keyof T> = Omit<Complete<T>, K> & {
+  [P in K]-?: Exclude<T[P], undefined> | null;
+};
 
 /**
  * The contract types `expenseType` as a bare string on both the request and
@@ -31,9 +36,12 @@ export type ExpensePage = Omit<Complete<Schemas["PageResponseExpenseResponse"]>,
   content: Expense[];
 };
 export type ImportResult = Complete<Schemas["ImportResult"]>;
-export type ParsedExpenseResult = Complete<Schemas["ParsedExpenseResult"]>;
+export type ParsedExpenseResult = Nullable<
+  Schemas["ParsedExpenseResult"],
+  "amount" | "category" | "date" | "description" | "hint" | "rejectionMessage"
+>;
 export type MonthlyReport = Complete<Schemas["MonthlyReportItem"]>;
-export type MonthlyComparison = Complete<Schemas["MonthlyComparisonResponse"]>;
+export type MonthlyComparison = Nullable<Schemas["MonthlyComparisonResponse"], "changePercent">;
 export type CategoryReport = Complete<Schemas["CategoryReportItem"]>;
 export type DailyReport = Complete<Schemas["DailyReportItem"]>;
 
