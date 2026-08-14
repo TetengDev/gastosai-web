@@ -1,17 +1,55 @@
 import api from "./client";
-import type { CategoryReport, DailyReport, Expense, ExpenseRequest, MonthlyComparison, MonthlyReport, PageResponse, ParsedExpenseResult } from "./types";
+import type { components } from "./generated/schema";
 
-export interface ImportResult {
-  imported: number;
-  skipped: number;
-  errors: string[];
-}
+type Schemas = components["schemas"];
+
+/**
+ * springdoc expresses neither presence nor nullability: every response property
+ * arrives optional and never nullable, which is wrong in both directions. These
+ * two put it back — `Complete` for the fields the API always sends, `Nullable`
+ * for the ones it sends as `null` (an unparseable amount, a first month with no
+ * previous month to compare against).
+ */
+type Complete<T> = { [K in keyof T]-?: T[K] };
+type Nullable<T, K extends keyof T> = Omit<Complete<T>, K> & {
+  [P in K]-?: Exclude<T[P], undefined> | null;
+};
+
+/**
+ * The contract types `expenseType` as a bare string on both the request and
+ * the response — the backend's enum is not expressed in the spec, so this is
+ * the one field the generated types cannot narrow on their own. The values
+ * still come from the contract's own string type; only the domain is added.
+ */
+export type ExpenseType = "PERSONAL" | "BUSINESS";
+
+export type Expense = Omit<Complete<Schemas["ExpenseResponse"]>, "expenseType"> & {
+  expenseType: Extract<Schemas["ExpenseResponse"]["expenseType"], string> & ExpenseType;
+};
+
+export type ExpenseRequest = Omit<Schemas["ExpenseRequest"], "expenseType"> & {
+  expenseType?: Extract<Schemas["ExpenseRequest"]["expenseType"], string> & ExpenseType;
+};
+
+/** `Complete` is shallow, so the page's element type is narrowed explicitly. */
+export type ExpensePage = Omit<Complete<Schemas["PageResponseExpenseResponse"]>, "content"> & {
+  content: Expense[];
+};
+export type ImportResult = Complete<Schemas["ImportResult"]>;
+export type ParsedExpenseResult = Nullable<
+  Schemas["ParsedExpenseResult"],
+  "amount" | "category" | "date" | "description" | "hint" | "rejectionMessage"
+>;
+export type MonthlyReport = Complete<Schemas["MonthlyReportItem"]>;
+export type MonthlyComparison = Nullable<Schemas["MonthlyComparisonResponse"], "changePercent">;
+export type CategoryReport = Complete<Schemas["CategoryReportItem"]>;
+export type DailyReport = Complete<Schemas["DailyReportItem"]>;
 
 export const getExpenses = (params?: { from?: string; to?: string }) =>
   api.get<Expense[]>("/expenses", { params }).then((r) => r.data);
 
 export const getExpensesPage = (params: { page: number; size: number; from?: string; to?: string }) =>
-  api.get<PageResponse<Expense>>("/expenses/page", { params }).then((r) => r.data);
+  api.get<ExpensePage>("/expenses/page", { params }).then((r) => r.data);
 
 export const createExpense = (data: ExpenseRequest) =>
   api.post<Expense>("/expenses", data).then((r) => r.data);
