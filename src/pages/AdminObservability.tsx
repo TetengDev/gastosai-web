@@ -12,7 +12,7 @@ import type {
   ObservabilityCost,
   ObservabilityHealth,
   ObservabilitySummary,
-} from "../api/types";
+} from "../api/admin";
 import { formatDate } from "../lib/formatters";
 
 function Stat({ label, value }: { label: string; value: string | number }) {
@@ -24,7 +24,12 @@ function Stat({ label, value }: { label: string; value: string | number }) {
   );
 }
 
-const usd = (v: string | null) => (v == null ? "$0.00" : `$${Number(v).toFixed(4)}`);
+/**
+ * The contract serves both AI cost fields as JSON numbers, not decimal strings —
+ * they are USD estimates of provider spend on an admin dashboard, not user money,
+ * and the formatting stays at this display edge.
+ */
+const usd = (v: number | null) => (v == null ? "$0.00" : `$${v.toFixed(4)}`);
 const uptime = (s: number) => {
   const h = Math.floor(s / 3600);
   const m = Math.floor((s % 3600) / 60);
@@ -100,7 +105,7 @@ export default function AdminObservability() {
 
   if (!isAdmin) return <Navigate to="/" replace />;
 
-  const mtdCost = cost?.monthToDate.reduce((sum, i) => sum + Number(i.estimatedCostUsd ?? "0"), 0) ?? 0;
+  const mtdCost = cost?.monthToDate.reduce((sum, i) => sum + (i.estimatedCostUsd ?? 0), 0) ?? 0;
   const errors = events.filter((e) => e.severity === "ERROR");
   const abuse = events.filter((e) => e.severity === "WARN");
 
