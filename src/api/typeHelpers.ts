@@ -27,6 +27,12 @@ export type Nullable<T, K extends keyof T> = Omit<Complete<T>, K> & {
  * in the compiler error.
  *
  * The failing case is exercised in `typeHelpers.test.ts`.
+ *
+ * It assumes `ContractField` is a real field: `never` passes vacuously, since
+ * there is nothing left to be uncovered. Reaching for a property the contract
+ * does not have is already a compile error at the call site, so this costs
+ * nothing in practice — but it is why the guard is not a substitute for reading
+ * the generated types.
  */
 type ContractStrings<ContractField> = Extract<ContractField, string>;
 
