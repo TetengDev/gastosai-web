@@ -1,13 +1,10 @@
 import api from "./client";
 import type { components } from "./generated/schema";
+// springdoc marks every response property optional; the rule endpoints always
+// send all of them. `Complete` puts that back.
+import type { Complete } from "./typeHelpers";
 
 type Schemas = components["schemas"];
-
-/**
- * springdoc marks every response property optional; the rule endpoints always
- * send all of them. `Complete` puts that back.
- */
-type Complete<T> = { [K in keyof T]-?: T[K] };
 
 export type Bucket = Extract<Schemas["BucketSummary"]["bucket"], string>;
 export type BudgetRuleType = Extract<Schemas["BudgetRuleResponse"]["ruleType"], string>;

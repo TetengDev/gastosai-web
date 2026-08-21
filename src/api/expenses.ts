@@ -1,19 +1,16 @@
 import api from "./client";
 import type { components } from "./generated/schema";
+// `Complete` marks the fields the API always sends; `Nullable` the ones it
+// sends as `null` — here an unparseable amount, and a first month with no
+// previous month to compare against.
+import type {
+  AssertContractUnionCovered,
+  Complete,
+  CoversContractUnion,
+  Nullable,
+} from "./typeHelpers";
 
 type Schemas = components["schemas"];
-
-/**
- * springdoc expresses neither presence nor nullability: every response property
- * arrives optional and never nullable, which is wrong in both directions. These
- * two put it back — `Complete` for the fields the API always sends, `Nullable`
- * for the ones it sends as `null` (an unparseable amount, a first month with no
- * previous month to compare against).
- */
-type Complete<T> = { [K in keyof T]-?: T[K] };
-type Nullable<T, K extends keyof T> = Omit<Complete<T>, K> & {
-  [P in K]-?: Exclude<T[P], undefined> | null;
-};
 
 /**
  * The contract types `expenseType` as a bare string on both the request and
@@ -22,6 +19,20 @@ type Nullable<T, K extends keyof T> = Omit<Complete<T>, K> & {
  * still come from the contract's own string type; only the domain is added.
  */
 export type ExpenseType = "PERSONAL" | "BUSINESS";
+
+/**
+ * The narrowing above is silent on its own: were the contract to publish the
+ * real enum with a third member, `Extract<string, …> & ExpenseType` would keep
+ * compiling and drop it. These two make that a build failure that names the
+ * missing member. They are exported because `noUnusedLocals` is on, and they
+ * are the proof the guard is wired — not decoration.
+ */
+export type ExpenseResponseTypeCovered = AssertContractUnionCovered<
+  CoversContractUnion<Schemas["ExpenseResponse"]["expenseType"], ExpenseType>
+>;
+export type ExpenseRequestTypeCovered = AssertContractUnionCovered<
+  CoversContractUnion<Schemas["ExpenseRequest"]["expenseType"], ExpenseType>
+>;
 
 export type Expense = Omit<Complete<Schemas["ExpenseResponse"]>, "expenseType"> & {
   expenseType: Extract<Schemas["ExpenseResponse"]["expenseType"], string> & ExpenseType;

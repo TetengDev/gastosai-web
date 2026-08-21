@@ -1,19 +1,11 @@
 import api from "./client";
 import type { components } from "./generated/schema";
+// `Nullable` marks the fields the API sends as `null` on top of the ones it
+// always sends. Verified against the running API, not guessed: `GET /categories`
+// returns `icon` and `bucket` as `null` on an unedited category.
+import type { Nullable } from "./typeHelpers";
 
 type Schemas = components["schemas"];
-
-/**
- * springdoc expresses neither presence nor nullability: every response property
- * arrives optional and never nullable, which is wrong in both directions. These
- * two put it back — `Complete` for the fields the API always sends, `Nullable`
- * for the ones it sends as `null`. Verified against the running API, not guessed:
- * `GET /categories` returns `icon` and `bucket` as `null` on an unedited category.
- */
-type Complete<T> = { [K in keyof T]-?: T[K] };
-type Nullable<T, K extends keyof T> = Omit<Complete<T>, K> & {
-  [P in K]-?: Exclude<T[P], undefined> | null;
-};
 
 export type Category = Nullable<Schemas["CategoryResponse"], "icon" | "bucket">;
 

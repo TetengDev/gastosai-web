@@ -1,19 +1,10 @@
 import api from "./client";
 import type { components } from "./generated/schema";
+// `Complete` marks the fields the API always sends; `Nullable` the ones it
+// sends as `null` (a free account has no renewal date and no billing period).
+import type { Complete, Nullable } from "./typeHelpers";
 
 type Schemas = components["schemas"];
-
-/**
- * springdoc expresses neither presence nor nullability: every response property
- * arrives optional and never nullable, which is wrong in both directions. These
- * two put it back — `Complete` for the fields the API always sends, `Nullable`
- * for the ones it sends as `null` (a free account has no renewal date and no
- * billing period).
- */
-type Complete<T> = { [K in keyof T]-?: T[K] };
-type Nullable<T, K extends keyof T> = Omit<Complete<T>, K> & {
-  [P in K]-?: Exclude<T[P], undefined> | null;
-};
 
 export type BillingPeriod = Schemas["CheckoutRequest"]["period"];
 
