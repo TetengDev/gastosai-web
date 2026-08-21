@@ -1,14 +1,11 @@
 import api from "./client";
 import type { components } from "./generated/schema";
+// springdoc marks every response property optional, which is wrong for an
+// insight — the API sends all of them, or fails the request. `Complete` puts
+// that back.
+import type { Complete } from "./typeHelpers";
 
 type Schemas = components["schemas"];
-
-/**
- * springdoc expresses presence but not nullability: every response property
- * arrives optional, which is wrong for an insight — the API sends all of them,
- * or fails the request. `Complete` puts that back.
- */
-type Complete<T> = { [K in keyof T]-?: T[K] };
 
 export type TopCategoryInsight = Complete<Schemas["TopCategoryInsightResponse"]>;
 export type MonthSummaryInsight = Complete<Schemas["MonthSummaryInsightResponse"]>;

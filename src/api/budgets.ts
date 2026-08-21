@@ -1,14 +1,10 @@
 import api from "./client";
 import type { components } from "./generated/schema";
+// springdoc marks every response property optional, which is wrong for a
+// budget — the API sends all of them. `Complete` puts that back.
+import type { Complete } from "./typeHelpers";
 
 type Schemas = components["schemas"];
-
-/**
- * springdoc expresses presence but not nullability: every response property
- * arrives optional, which is wrong for a budget — the API sends all of them.
- * `Complete` puts that back.
- */
-type Complete<T> = { [K in keyof T]-?: T[K] };
 
 /**
  * The contract types a summary item's `status` as a bare string — the backend's

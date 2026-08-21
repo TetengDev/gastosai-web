@@ -1,19 +1,11 @@
 import api from "./client";
 import type { components } from "./generated/schema";
+// `Complete` marks the fields the API always sends; `Nullable` the ones it
+// sends as `null` — here an event with no authenticated user, a tool call made
+// outside a conversation, a day with no AI spend.
+import type { Complete, Nullable } from "./typeHelpers";
 
 type Schemas = components["schemas"];
-
-/**
- * springdoc expresses neither presence nor nullability: every response property
- * arrives optional and never nullable, which is wrong in both directions. These
- * two put it back — `Complete` for the fields the API always sends, `Nullable`
- * for the ones it sends as `null` (an event with no authenticated user, a tool
- * call made outside a conversation, a day with no AI spend).
- */
-type Complete<T> = { [K in keyof T]-?: T[K] };
-type Nullable<T, K extends keyof T> = Omit<Complete<T>, K> & {
-  [P in K]-?: Exclude<T[P], undefined> | null;
-};
 
 /**
  * The contract types an audit entry's `status` as a bare string — the backend's
