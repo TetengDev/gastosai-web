@@ -140,4 +140,3 @@ npm run build
 | `../docs/ship-loop.md` | running `/ship`, or changing the review process |
 | `../docs/agent-workflow.md` | tracked work, issue state, PRs, evidence, cross-repo |
 
-Never search or read the `gastosai/` archive beside this repo during ordinary work.
