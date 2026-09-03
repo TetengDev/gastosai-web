@@ -4,8 +4,8 @@ description: >
   Reviews an open gastosai-web pull request. Reads the PR diff and changed files, then reports
   correctness bugs, security concerns, convention violations (CLAUDE.md / CONTRACT.md), ownership
   breaches, missing tests, and release-hygiene gaps as a severity-tagged finding list. Read-only —
-  never edits, commits, or pushes. Does NOT spawn other agents; the main thread pairs its output
-  with pr-review-auditor. Use right after a PR is created, before handing the branch to a human.
+  never edits, commits, or pushes. Does NOT spawn other agents; the main thread runs it beside
+  security-reviewer and pairs both outputs with pr-review-auditor. Use right after a PR is created, before handing the branch to a human.
 model: sonnet
 tools:
   - Read
@@ -42,9 +42,10 @@ number is missing, ask — do not guess.
    less often than intended, unhandled promise rejections, query keys that do not invalidate what
    the mutation changed.
 
-   **Security** — auth handling, XSS through `dangerouslySetInnerHTML`, secret exposure, a
-   non-public key reaching the bundle. The JWT lives in `localStorage` and is a backend-issued
-   token; any change to how it is stored or attached is security-relevant.
+   **Security** — flag what you notice in passing: an exposed key, `dangerouslySetInnerHTML` on
+   untrusted data, a change to how the JWT is stored or attached. Do not go deeper than that —
+   `security-reviewer` runs over this same diff, independently, and owns the systematic pass. Two
+   agents doing the same analysis is not two opinions, it is one opinion billed twice.
 
    **Conventions** (`CLAUDE.md`, `CONTRACT.md`) — no `any`; never hand-edit `src/api/generated/`;
    no business value computed client-side that the backend already returns; no float arithmetic on
