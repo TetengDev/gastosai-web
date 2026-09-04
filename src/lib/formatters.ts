@@ -52,6 +52,66 @@ export const formatCurrency = (amount: number | string): string => {
 };
 
 /**
+ * Integer centavos as an exact decimal string — `15075` -> `"150.75"`.
+ *
+ * String slicing rather than `c / 100` is the point: division puts an IEEE-754 float between the
+ * contract and the screen, which CLAUDE.md §1.3 rules out. Slicing is exact for every value the
+ * `long` field can hold up to `Number.MAX_SAFE_INTEGER`, which is ₱90 trillion.
+ *
+ * Non-finite and non-integer inputs collapse to `"0.00"` rather than throwing: this sits on the
+ * render path, and a malformed amount must not blank a whole page.
+ */
+export const centavosToAmount = (centavos: number): string => {
+  if (!Number.isInteger(centavos)) return "0.00";
+  const digits = String(Math.abs(centavos)).padStart(3, "0");
+  return `${centavos < 0 ? "-" : ""}${digits.slice(0, -2)}.${digits.slice(-2)}`;
+};
+
+/** Thousands separators for a run of digits, without going through `Number`. */
+const groupDigits = (digits: string): string => digits.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+
+/**
+ * An integer centavo amount rendered for display — `15075` -> `"₱150.75"`.
+ *
+ * This is the `/api/v2` counterpart to `formatCurrency`, which stays for the decimal amounts
+ * `/api/v1` still serves. It groups the digits itself instead of handing them to
+ * `toLocaleString`, because reaching a locale formatter means parsing the string back into a
+ * float first — exactly the round-trip §1.3 forbids.
+ */
+export const formatCentavos = (centavos: number): string => {
+  const amount = centavosToAmount(centavos);
+  const negative = amount.startsWith("-");
+  const [pesos, cents] = (negative ? amount.slice(1) : amount).split(".");
+  return `${negative ? "-" : ""}₱${groupDigits(pesos)}.${cents}`;
+};
+
+/**
+ * A typed amount parsed back to integer centavos — `"150.75"` -> `15075`, exactly.
+ *
+ * The float route is `parseFloat(input) * 100`, and it is wrong for amounts an expense tracker
+ * sees constantly: `1.15` becomes `114.99999999999999` and `8.87` becomes `886.9999999999999`.
+ * Truncating either loses a centavo, and the cases that survive — `150.75` lands on exactly
+ * `15075` — are what makes the bug ship, because the obvious test passes. Every path here is
+ * integer arithmetic on digit substrings instead, so the value that reaches the API is the value
+ * that was typed, for every input rather than most of them.
+ *
+ * Returns `null` for anything that is not a well-formed amount, so a caller has to decide what an
+ * unparseable input means rather than being handed a silently wrong number. More than two decimal
+ * places is one of those cases: rounding it would spend a centavo the user never agreed to.
+ * A leading `₱`, spaces and thousands separators are accepted, since people paste them.
+ */
+export const parseAmountToCentavos = (input: string): number | null => {
+  const cleaned = input.trim().replace(/^₱/, "").replace(/[\s,]/g, "");
+  const match = /^([+-])?(\d+)(?:\.(\d{1,2}))?$/.exec(cleaned);
+  if (!match) return null;
+
+  const [, sign, pesos, cents = ""] = match;
+  const centavos = Number(pesos) * 100 + Number(cents.padEnd(2, "0"));
+  if (!Number.isSafeInteger(centavos)) return null;
+  return sign === "-" ? -centavos : centavos;
+};
+
+/**
  * The app's business timezone. Day and month rollups are computed in Asia/Manila on the
  * backend, so every rendered timestamp must be resolved in that zone — not the device's.
  *

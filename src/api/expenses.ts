@@ -46,7 +46,17 @@ export type ExpenseRequest = Omit<Schemas["ExpenseRequest"], "expenseType"> & {
 export type ExpensePage = Omit<Complete<Schemas["PageResponseExpenseResponse"]>, "content"> & {
   content: Expense[];
 };
-export type ImportResult = Complete<Schemas["ImportResult"]>;
+/**
+ * `limitReached` names the plan entitlement that stopped some rows, and arrives as `null` on
+ * every import that hit no limit — which is nearly all of them. So it is neither `Complete` (the
+ * contract 3.0.0 regen made it a required `string`, which promises a message that is usually not
+ * there) nor plain `Nullable`, which would force the page's local error-path result to carry an
+ * explicit `null`. Optional-and-nullable covers both the wire shape and a locally built one; the
+ * counts and the error list are genuinely always sent.
+ */
+export type ImportResult = Omit<Complete<Schemas["ImportResult"]>, "limitReached"> & {
+  limitReached?: string | null;
+};
 export type ParsedExpenseResult = Nullable<
   Schemas["ParsedExpenseResult"],
   "amount" | "category" | "date" | "description" | "hint" | "rejectionMessage"
