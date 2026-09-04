@@ -90,6 +90,78 @@ surface — republishing an unchanged spec under a new number would make the pin
 
 ---
 
+## The 2.0.0 break — integer centavos on `/api/v2`
+
+*Recorded 2026-08-19 (TEN-136). The change itself shipped in TEN-135.*
+
+**What changed.** Every money-bearing field on `/api/v2` is an integer number of centavos
+(`long`, e.g. `amountLimit: 190000` for ₱1,900.00). On `/api/v1` money remains a decimal
+`number` and is **byte-identical to before** — same code path, same rows.
+
+**Why it is a major.** The type of an existing field changed. That is breaking by the rule above,
+even though nothing was removed, so it required a major *and* a new URL path with the old one kept
+live. Both surfaces read the same rows; conversion happens in the v2 DTO factory, so there is no
+second source of truth.
+
+**Migration order for clients.** Do not treat this as urgent — nothing on `/api/v1` has changed,
+and there is no deadline attached to it:
+
+1. Bump the pin to the published 2.x contract and `npm run gen:api`.
+2. Fix the type errors. They are the safety net: every money field that moves from a decimal to an
+   integer will fail to compile until it is handled.
+3. Divide by 100 **only at the display edge**, through `src/lib/formatters.ts`. Never do arithmetic
+   on the converted value — the integer is the money; the decimal is a rendering of it.
+4. Repoint calls from `/api/…` to `/api/v2/…`.
+
+**Web may migrate before mobile, and should.** Mobile is the pacing constraint (installed apps call
+`/api/v1` for months), so the two clients are deliberately allowed to sit on different major
+versions. `/api/v1` is retired only when analytics show old app versions have drained — a later
+issue, not a consequence of this one.
+
+**Publishing is a manual step and has been missed once.** `contract/package.json` said `2.0.0`
+from the day `/api/v2` shipped, but `publish-contract.yml` fires on a `contract-v*` **tag** and
+nothing had tagged it — so for several days the entire v2 surface existed in the spec and in the
+running API, and in no package a client could pin. Bumping the version in the file publishes
+nothing. See TEN-271.
+
+---
+
+## Recorded exception — `/api/v2/ai/chat` centavos narrowing without a new path
+
+*Recorded 2026-09-03 (TEN-336). The change itself shipped in TEN-308 (PR #94), contract
+`2.10.0` → `3.0.0`.*
+
+This is an exception to the rule above, not a softening of it: it took a major bump but did
+**not** get a new URL version path, because `/api/v3` did not need to exist for this change to
+be safe.
+
+**What changed.** `POST /api/v2/ai/chat` had been serving the v1 `ChatResponse` shape — decimal
+money, unconverted. TEN-308 made it serve `ChatResponseV2`, narrowing every money-bearing field
+from decimal to integer centavos. A response type narrowing is breaking by the rule above, so it
+took the major bump (`3.0.0`).
+
+**Why no new path.** The "keep the old path live" clause exists so a client depending on the old
+shape keeps working. That guarantee already held without a new path: the decimal shape stays
+served, byte-identical, at v1's `POST /ai/chat` — a different route, not a version of this one.
+Publishing `/api/v3/ai/chat` to carry the new shape would have meant standing up a version whose
+only content is "this one endpoint now does what `/api/v2` was always supposed to do" — see the
+next paragraph.
+
+**What made it safe.** No shipped client called `/api/v2/ai/chat`: `gastosai-web/src/api/ai.ts`
+and `gastosai-mobile/src/api/chat.ts` both call the unversioned v1 path, and neither repo
+referenced `/api/v2/ai/chat` or a `v2AiChat` client method. There was nothing to break. `/api/v2`
+itself was created by TEN-135 specifically to promise integer centavos from `2.0.0` onward; this
+endpoint had never honoured that promise. TEN-308 corrected `/api/v2/ai/chat` to match the
+version it was already published under, rather than freezing the gap into a new major.
+
+**Do not read this as license to skip the new-path step generally.** It applied here only because
+both preconditions held at once: zero consumers of the narrowing endpoint, and the pre-existing
+decimal shape already living safely at a different, unaffected path. A breaking change with an
+actual consumer, or one with no fallback path already serving the old shape, still needs
+`/api/v(n+1)` per the rule above.
+
+---
+
 ## Cross-repo change ordering
 
 A change that spans the contract is **not** one commit anymore — it's an ordered
