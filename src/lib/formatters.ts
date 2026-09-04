@@ -62,10 +62,9 @@ export const formatCurrency = (amount: number | string): string => {
  * render path, and a malformed amount must not blank a whole page.
  */
 export const centavosToAmount = (centavos: number): string => {
-  if (!Number.isFinite(centavos)) return "0.00";
-  const whole = Math.trunc(centavos);
-  const digits = String(Math.abs(whole)).padStart(3, "0");
-  return `${whole < 0 ? "-" : ""}${digits.slice(0, -2)}.${digits.slice(-2)}`;
+  if (!Number.isInteger(centavos)) return "0.00";
+  const digits = String(Math.abs(centavos)).padStart(3, "0");
+  return `${centavos < 0 ? "-" : ""}${digits.slice(0, -2)}.${digits.slice(-2)}`;
 };
 
 /** Thousands separators for a run of digits, without going through `Number`. */
