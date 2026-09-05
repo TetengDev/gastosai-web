@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { getBudgetSummary } from "../api/budgets";
 import type { BudgetSummaryResponse } from "../api/types";
 import { Card, InfoTip, ProgressBar } from "./ui";
-import { formatCurrency } from "../lib/formatters";
+import { formatCentavos } from "../lib/formatters";
 
 interface Props {
   month: string;
@@ -71,10 +71,10 @@ export default function BudgetOverviewCard({ month }: Props) {
         <>
           <div className="mt-2.5">
             <p className="font-display text-[42px] font-medium leading-none tracking-tight text-deep">
-              {formatCurrency(summary.safeToSpend)}
+              {formatCentavos(summary.safeToSpend)}
             </p>
             <p className="mt-2 text-sm text-ink-2">
-              Safe to spend · {formatCurrency(summary.dailyAllowance)} / day
+              Safe to spend · {formatCentavos(summary.dailyAllowance)} / day
             </p>
           </div>
 

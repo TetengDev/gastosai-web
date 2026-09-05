@@ -3,7 +3,7 @@ import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recha
 import { getDailyReport } from "../api/expenses";
 import type { DailyReport } from "../api/types";
 import { Card, InfoTip } from "./ui";
-import { formatCurrency } from "../lib/formatters";
+import { formatCentavos } from "../lib/formatters";
 
 interface Props {
   month: string;
@@ -70,7 +70,7 @@ export default function DailyTrendCard({ month }: Props) {
             />
             <YAxis width={0} hide />
             <Tooltip
-              formatter={(v) => formatCurrency(v as number)}
+              formatter={(v) => formatCentavos(v as number)}
               contentStyle={{
                 borderRadius: "0.75rem",
                 border: "none",

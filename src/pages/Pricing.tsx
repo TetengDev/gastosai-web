@@ -4,10 +4,9 @@ import { useEntitlements } from "../hooks/useEntitlements";
 import { getPricing, startCheckout } from "../api/subscription";
 import type { BillingPeriod, PricingItem } from "../api/types";
 import { Button } from "../components/ui";
-
-function centavosToDisplay(centavos: number): string {
-  return "₱" + (centavos / 100).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
+// Plan prices have always been integer centavos. They now render through the same formatter as
+// every other amount, which drops the `/ 100` float that stood between the price and the screen.
+import { formatCentavos } from "../lib/formatters";
 
 const PREMIUM_FEATURES = [
   "Unlimited transactions",
@@ -140,7 +139,7 @@ export default function Pricing() {
           {activePrice ? (
             <>
               <div className="mt-2 font-display text-4xl font-medium tracking-tight text-ink-hi">
-                {centavosToDisplay(activePrice.amountCentavos)}
+                {formatCentavos(activePrice.amountCentavos)}
               </div>
               <div className="mt-0.5 text-sm text-ink-2">
                 {period === "MONTHLY" ? "per month" : "per year"}
