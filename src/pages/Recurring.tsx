@@ -15,7 +15,7 @@ import { Button, ConfirmDialog, IconButton, Modal, PageHeader, SelectionBar } fr
 import { useMultiSelect } from "../hooks/useMultiSelect";
 import { RATE_TTL_MS, rateCache } from "../lib/cache";
 import { categoryIcon } from "../lib/categoryIcon";
-import { formatCurrency } from "../lib/formatters";
+import { centavosToAmount, formatCentavos, parseAmountToCentavos } from "../lib/formatters";
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
   PHP: "₱", USD: "$", EUR: "€", SGD: "S$", JPY: "¥", GBP: "£", AUD: "A$",
@@ -77,6 +77,9 @@ export default function Recurring() {
   const [showModal, setShowModal] = useState(false);
   const [editTarget, setEditTarget] = useState<RecurringExpenseResponse | null>(null);
   const [form, setForm] = useState<RecurringExpenseRequest>(DEFAULT_FORM);
+  // The amount field holds the text as typed; it becomes integer centavos once, in
+  // `buildRequest`, so nothing between the keystroke and the request is a float.
+  const [amountText, setAmountText] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<RecurringExpenseResponse | null>(null);
   const [deletingOne, setDeletingOne] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -144,6 +147,7 @@ export default function Recurring() {
   const openAdd = () => {
     setEditTarget(null);
     setForm(DEFAULT_FORM);
+    setAmountText("");
     setModalError(null);
     setSuggestedRate(null);
     setConflict(null);
@@ -164,6 +168,7 @@ export default function Recurring() {
       currency: bill.currency ?? "PHP",
       exchangeRate: bill.exchangeRate ?? 1,
     });
+    setAmountText(centavosToAmount(bill.amount));
     setModalError(null);
     setSuggestedRate(null);
     setConflict(null);
@@ -174,8 +179,23 @@ export default function Recurring() {
     setShowModal(false);
     setEditTarget(null);
     setForm(DEFAULT_FORM);
+    setAmountText("");
     setModalError(null);
     setConflict(null);
+  };
+
+  /**
+   * The form as the API takes it, with the typed amount parsed to integer centavos. Returns
+   * `null` — after setting the modal error — when the text is not a well-formed amount, so a
+   * bill is never created for an amount nobody typed.
+   */
+  const buildRequest = (): RecurringExpenseRequest | null => {
+    const amount = parseAmountToCentavos(amountText);
+    if (amount === null) {
+      setModalError("Enter an amount like 499 or 499.50 — at most two decimal places.");
+      return null;
+    }
+    return { ...form, amount };
   };
 
   const finishSave = () => {
@@ -186,13 +206,15 @@ export default function Recurring() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    const request = buildRequest();
+    if (!request) return;
     setSaving(true);
     setModalError(null);
     try {
       if (editTarget) {
-        await updateRecurring(editTarget.id, form);
+        await updateRecurring(editTarget.id, request);
       } else {
-        await createRecurring(form);
+        await createRecurring(request);
       }
       finishSave();
     } catch (err: unknown) {
@@ -212,10 +234,12 @@ export default function Recurring() {
   };
 
   const handleCreateAnyway = async () => {
+    const request = buildRequest();
+    if (!request) return;
     setSaving(true);
     setModalError(null);
     try {
-      await createRecurring(form, true);
+      await createRecurring(request, true);
       finishSave();
     } catch {
       setModalError("Failed to save. Check your input.");
@@ -226,10 +250,12 @@ export default function Recurring() {
 
   const handleUpdateExisting = async () => {
     if (!conflict) return;
+    const request = buildRequest();
+    if (!request) return;
     setSaving(true);
     setModalError(null);
     try {
-      await updateRecurring(conflict.id, form);
+      await updateRecurring(conflict.id, request);
       finishSave();
     } catch {
       setModalError("Failed to update.");
@@ -374,11 +400,13 @@ export default function Recurring() {
                     <span className="inline-flex items-center justify-end gap-2">
                       {bill.currency !== "PHP" && (
                         <span className="rounded-md bg-link/10 px-1.5 py-0.5 font-mono text-[11px] text-link">
-                          {bill.currency} {bill.amount.toFixed(2)}
+                          {bill.currency} {centavosToAmount(bill.amount)}
                         </span>
                       )}
                       <span className="font-display text-[17px] font-medium text-ink-hi">
-                        {formatCurrency(bill.amount * (bill.exchangeRate ?? 1))}
+                        {/* The rate is a decimal, so the product is not a whole centavo — round it
+                            back to one before it reaches the formatter. */}
+                        {formatCentavos(Math.round(bill.amount * (bill.exchangeRate ?? 1)))}
                       </span>
                     </span>
                   </td>
@@ -436,8 +464,8 @@ export default function Recurring() {
                 required
                 min={0.01}
                 step={0.01}
-                value={form.amount || ""}
-                onChange={(e) => setField("amount", parseFloat(e.target.value) || 0)}
+                value={amountText}
+                onChange={(e) => setAmountText(e.target.value)}
                 placeholder="0.00"
                 className={`${inputClass} pl-10`}
               />

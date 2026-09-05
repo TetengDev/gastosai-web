@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { getCategories } from "../api/categories";
 import type { Category, Expense, ExpenseRequest, ExpenseType } from "../api/types";
-import { toDateTimeLocal } from "../lib/formatters";
+import { centavosToAmount, parseAmountToCentavos, toDateTimeLocal } from "../lib/formatters";
 import { CAT_TTL_MS, RATE_TTL_MS, getCategoryCache, rateCache, setCategoryCache } from "../lib/cache";
 import CurrencySelect from "./CurrencySelect";
 import { Button, Modal } from "./ui";
@@ -30,6 +30,11 @@ export default function ExpenseModal({ expense, onSave, onClose }: Props) {
     currency: expense?.currency ?? "PHP",
     exchangeRate: expense?.exchangeRate ?? 1,
   });
+  // The amount field holds the text as typed. `form.amount` is integer centavos and is only
+  // written at submit, so no keystroke ever passes through a float on its way to the API.
+  const [amountText, setAmountText] = useState(
+    expense ? centavosToAmount(expense.amount) : ""
+  );
   const [categories, setCategories] = useState<Category[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -79,10 +84,15 @@ export default function ExpenseModal({ expense, onSave, onClose }: Props) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const amount = parseAmountToCentavos(amountText);
+    if (amount === null) {
+      setError("Enter an amount like 150.75 — at most two decimal places.");
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
-      await onSave(form);
+      await onSave({ ...form, amount });
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data
@@ -121,14 +131,8 @@ export default function ExpenseModal({ expense, onSave, onClose }: Props) {
                 step="0.01"
                 min="0.01"
                 required
-                value={form.amount || ""}
-                onChange={(e) =>
-                  setForm((f) => ({
-                    ...f,
-                    amount:
-                      parseFloat(e.target.value) || (0 as unknown as number),
-                  }))
-                }
+                value={amountText}
+                onChange={(e) => setAmountText(e.target.value)}
                 className={`${inputClass} pl-10`}
                 placeholder="0.00"
               />

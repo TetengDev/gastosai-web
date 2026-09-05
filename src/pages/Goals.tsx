@@ -4,16 +4,17 @@ import { createGoal, deleteGoal, getGoals, updateGoal, type Goal, type GoalReque
 import CurrencySelect from "../components/CurrencySelect";
 import { Button, ConfirmDialog, IconButton, Modal, PageHeader, ProgressBar, SelectionBar } from "../components/ui";
 import { useMultiSelect } from "../hooks/useMultiSelect";
-import { formatCurrency } from "../lib/formatters";
+import { centavosToAmount, formatCentavos, parseAmountToCentavos } from "../lib/formatters";
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
   PHP: "₱", USD: "$", EUR: "€", SGD: "S$", JPY: "¥", GBP: "£", AUD: "A$",
 };
 
-function formatGoalAmount(amount: number, currency: string): string {
-  if (currency === "PHP") return formatCurrency(amount);
+/** `centavos` is the goal's own currency in its minor unit, not converted pesos. */
+function formatGoalAmount(centavos: number, currency: string): string {
+  if (currency === "PHP") return formatCentavos(centavos);
   const sym = CURRENCY_SYMBOLS[currency] ?? currency;
-  return `${sym}${amount.toFixed(2)}`;
+  return `${sym}${centavosToAmount(centavos)}`;
 }
 
 const STATUS_LABEL: Record<Goal["status"], string> = {
@@ -59,6 +60,10 @@ export default function Goals() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Goal | null>(null);
   const [form, setForm] = useState<GoalRequest>(EMPTY_FORM);
+  // The two amount fields hold the text as typed. They become integer centavos once, in
+  // `buildRequest`, so nothing between the keystroke and the request is a float.
+  const [targetText, setTargetText] = useState("");
+  const [savedText, setSavedText] = useState("");
   const [saving, setSaving] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
   const [conflict, setConflict] = useState<Goal | null>(null);
@@ -86,6 +91,8 @@ export default function Goals() {
   const openAdd = () => {
     setEditing(null);
     setForm(EMPTY_FORM);
+    setTargetText("");
+    setSavedText("");
     setModalError(null);
     setConflict(null);
     setModalOpen(true);
@@ -101,6 +108,8 @@ export default function Goals() {
       paused: goal.paused ?? false,
       currency: goal.currency ?? "PHP",
     });
+    setTargetText(centavosToAmount(goal.targetAmount));
+    setSavedText(centavosToAmount(goal.savedAmount));
     setModalError(null);
     setConflict(null);
     setModalOpen(true);
@@ -110,21 +119,40 @@ export default function Goals() {
     setModalOpen(false);
     setEditing(null);
     setForm(EMPTY_FORM);
+    setTargetText("");
+    setSavedText("");
     setModalError(null);
     setConflict(null);
   };
 
+  /**
+   * The form as the API takes it: both amounts parsed from their typed text to integer
+   * centavos. Returns `null` — after setting the modal error — when either is malformed, so a
+   * caller never sends an amount the user did not type.
+   */
+  const buildRequest = (): GoalRequest | null => {
+    const targetAmount = parseAmountToCentavos(targetText);
+    const savedAmount = savedText.trim() === "" ? 0 : parseAmountToCentavos(savedText);
+    if (targetAmount === null || savedAmount === null) {
+      setModalError("Enter amounts like 10000 or 10000.50 — at most two decimal places.");
+      return null;
+    }
+    return { ...form, targetAmount, savedAmount };
+  };
+
   const handleSave = async () => {
     if (!form.name.trim()) { setModalError("Name is required."); return; }
-    if (!form.targetAmount || form.targetAmount <= 0) { setModalError("Target amount must be greater than 0."); return; }
+    const request = buildRequest();
+    if (!request) return;
+    if (request.targetAmount <= 0) { setModalError("Target amount must be greater than 0."); return; }
     setSaving(true);
     setModalError(null);
     try {
       if (editing) {
-        const updated = await updateGoal(editing.id, form);
+        const updated = await updateGoal(editing.id, request);
         setGoals((prev) => prev.map((g) => (g.id === editing.id ? updated : g)));
       } else {
-        const created = await createGoal(form);
+        const created = await createGoal(request);
         setGoals((prev) => [created, ...prev]);
       }
       closeModal();
@@ -144,10 +172,12 @@ export default function Goals() {
   };
 
   const handleCreateAnyway = async () => {
+    const request = buildRequest();
+    if (!request) return;
     setSaving(true);
     setModalError(null);
     try {
-      const created = await createGoal(form, true);
+      const created = await createGoal(request, true);
       setGoals((prev) => [created, ...prev]);
       closeModal();
       window.dispatchEvent(new CustomEvent("gastosai:goal-changed"));
@@ -160,10 +190,12 @@ export default function Goals() {
 
   const handleUpdateExisting = async () => {
     if (!conflict) return;
+    const request = buildRequest();
+    if (!request) return;
     setSaving(true);
     setModalError(null);
     try {
-      const updated = await updateGoal(conflict.id, form);
+      const updated = await updateGoal(conflict.id, request);
       setGoals((prev) => prev.map((g) => (g.id === conflict.id ? updated : g)));
       closeModal();
       window.dispatchEvent(new CustomEvent("gastosai:goal-changed"));
@@ -336,8 +368,8 @@ export default function Goals() {
                 type="number"
                 min="0.01"
                 step="0.01"
-                value={form.targetAmount || ""}
-                onChange={(e) => setForm((f) => ({ ...f, targetAmount: parseFloat(e.target.value) || 0 }))}
+                value={targetText}
+                onChange={(e) => setTargetText(e.target.value)}
                 className={inputClass}
               />
             </div>
@@ -349,8 +381,8 @@ export default function Goals() {
                 type="number"
                 min="0"
                 step="0.01"
-                value={form.savedAmount || ""}
-                onChange={(e) => setForm((f) => ({ ...f, savedAmount: parseFloat(e.target.value) || 0 }))}
+                value={savedText}
+                onChange={(e) => setSavedText(e.target.value)}
                 className={inputClass}
               />
             </div>

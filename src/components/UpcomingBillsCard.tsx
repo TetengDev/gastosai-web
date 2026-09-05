@@ -4,7 +4,7 @@ import { getUpcomingBills } from "../api/recurring";
 import type { UpcomingBillResponse } from "../api/types";
 import { Card, InfoTip } from "./ui";
 import CategoryChip from "./CategoryChip";
-import { formatCurrency } from "../lib/formatters";
+import { centavosToAmount, formatCentavos } from "../lib/formatters";
 
 interface Props {
   month: string;
@@ -70,10 +70,10 @@ export default function UpcomingBillsCard({ month }: Props) {
               <span className="flex-shrink-0 text-right text-sm font-medium text-ink-hi">
                 {bill.currency !== "PHP" && (
                   <span className="block text-xs font-medium text-link">
-                    {bill.currency} {bill.amount.toFixed(2)}
+                    {bill.currency} {centavosToAmount(bill.amount)}
                   </span>
                 )}
-                {formatCurrency(bill.amount)}
+                {formatCentavos(bill.amount)}
               </span>
             </li>
           ))}

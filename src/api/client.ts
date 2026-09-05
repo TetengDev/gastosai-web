@@ -1,6 +1,25 @@
 import axios from "axios";
 
-const api = axios.create({ baseURL: import.meta.env.VITE_API_URL });
+/**
+ * The API version this client speaks. `/api/v2` is the integer-centavos surface: every
+ * money-bearing field is a `long` number of centavos rather than a decimal peso amount.
+ *
+ * It is held here rather than repeated across the 19 modules in `src/api/` so that the
+ * version is one edit, and so that no module can drift onto a different one by accident —
+ * every module's path stays relative (`/expenses`, `/budgets`) and gets the prefix from here.
+ */
+export const API_BASE_PATH = "/api/v2";
+
+/**
+ * `VITE_API_URL` names the backend host and nothing more (`http://localhost:8080`), so the
+ * version path is appended rather than configured. A trailing slash on the env var is
+ * tolerated because it is the kind of thing that gets pasted into a Vercel dashboard, and
+ * `//api/v2` is a 404 that would only show up at runtime.
+ */
+export const resolveBaseUrl = (apiUrl: string | undefined): string =>
+  `${(apiUrl ?? "").replace(/\/+$/, "")}${API_BASE_PATH}`;
+
+const api = axios.create({ baseURL: resolveBaseUrl(import.meta.env.VITE_API_URL) });
 
 api.interceptors.request.use((cfg) => {
     const token = localStorage.getItem("token");

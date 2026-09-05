@@ -4,6 +4,7 @@ import { getTopCategoryInsight, getMonthSummaryInsight, getRecommendationsInsigh
 import type { TopCategoryInsight, MonthSummaryInsight, RecommendationsInsight } from "../api/types";
 import { useAiAvailability } from "../hooks/useAiAvailability";
 import { Card, InfoTip } from "./ui";
+import { formatCentavos } from "../lib/formatters";
 
 interface Props {
   month: string;
@@ -77,7 +78,7 @@ export default function AiInsightsCard({ month }: Props) {
             {topCategory ? (
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-semibold text-ink-hi">{topCategory.category}</span>
-                <span className="text-sm text-ink-2">₱{topCategory.total.toLocaleString()}</span>
+                <span className="text-sm text-ink-2">{formatCentavos(topCategory.total)}</span>
                 <span className="text-xs text-ink-3">{topCategory.percentOfMonthTotal}% of month</span>
               </div>
             ) : topLoading ? <MiniSkeleton /> : null}

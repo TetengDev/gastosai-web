@@ -2,15 +2,16 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getGoals, type Goal } from "../api/goals";
 import { Card, InfoTip, ProgressBar } from "./ui";
-import { formatCurrency } from "../lib/formatters";
+import { centavosToAmount, formatCentavos } from "../lib/formatters";
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
   PHP: "₱", USD: "$", EUR: "€", SGD: "S$", JPY: "¥", GBP: "£", AUD: "A$",
 };
 
-function fmtGoal(amount: number, currency: string): string {
-  if (currency === "PHP") return formatCurrency(amount);
-  return `${CURRENCY_SYMBOLS[currency] ?? currency}${amount.toFixed(2)}`;
+/** `centavos` is the goal's own currency in its minor unit, not converted pesos. */
+function fmtGoal(centavos: number, currency: string): string {
+  if (currency === "PHP") return formatCentavos(centavos);
+  return `${CURRENCY_SYMBOLS[currency] ?? currency}${centavosToAmount(centavos)}`;
 }
 
 const STATUS_LABEL: Record<Goal["status"], string> = {
