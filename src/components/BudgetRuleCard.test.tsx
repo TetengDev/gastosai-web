@@ -93,7 +93,9 @@ describe("BudgetRuleCard monthly income", () => {
     fireEvent.change(field, { target: { value: "1000.755" } });
     fireEvent.click(screen.getByRole("button", { name: "Save rule" }));
 
-    expect(await screen.findByText(/at most two decimal places|amount like 45000/)).toBeTruthy();
+    // Save is a plain button, not a form submit, so nothing stops this before the handler —
+    // the message is the parser's own rejection.
+    expect(await screen.findByText("Monthly income must be an amount like 45000 or 45000.50.")).toBeTruthy();
     expect(mockPutBudgetRule).not.toHaveBeenCalled();
   });
 });
