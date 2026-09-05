@@ -13,7 +13,7 @@ import { useAuth } from "../context/AuthContext";
 import { useFeatures } from "../hooks/useFeatures";
 import { useAiAvailability } from "../hooks/useAiAvailability";
 import { useEntitlements } from "../hooks/useEntitlements";
-import { formatCurrency, formatDate } from "../lib/formatters";
+import { centavosToAmount, formatCentavos, formatDate, parseAmountToCentavos } from "../lib/formatters";
 import { looksLikeExpenseLog, looksLikeNlQuery } from "../lib/intentDetection";
 import { TypingDots, BotAvatar, ExpandIcon, CollapseIcon } from "./chat/ChatChrome";
 import { actionLabel, savedLabel, buildPreviewFields, buildConfirmMessage, dispatchDataEvents, dispatchAllDataEvents } from "./chat/chatActions";
@@ -28,6 +28,7 @@ interface Message {
   attachmentName?: string;
   draft?: ParsedExpenseResult;
   draftSaved?: boolean;
+  /** `amount` is integer centavos, like the draft it overrides. */
   draftEdits?: { amount?: number; date?: string; time?: string; description?: string };
   categoryOverride?: string;
   actionType?: "success" | "error";
@@ -168,9 +169,12 @@ function humanLabel(key: string): string {
   );
 }
 
+// `/api/v2` serves every money-bearing field as integer centavos (CONTRACT.md, "The 2.0.0
+// break"), and the ad-hoc rows `/ai/query` returns are no exception — so a key that looks like
+// money is centavos here, not pesos.
 function formatField(key: string, value: unknown): string {
   if (value === null || value === undefined) return "—";
-  if (isCurrencyKey(key)) return formatCurrency(Number(value));
+  if (isCurrencyKey(key)) return formatCentavos(Number(value));
   if (isDateKey(key)) return formatDate(String(value));
   return String(value);
 }
@@ -182,7 +186,7 @@ function renderAnswer(answer: unknown, accentText: string): ReactNode {
   if (typeof answer === "number")
     return (
       <span className={`font-semibold ${accentText}`}>
-        {formatCurrency(answer)}
+        {formatCentavos(answer)}
       </span>
     );
 
@@ -211,7 +215,7 @@ function renderAnswer(answer: unknown, accentText: string): ReactNode {
                 </span>
                 {row.amount != null && (
                   <span className={`text-sm font-semibold whitespace-nowrap shrink-0 ${accentText}`}>
-                    {formatCurrency(Number(row.amount))}
+                    {formatCentavos(Number(row.amount))}
                   </span>
                 )}
               </div>
@@ -367,7 +371,7 @@ function renderGoalList(goals: GoalChatItem[]): ReactNode {
             />
           </div>
           <div className="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
-            <span>{formatCurrency(g.savedAmount)} of {formatCurrency(g.targetAmount)}</span>
+            <span>{formatCentavos(g.savedAmount)} of {formatCentavos(g.targetAmount)}</span>
             <span>{g.progressPercent.toFixed(1)}%</span>
           </div>
           {g.targetDate && (
@@ -383,9 +387,9 @@ function renderBudgetSummary(data: BudgetSummaryChatResult): ReactNode {
   return (
     <div className="mt-2 space-y-2">
       <div className="flex flex-wrap gap-3 text-xs">
-        <span className="text-gray-500 dark:text-gray-400">Budgeted <span className="font-semibold text-gray-800 dark:text-gray-200">{formatCurrency(data.totalBudgeted)}</span></span>
-        <span className="text-gray-500 dark:text-gray-400">Spent <span className="font-semibold text-gray-800 dark:text-gray-200">{formatCurrency(data.totalSpent)}</span></span>
-        <span className="text-gray-500 dark:text-gray-400">Safe to spend <span className="font-semibold text-green-700 dark:text-green-400">{formatCurrency(data.safeToSpend)}</span></span>
+        <span className="text-gray-500 dark:text-gray-400">Budgeted <span className="font-semibold text-gray-800 dark:text-gray-200">{formatCentavos(data.totalBudgeted)}</span></span>
+        <span className="text-gray-500 dark:text-gray-400">Spent <span className="font-semibold text-gray-800 dark:text-gray-200">{formatCentavos(data.totalSpent)}</span></span>
+        <span className="text-gray-500 dark:text-gray-400">Safe to spend <span className="font-semibold text-green-700 dark:text-green-400">{formatCentavos(data.safeToSpend)}</span></span>
       </div>
       {data.items.length > 0 && (
         <div className="space-y-1.5 mt-1">
@@ -402,7 +406,7 @@ function renderBudgetSummary(data: BudgetSummaryChatResult): ReactNode {
                 />
               </div>
               <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500 mt-1">
-                <span>{formatCurrency(item.spent)} / {formatCurrency(item.budgeted)}</span>
+                <span>{formatCentavos(item.spent)} / {formatCentavos(item.budgeted)}</span>
                 <span>{item.percentUsed.toFixed(0)}%</span>
               </div>
             </div>
@@ -426,7 +430,7 @@ function renderRecurringList(data: RecurringChatResult): ReactNode {
                 <p className="text-xs text-gray-400 dark:text-gray-500">{item.categoryName} · {item.frequency}</p>
               </div>
               <div className="text-right shrink-0">
-                <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">{formatCurrency(item.amount)}</p>
+                <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">{formatCentavos(item.amount)}</p>
                 <p className={`text-xs ${item.active ? "text-green-600 dark:text-green-400" : "text-gray-400 dark:text-gray-500"}`}>{item.active ? "Active" : "Inactive"}</p>
               </div>
             </div>
@@ -442,7 +446,7 @@ function renderRecurringList(data: RecurringChatResult): ReactNode {
                 <p className="text-xs font-medium text-gray-800 dark:text-gray-200 truncate">{bill.name}</p>
                 <p className="text-xs text-amber-600 dark:text-amber-400">Due: {formatDate(bill.dueDate)}</p>
               </div>
-              <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 shrink-0">{formatCurrency(bill.amount)}</p>
+              <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 shrink-0">{formatCentavos(bill.amount)}</p>
             </div>
           ))}
         </div>
@@ -481,7 +485,7 @@ function renderExpenseSearchResults(expenses: ExpenseChatItem[], accentText: str
         <div key={e.id} className="bg-gray-50 dark:bg-gray-700/50 rounded-xl px-3 py-2.5 border border-gray-100 dark:border-gray-700">
           <div className="flex justify-between items-start gap-2">
             <span className="text-sm text-gray-800 dark:text-gray-200 font-medium leading-snug flex-1">{e.description}</span>
-            <span className={`text-sm font-semibold whitespace-nowrap shrink-0 ${accentText}`}>{formatCurrency(e.amount)}</span>
+            <span className={`text-sm font-semibold whitespace-nowrap shrink-0 ${accentText}`}>{formatCentavos(e.amount)}</span>
           </div>
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1.5">
             <span className={`text-xs px-2 py-0.5 rounded-full border ${accentText} bg-opacity-10`}>{e.category}</span>
@@ -502,7 +506,7 @@ function renderCategoryTotals(totals: CategoryTotalChatItem[], accentText: strin
         <div key={t.category} className="space-y-0.5">
           <div className="flex justify-between text-xs">
             <span className="text-gray-700 dark:text-gray-300 truncate">{t.category}</span>
-            <span className={`font-semibold shrink-0 ${accentText}`}>{formatCurrency(t.total)}</span>
+            <span className={`font-semibold shrink-0 ${accentText}`}>{formatCentavos(t.total)}</span>
           </div>
           <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-1">
             <div className="h-1 rounded-full bg-indigo-500 dark:bg-indigo-400" style={{ width: `${(t.total / max) * 100}%` }} />
@@ -518,7 +522,7 @@ function renderMonthlyReport(report: MonthlyReportChatResult, accentText: string
     <div className="mt-2 space-y-2">
       <div className="flex items-center justify-between">
         <span className="text-xs text-gray-500 dark:text-gray-400">{report.month}</span>
-        <span className={`text-sm font-semibold ${accentText}`}>{formatCurrency(report.totalSpent)}</span>
+        <span className={`text-sm font-semibold ${accentText}`}>{formatCentavos(report.totalSpent)}</span>
       </div>
       {report.categoryBreakdown.length > 0 && (
         <div className="space-y-1">
@@ -526,7 +530,7 @@ function renderMonthlyReport(report: MonthlyReportChatResult, accentText: string
           {report.categoryBreakdown.map((c) => (
             <div key={c.category} className="flex justify-between text-xs">
               <span className="text-gray-700 dark:text-gray-300 truncate">{c.category}</span>
-              <span className={`font-medium shrink-0 ${accentText}`}>{formatCurrency(c.total)}</span>
+              <span className={`font-medium shrink-0 ${accentText}`}>{formatCentavos(c.total)}</span>
             </div>
           ))}
         </div>
@@ -537,7 +541,7 @@ function renderMonthlyReport(report: MonthlyReportChatResult, accentText: string
           {report.topExpenses.map((e) => (
             <div key={e.id} className="flex justify-between items-start gap-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg px-2 py-1.5 border border-gray-100 dark:border-gray-700">
               <span className="text-xs text-gray-700 dark:text-gray-300 truncate flex-1">{e.description}</span>
-              <span className={`text-xs font-semibold shrink-0 ${accentText}`}>{formatCurrency(e.amount)}</span>
+              <span className={`text-xs font-semibold shrink-0 ${accentText}`}>{formatCentavos(e.amount)}</span>
             </div>
           ))}
         </div>
@@ -955,14 +959,28 @@ export default function ChatWidget() {
       const id = Number(mergedParams.id);
       const categoryId = Number(mergedParams.categoryId);
       const month = String(mergedParams.month ?? new Date().toISOString().slice(0, 7));
-      const amountLimit = Number(mergedParams.amountLimit);
       const categoryName = String(mergedParams.categoryName ?? "budget");
+      // A preview's params are the assistant's decimal arguments, and the edit field hands back
+      // whatever the user typed over them — both are peso text. `/api/v2` takes centavos, so the
+      // conversion happens here rather than sending a peso figure to a centavo field.
+      const amountLimit = parseAmountToCentavos(String(mergedParams.amountLimit ?? ""));
+      if (amountLimit === null) {
+        setMessages((prev) =>
+          prev.map((m, i) =>
+            i === msgIndex
+              ? { ...m, content: "That amount isn't valid. Enter something like 1900 or 1900.50.", actionPreviewConfirmed: true, actionType: "error" }
+              : m
+          )
+        );
+        setLoading(false);
+        return;
+      }
       try {
         const result = await updateBudget(id, { categoryId, month, amountLimit });
         setMessages((prev) =>
           prev.map((m, i) =>
             i === msgIndex
-              ? { ...m, content: `Budget for ${categoryName} updated to ₱${amountLimit.toFixed(2)}.`, actionPreviewConfirmed: true, actionType: "success", actionResult: result }
+              ? { ...m, content: `Budget for ${categoryName} updated to ${formatCentavos(amountLimit)}.`, actionPreviewConfirmed: true, actionType: "success", actionResult: result }
               : m
           )
         );
@@ -1033,7 +1051,7 @@ export default function ChatWidget() {
       await Promise.all(items.map((it) => deleteExpense(it.id)));
       const summary =
         items.length === 1
-          ? `"${items[0].description}" (${formatCurrency(items[0].amount)}) has been deleted from your expenses.`
+          ? `"${items[0].description}" (${formatCentavos(items[0].amount)}) has been deleted from your expenses.`
           : `${items.length} expenses deleted: ${items.map((it) => `"${it.description}"`).join(", ")}.`;
       setMessages((prev) =>
         prev.map((m, i) =>
@@ -1412,7 +1430,7 @@ export default function ChatWidget() {
                                 />
                                 <div className="flex-1 min-w-0">
                                   <p className="text-xs font-medium text-gray-800 dark:text-gray-200 truncate">{item.description}</p>
-                                  <p className="text-xs text-gray-400">{formatCurrency(item.amount)} · {formatDate(item.date)}</p>
+                                  <p className="text-xs text-gray-400">{formatCentavos(item.amount)} · {formatDate(item.date)}</p>
                                 </div>
                               </label>
                             );
@@ -1438,14 +1456,14 @@ export default function ChatWidget() {
                           <div className="flex justify-between items-center gap-2">
                             <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">Amount (₱)</span>
                             {m.draftSaved ? (
-                              <span className={`text-sm font-semibold ${theme.accentText}`}>{formatCurrency(m.draftEdits?.amount ?? m.draft.amount ?? 0)}</span>
+                              <span className={`text-sm font-semibold ${theme.accentText}`}>{formatCentavos(m.draftEdits?.amount ?? m.draft.amount ?? 0)}</span>
                             ) : (
                               <input
                                 type="number"
-                                defaultValue={m.draft.amount ?? 0}
+                                defaultValue={centavosToAmount(m.draft.amount ?? 0)}
                                 min={0}
                                 step={0.01}
-                                onChange={(e) => setMessages((prev) => prev.map((msg, idx) => idx === i ? { ...msg, draftEdits: { ...(msg.draftEdits ?? {}), amount: parseFloat(e.target.value) || 0 } } : msg))}
+                                onChange={(e) => setMessages((prev) => prev.map((msg, idx) => idx === i ? { ...msg, draftEdits: { ...(msg.draftEdits ?? {}), amount: parseAmountToCentavos(e.target.value) ?? 0 } } : msg))}
                                 className="text-sm font-semibold text-right bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-0.5 w-32 focus:outline-none focus:ring-1 focus:ring-indigo-400 dark:text-gray-200"
                               />
                             )}
