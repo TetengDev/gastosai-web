@@ -14,15 +14,15 @@ type Schemas = components["schemas"];
  */
 export type BudgetStatus = "ON_TRACK" | "WARNING" | "OVER_BUDGET";
 
-export type BudgetRequest = Schemas["BudgetRequest"];
-export type BudgetResponse = Complete<Schemas["BudgetResponse"]>;
+export type BudgetRequest = Schemas["BudgetRequestV2"];
+export type BudgetResponse = Complete<Schemas["BudgetResponseV2"]>;
 
-export type BudgetSummaryItem = Omit<Complete<Schemas["BudgetSummaryItem"]>, "status"> & {
-  status: Extract<Schemas["BudgetSummaryItem"]["status"], string> & BudgetStatus;
+export type BudgetSummaryItem = Omit<Complete<Schemas["BudgetSummaryItemV2"]>, "status"> & {
+  status: Extract<Schemas["BudgetSummaryItemV2"]["status"], string> & BudgetStatus;
 };
 
 /** `Complete` is shallow, so the item type is narrowed explicitly. */
-export type BudgetSummaryResponse = Omit<Complete<Schemas["BudgetSummaryResponse"]>, "items"> & {
+export type BudgetSummaryResponse = Omit<Complete<Schemas["BudgetSummaryResponseV2"]>, "items"> & {
   items: BudgetSummaryItem[];
 };
 

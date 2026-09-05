@@ -17,7 +17,7 @@ type Schemas = components["schemas"];
 export type ChatMode = Extract<Schemas["AiQueryRequest"]["mode"], string> &
   ("plain" | "professional" | "genz");
 
-export type ChatResponseType = Extract<Schemas["ChatResponse"]["type"], string> &
+export type ChatResponseType = Extract<Schemas["ChatResponseV2"]["type"], string> &
   ("action" | "text" | "query" | "preview" | "disambiguate");
 
 export type ChatMessageRole = Extract<Schemas["ChatMessageDto"]["role"], string> &
@@ -29,9 +29,9 @@ export type AiQueryResponse = Complete<Schemas["AiQueryResponse"]>;
 export type ChatRequest = Schemas["ChatRequest"];
 
 /** `conversationId` stays optional: the API omits it on a turn with no thread. */
-export type ChatResponse = Omit<Complete<Schemas["ChatResponse"]>, "type" | "conversationId"> & {
+export type ChatResponse = Omit<Complete<Schemas["ChatResponseV2"]>, "type" | "conversationId"> & {
   type: ChatResponseType;
-  conversationId?: Schemas["ChatResponse"]["conversationId"];
+  conversationId?: Schemas["ChatResponseV2"]["conversationId"];
 };
 
 export type ChatMessageDto = Omit<

@@ -6,15 +6,15 @@ import type { Complete } from "./typeHelpers";
 
 type Schemas = components["schemas"];
 
-export type Bucket = Extract<Schemas["BucketSummary"]["bucket"], string>;
-export type BudgetRuleType = Extract<Schemas["BudgetRuleResponse"]["ruleType"], string>;
+export type Bucket = Extract<Schemas["BucketSummaryV2"]["bucket"], string>;
+export type BudgetRuleType = Extract<Schemas["BudgetRuleResponseV2"]["ruleType"], string>;
 
-export type BudgetRule = Complete<Schemas["BudgetRuleResponse"]>;
-export type BudgetRulePayload = Schemas["BudgetRuleRequest"];
-export type BucketSummaryItem = Complete<Schemas["BucketSummary"]>;
+export type BudgetRule = Complete<Schemas["BudgetRuleResponseV2"]>;
+export type BudgetRulePayload = Schemas["BudgetRuleRequestV2"];
+export type BucketSummaryItem = Complete<Schemas["BucketSummaryV2"]>;
 
 /** `Complete` is shallow, so the bucket element type is narrowed explicitly. */
-export type BudgetRuleSummary = Omit<Complete<Schemas["BudgetRuleSummaryResponse"]>, "buckets"> & {
+export type BudgetRuleSummary = Omit<Complete<Schemas["BudgetRuleSummaryResponseV2"]>, "buckets"> & {
   buckets: BucketSummaryItem[];
 };
 

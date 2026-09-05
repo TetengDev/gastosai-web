@@ -7,7 +7,7 @@ import type { Complete } from "./typeHelpers";
 
 type Schemas = components["schemas"];
 
-export type TopCategoryInsight = Complete<Schemas["TopCategoryInsightResponse"]>;
+export type TopCategoryInsight = Complete<Schemas["TopCategoryInsightResponseV2"]>;
 export type MonthSummaryInsight = Complete<Schemas["MonthSummaryInsightResponse"]>;
 export type RecommendationsInsight = Complete<Schemas["RecommendationsInsightResponse"]>;
 
