@@ -3,7 +3,7 @@ import type { components } from "./generated/schema";
 // `Nullable` marks the schedule fields the API sends as `null` on top of the
 // ones it always sends (a weekly bill has no day of the month, a monthly one
 // has no month of the year).
-import type { Nullable } from "./typeHelpers";
+import type { Complete, Nullable } from "./typeHelpers";
 
 type Schemas = components["schemas"];
 
@@ -12,36 +12,28 @@ type NullableOptional<T, K extends keyof T> = Omit<T, K> & {
   [P in K]?: T[P] | null;
 };
 
-export type RecurringFrequency = Schemas["RecurringExpenseRequest"]["frequency"];
+export type RecurringFrequency = Schemas["RecurringExpenseRequestV2"]["frequency"];
 
 /**
  * Clearing a schedule field is how the form switches frequency, so the three
  * of them accept `null` as well as being omitted.
  */
 export type RecurringExpenseRequest = NullableOptional<
-  Schemas["RecurringExpenseRequest"],
+  Schemas["RecurringExpenseRequestV2"],
   "dayOfMonth" | "dayOfWeek" | "monthOfYear"
 >;
 
 export type RecurringExpenseResponse = Nullable<
-  Schemas["RecurringExpenseResponse"],
+  Schemas["RecurringExpenseResponseV2"],
   "dayOfMonth" | "dayOfWeek" | "monthOfYear"
 >;
 
 /**
- * `/recurring/upcoming` is the one endpoint in this module the contract does not
- * describe: springdoc emits a bare `object` for its 200 body, so there is no
- * `UpcomingBillResponse` schema to derive from. Every field a bill shares with a
- * recurring expense is still taken from the contract; only `dueDate` — computed
- * per occurrence and never persisted — is stated here. Replace this the moment
- * the backend publishes the schema.
+ * `/recurring/upcoming` used to be the one endpoint in this module the contract did not
+ * describe — springdoc emitted a bare `object` for its 200 body, so the shape was stated
+ * here by hand. The v2 contract publishes `UpcomingBillResponseV2`, so it is derived now.
  */
-export type UpcomingBillResponse = Pick<
-  RecurringExpenseResponse,
-  "id" | "name" | "amount" | "categoryName" | "frequency" | "currency"
-> & {
-  dueDate: string;
-};
+export type UpcomingBillResponse = Complete<Schemas["UpcomingBillResponseV2"]>;
 
 export const getRecurring = (): Promise<RecurringExpenseResponse[]> =>
   api.get<RecurringExpenseResponse[]>("/recurring").then((r) => r.data);

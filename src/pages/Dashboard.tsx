@@ -20,7 +20,7 @@ import GoalProgressCard from "../components/GoalProgressCard";
 import TopExpensesCard from "../components/TopExpensesCard";
 import UpcomingBillsCard from "../components/UpcomingBillsCard";
 import { Button, Card, InfoTip } from "../components/ui";
-import { formatCurrency, formatDate } from "../lib/formatters";
+import { formatCentavos, formatDate } from "../lib/formatters";
 import { categoryIcon } from "../lib/categoryIcon";
 import CategoryChip from "../components/CategoryChip";
 
@@ -36,9 +36,9 @@ function prevMonthLabel(yyyyMM: string): string {
   return new Date(y, m - 2, 1).toLocaleString("default", { month: "short", year: "numeric" });
 }
 
-/** Split a formatted peso amount into its main part and the cents, so the cents can render smaller. */
-function splitAmount(n: number): { head: string; dec: string } {
-  const s = formatCurrency(n);
+/** Split a formatted centavo amount into its main part and the cents, so the cents can render smaller. */
+function splitAmount(centavos: number): { head: string; dec: string } {
+  const s = formatCentavos(centavos);
   const idx = s.lastIndexOf(".");
   if (idx === -1) return { head: s, dec: "" };
   return { head: s.slice(0, idx), dec: s.slice(idx + 1) };
@@ -103,7 +103,9 @@ export default function Dashboard() {
   const daysInMonth = new Date(cy, cm, 0).getDate();
   const today = Math.min(new Date().getDate(), daysInMonth);
   const daysLeft = Math.max(daysInMonth - today, 0);
-  const dailyAvg = today > 0 ? total / today : 0;
+  // Rounded to a whole centavo before it reaches the formatter: the average of an integer
+  // number of centavos is not itself one, and formatCentavos only renders integers.
+  const dailyAvg = today > 0 ? Math.round(total / today) : 0;
 
   const remainingBudget =
     budgetSummary && budgetSummary.items.length > 0 ? budgetSummary.safeToSpend : null;
@@ -213,7 +215,7 @@ export default function Dashboard() {
         </div>
         <div className="mt-3.5 text-[12.5px] text-ink-2">
           {budgetSplit
-            ? `${formatCurrency(dailyAllowance)} / day safe · ${daysLeft} ${daysLeft === 1 ? "day" : "days"} left`
+            ? `${formatCentavos(dailyAllowance)} / day safe · ${daysLeft} ${daysLeft === 1 ? "day" : "days"} left`
             : "No budget set"}
         </div>
       </Card>
@@ -265,7 +267,7 @@ export default function Dashboard() {
                 )}
               </div>
               <div className="flex-shrink-0 text-right">
-                <div className="font-display font-medium text-ink-hi">{formatCurrency(e.amount)}</div>
+                <div className="font-display font-medium text-ink-hi">{formatCentavos(e.amount)}</div>
                 <div className="text-xs text-ink-3">{formatDate(e.date)}</div>
               </div>
             </li>
@@ -312,7 +314,7 @@ export default function Dashboard() {
                 />
               </div>
               <div className="text-right font-mono text-[12.5px] text-ink-2">
-                {formatCurrency(c.value)}
+                {formatCentavos(c.value)}
               </div>
             </div>
           ))}
@@ -351,10 +353,10 @@ export default function Dashboard() {
             />
             <YAxis
               tick={{ fontSize: 11, fill: "var(--ga-text3)" }}
-              tickFormatter={(v) => abbrevCurrency(v as number)}
+              tickFormatter={(v) => abbrevCentavos(v as number)}
               width={56}
             />
-            <Tooltip formatter={(v) => [formatCurrency(v as number), "Spend"]} />
+            <Tooltip formatter={(v) => [formatCentavos(v as number), "Spend"]} />
             <Bar dataKey="total" fill="#1f8a5b" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
@@ -399,11 +401,19 @@ export default function Dashboard() {
   );
 }
 
-/** Compact peso label for chart axes (₱12.5k); full precision stays in tooltips. */
-function abbrevCurrency(n: number): string {
-  if (Math.abs(n) >= 1000) {
-    const k = n / 1000;
-    return `₱${k % 1 === 0 ? k.toFixed(0) : k.toFixed(1)}k`;
+/**
+ * Compact peso label for chart axes (₱12.5k); full precision stays in tooltips.
+ *
+ * Both branches go through `formatCentavos` instead of assembling a `₱` string here, which keeps
+ * the peso sign in `formatters.ts` where CLAUDE.md puts it. The thousands branch reuses the
+ * formatter's two decimal places to mean tenths of a thousand: ₱12,500 is 1,250,000 centavos,
+ * `Math.round(c / 1000)` is 1250, and the formatter renders that as `₱12.50` — the `₱12.5` the
+ * axis wants, once the trailing zeros come off.
+ */
+function abbrevCentavos(centavos: number): string {
+  const trimZeros = (s: string) => s.replace(/\.?0+$/, "");
+  if (Math.abs(centavos) >= 100_000) {
+    return `${trimZeros(formatCentavos(Math.round(centavos / 1000)))}k`;
   }
-  return `₱${n}`;
+  return trimZeros(formatCentavos(centavos));
 }

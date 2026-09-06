@@ -3,7 +3,7 @@ import { Sparkles } from "lucide-react";
 import { assignBuckets, getBudgetRule, getBudgetRuleSummary, putBudgetRule, setBudgetRuleEnabled } from "../api/budgetRules";
 import type { Bucket, BudgetRuleSummary, BudgetRuleType, Category } from "../api/types";
 import { Button, InfoTip } from "./ui";
-import { formatCurrency } from "../lib/formatters";
+import { centavosToAmount, formatCentavos, parseAmountToCentavos } from "../lib/formatters";
 
 interface Props {
   month: string;
@@ -42,7 +42,7 @@ export default function BudgetRuleCard({ month, categories, onCategoriesChanged 
       const [rule, sum] = await Promise.all([getBudgetRule(), getBudgetRuleSummary(month)]);
       setEnabledState(rule.enabled);
       setRuleType(rule.ruleType);
-      setIncome(String(rule.monthlyIncome));
+      setIncome(centavosToAmount(rule.monthlyIncome));
       setNeeds(rule.needsPct);
       setWants(rule.wantsPct);
       setSavings(rule.savingsPct);
@@ -65,12 +65,17 @@ export default function BudgetRuleCard({ month, categories, onCategoriesChanged 
   }, [load]);
 
   const save = async () => {
+    const monthlyIncome = parseAmountToCentavos(income);
+    if (monthlyIncome === null || monthlyIncome < 0) {
+      setError("Monthly income must be an amount like 45000 or 45000.50.");
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
       await putBudgetRule({
         ruleType,
-        monthlyIncome: parseFloat(income) || 0,
+        monthlyIncome,
         ...(ruleType === "CUSTOM" ? { needsPct: needs, wantsPct: wants, savingsPct: savings } : {}),
       });
       setSummary(await getBudgetRuleSummary(month));
@@ -201,8 +206,8 @@ export default function BudgetRuleCard({ month, categories, onCategoriesChanged 
                 <span className="font-mono text-[11px] text-ink-3">{b.percent}%</span>
               </div>
               <div className="mt-2 font-display text-[20px] font-medium text-ink-hi">
-                {formatCurrency(b.spent)}
-                <span className="ml-1 text-[13px] text-ink-3">/ {formatCurrency(b.target)}</span>
+                {formatCentavos(b.spent)}
+                <span className="ml-1 text-[13px] text-ink-3">/ {formatCentavos(b.target)}</span>
               </div>
               <div className="mt-2 h-2 overflow-hidden rounded-full bg-track">
                 <div
@@ -211,7 +216,7 @@ export default function BudgetRuleCard({ month, categories, onCategoriesChanged 
                 />
               </div>
               <div className="mt-1.5 text-xs text-ink-3">
-                {b.remaining >= 0 ? `${formatCurrency(b.remaining)} left` : `${formatCurrency(-b.remaining)} over`}
+                {b.remaining >= 0 ? `${formatCentavos(b.remaining)} left` : `${formatCentavos(-b.remaining)} over`}
               </div>
             </div>
           ))}
@@ -219,7 +224,7 @@ export default function BudgetRuleCard({ month, categories, onCategoriesChanged 
       )}
       {summary && summary.unassignedSpent > 0 && (
         <p className="text-xs text-ink-3">
-          {formatCurrency(summary.unassignedSpent)} spent in categories not yet assigned to a bucket.
+          {formatCentavos(summary.unassignedSpent)} spent in categories not yet assigned to a bucket.
         </p>
       )}
 

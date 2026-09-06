@@ -28,22 +28,22 @@ export type ExpenseType = "PERSONAL" | "BUSINESS";
  * are the proof the guard is wired — not decoration.
  */
 export type ExpenseResponseTypeCovered = AssertContractUnionCovered<
-  CoversContractUnion<Schemas["ExpenseResponse"]["expenseType"], ExpenseType>
+  CoversContractUnion<Schemas["ExpenseResponseV2"]["expenseType"], ExpenseType>
 >;
 export type ExpenseRequestTypeCovered = AssertContractUnionCovered<
-  CoversContractUnion<Schemas["ExpenseRequest"]["expenseType"], ExpenseType>
+  CoversContractUnion<Schemas["ExpenseRequestV2"]["expenseType"], ExpenseType>
 >;
 
-export type Expense = Omit<Complete<Schemas["ExpenseResponse"]>, "expenseType"> & {
-  expenseType: Extract<Schemas["ExpenseResponse"]["expenseType"], string> & ExpenseType;
+export type Expense = Omit<Complete<Schemas["ExpenseResponseV2"]>, "expenseType"> & {
+  expenseType: Extract<Schemas["ExpenseResponseV2"]["expenseType"], string> & ExpenseType;
 };
 
-export type ExpenseRequest = Omit<Schemas["ExpenseRequest"], "expenseType"> & {
-  expenseType?: Extract<Schemas["ExpenseRequest"]["expenseType"], string> & ExpenseType;
+export type ExpenseRequest = Omit<Schemas["ExpenseRequestV2"], "expenseType"> & {
+  expenseType?: Extract<Schemas["ExpenseRequestV2"]["expenseType"], string> & ExpenseType;
 };
 
 /** `Complete` is shallow, so the page's element type is narrowed explicitly. */
-export type ExpensePage = Omit<Complete<Schemas["PageResponseExpenseResponse"]>, "content"> & {
+export type ExpensePage = Omit<Complete<Schemas["PageResponseExpenseResponseV2"]>, "content"> & {
   content: Expense[];
 };
 /**
@@ -58,13 +58,13 @@ export type ImportResult = Omit<Complete<Schemas["ImportResult"]>, "limitReached
   limitReached?: string | null;
 };
 export type ParsedExpenseResult = Nullable<
-  Schemas["ParsedExpenseResult"],
+  Schemas["ParsedExpenseResultV2"],
   "amount" | "category" | "date" | "description" | "hint" | "rejectionMessage"
 >;
-export type MonthlyReport = Complete<Schemas["MonthlyReportItem"]>;
-export type MonthlyComparison = Nullable<Schemas["MonthlyComparisonResponse"], "changePercent">;
-export type CategoryReport = Complete<Schemas["CategoryReportItem"]>;
-export type DailyReport = Complete<Schemas["DailyReportItem"]>;
+export type MonthlyReport = Complete<Schemas["MonthlyReportItemV2"]>;
+export type MonthlyComparison = Nullable<Schemas["MonthlyComparisonResponseV2"], "changePercent">;
+export type CategoryReport = Complete<Schemas["CategoryReportItemV2"]>;
+export type DailyReport = Complete<Schemas["DailyReportItemV2"]>;
 
 export const getExpenses = (params?: { from?: string; to?: string }) =>
   api.get<Expense[]>("/expenses", { params }).then((r) => r.data);

@@ -3,7 +3,7 @@ import { getTopTransactions } from "../api/expenses";
 import type { Expense } from "../api/types";
 import { Card, InfoTip } from "./ui";
 import CategoryChip from "./CategoryChip";
-import { formatCurrency, formatDayMonth } from "../lib/formatters";
+import { formatCentavos, formatDayMonth } from "../lib/formatters";
 
 interface Props {
   month: string;
@@ -68,7 +68,7 @@ export default function TopExpensesCard({ month }: Props) {
                 </div>
                 <div className="flex-shrink-0 text-right">
                   <div className="text-sm font-semibold text-ink-hi">
-                    {formatCurrency(e.amount)}
+                    {formatCentavos(e.amount)}
                   </div>
                   <div className="text-xs text-ink-3">{formatDayMonth(e.date)}</div>
                 </div>

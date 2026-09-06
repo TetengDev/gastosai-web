@@ -17,7 +17,7 @@ import { Button, ConfirmDialog, IconButton, Modal, PageHeader, SelectionBar } fr
 import { useMultiSelect } from "../hooks/useMultiSelect";
 import { RATE_TTL_MS, rateCache } from "../lib/cache";
 import { categoryIcon } from "../lib/categoryIcon";
-import { formatCurrency, formatMonth } from "../lib/formatters";
+import { centavosToAmount, formatCentavos, formatMonth, parseAmountToCentavos } from "../lib/formatters";
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
   PHP: "₱", USD: "$", EUR: "€", SGD: "S$", JPY: "¥", GBP: "£", AUD: "A$",
@@ -119,7 +119,7 @@ export default function Budget() {
     setConflict(null);
     setSelectedCategoryName(budget.categoryName);
     setCategoryId(budget.categoryId);
-    setAmountLimit(String(budget.amountLimit));
+    setAmountLimit(centavosToAmount(budget.amountLimit));
     setModalMonth(budget.month);
     setModalError(null);
     setBudgetCurrency(budget.currency ?? "PHP");
@@ -157,14 +157,22 @@ export default function Budget() {
     }
   };
 
-  const buildPayload = (): BudgetRequest => ({
+  /** `amountLimitCentavos` is what the typed text parsed to — the field is never re-parsed here. */
+  const buildPayload = (amountLimitCentavos: number): BudgetRequest => ({
     categoryId: Number(categoryId),
     month: modalMonth,
-    amountLimit: parseFloat(amountLimit),
+    amountLimit: amountLimitCentavos,
     currency: budgetCurrency,
     exchangeRate: budgetExchangeRate,
     recurring,
   });
+
+  /**
+   * The typed limit as integer centavos, or `null` when it is not a well-formed amount. More
+   * than two decimal places lands here rather than being rounded into a limit nobody set.
+   */
+  const parsedAmountLimit = () => parseAmountToCentavos(amountLimit);
+  const AMOUNT_ERROR = "Enter an amount like 1900 or 1900.50 — at most two decimal places.";
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -172,10 +180,15 @@ export default function Budget() {
       setModalError("Please select a category.");
       return;
     }
+    const amountLimitCentavos = parsedAmountLimit();
+    if (amountLimitCentavos === null) {
+      setModalError(AMOUNT_ERROR);
+      return;
+    }
     setSaving(true);
     setModalError(null);
     try {
-      const payload = buildPayload();
+      const payload = buildPayload(amountLimitCentavos);
       if (editing) {
         const updated = await updateBudget(editing.id, payload);
         setBudgets((prev) => prev.map((b) => (b.id === updated.id ? updated : b)));
@@ -202,10 +215,15 @@ export default function Budget() {
   };
 
   const handleOverwrite = async () => {
+    const amountLimitCentavos = parsedAmountLimit();
+    if (amountLimitCentavos === null) {
+      setModalError(AMOUNT_ERROR);
+      return;
+    }
     setSaving(true);
     setModalError(null);
     try {
-      const saved = await createBudget(buildPayload(), true);
+      const saved = await createBudget(buildPayload(amountLimitCentavos), true);
       setBudgets((prev) =>
         prev.some((b) => b.id === saved.id)
           ? prev.map((b) => (b.id === saved.id ? saved : b))
@@ -349,11 +367,11 @@ export default function Budget() {
                     <span className="inline-flex items-center justify-end gap-2">
                       {b.currency !== "PHP" && (
                         <span className="rounded-md bg-link/10 px-1.5 py-0.5 font-mono text-[11px] text-link">
-                          {b.currency} {b.amountLimit.toFixed(2)}
+                          {b.currency} {centavosToAmount(b.amountLimit)}
                         </span>
                       )}
                       <span className="font-display text-[17px] font-medium text-ink-hi">
-                        {formatCurrency(b.amountLimitInBaseCurrency ?? b.amountLimit)}
+                        {formatCentavos(b.amountLimitInBaseCurrency ?? b.amountLimit)}
                       </span>
                     </span>
                   </td>
