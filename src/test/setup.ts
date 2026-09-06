@@ -1,4 +1,7 @@
-import "@testing-library/jest-dom";
+// The `/vitest` entrypoint, not the bare one: the bare export augments jest's
+// `Assertion`, which vitest 5 no longer shares, so the matchers would run but
+// have no types.
+import "@testing-library/jest-dom/vitest";
 import { afterEach, beforeEach } from "vitest";
 import { createMemoryStorage } from "./memoryStorage";
 
