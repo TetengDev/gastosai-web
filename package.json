@@ -14,6 +14,7 @@
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
     "e2e": "playwright test",
+    "e2e:happy": "playwright test e2e/happy --grep @happy",
     "e2e:report": "playwright show-report",
     "e2e:demo": "playwright test --config playwright.demo.config.ts"
   },
