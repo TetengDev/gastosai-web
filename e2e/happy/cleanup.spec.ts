@@ -5,6 +5,12 @@ import { API_BASE, RUN_ID, apiHeaders, sweepRunData, uniqueName } from "../suppo
  * The safety net has to be verified like anything else: the other specs only exercise it on
  * their happy path, where it has nothing left to delete. This one hands it a row on purpose.
  */
+// The net needs a net: this spec orphans rows deliberately, so a failure between two of its
+// creates would leave behind exactly what it exists to prove gets cleaned up.
+test.afterEach(async ({ request }) => {
+  await sweepRunData(request);
+});
+
 test.describe("Happy · run cleanup", { tag: "@happy" }, () => {
   test("sweeps a row this run created and leaves everything else alone", async ({ request }) => {
     // The saved session's token — signing in again here would spend a rate-limited attempt.

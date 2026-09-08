@@ -27,6 +27,14 @@ function tokenFromStorageState(): string | null {
 
 let cachedToken: string | null = null;
 
+/** The month this process started in, so a sweep after midnight still finds the run's budget. */
+const startMonth = new Date().toISOString().slice(0, 7);
+
+const budgetMonths = (): string[] => {
+  const now = new Date().toISOString().slice(0, 7);
+  return now === startMonth ? [now] : [startMonth, now];
+};
+
 /**
  * `Authorization` for an API-side call, without spending a login: the saved session's token,
  * and only signing in if there is no saved session to read.
@@ -62,6 +70,8 @@ export async function sweepRunData(request: APIRequestContext): Promise<string[]
   const headers = await apiHeaders(request);
 
   const removed: string[] = [];
+  // Substring, because the id sits inside a name the specs build — and the id carries four
+  // random characters, so matching something a person happened to type is not a real case.
   const mine = (value: unknown): boolean => typeof value === "string" && value.includes(RUN_ID);
 
   const sweep = async (
@@ -75,15 +85,27 @@ export async function sweepRunData(request: APIRequestContext): Promise<string[]
     for (const row of (await listed.json()) as Record<string, unknown>[]) {
       if (!mine(nameOf(row))) continue;
       const gone = await request.delete(`${API_BASE}/${deletePath}/${row.id}`, { headers });
-      if (gone.ok()) removed.push(`${label} ${String(nameOf(row))}`);
+      if (gone.ok()) {
+        removed.push(`${label} ${String(nameOf(row))}`);
+      } else {
+        // Never silent: a delete that keeps failing (a foreign key still pointing at the row,
+        // say) is the accumulation this sweep exists to prevent, and only the run's own output
+        // can surface it — no assertion is watching the other specs' afterEach sweeps.
+        console.warn(
+          `e2e cleanup could not delete ${label} ${row.id} (${String(nameOf(row))}): HTTP ${gone.status()}`
+        );
+      }
     }
   };
 
-  // The specs only ever budget the current month, which is the only month worth listing.
-  const month = new Date().toISOString().slice(0, 7);
   await sweep("expenses", "expenses", "expense", (e) => e.description);
   // Budgets and bills reference a category, so they go before the categories they hang on.
-  await sweep(`budgets?month=${month}`, "budgets", "budget", (b) => b.categoryName);
+  // `/budgets` lists one month at a time, and a run that started at 23:59 would look for its
+  // own budget in the wrong month — so both the month the process started in and the month it
+  // is in now get swept.
+  for (const month of budgetMonths()) {
+    await sweep(`budgets?month=${month}`, "budgets", "budget", (b) => b.categoryName);
+  }
   await sweep("recurring", "recurring", "bill", (b) => b.name);
   await sweep("goals", "goals", "goal", (g) => g.name);
   await sweep("categories", "categories", "category", (c) => c.name);
