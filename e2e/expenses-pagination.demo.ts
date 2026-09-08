@@ -1,32 +1,13 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect } from "@playwright/test";
+import { BEAT, E2E_EMAIL as EMAIL, E2E_PASSWORD as PASSWORD, caption } from "./support";
 
 /**
  * Slow, captioned walkthrough of the paginated Expenses feature for a client demo.
  * Produces one continuous video (test-results-demo/.../video.webm). Paced with on-screen
  * captions + deliberate pauses so it is comprehensible when presented.
+ *
+ * The caption helper lives in `e2e/support/caption.ts` so a later showcase reuses it.
  */
-
-const EMAIL = process.env.E2E_EMAIL ?? "demo@gastosai.dev";
-const PASSWORD = process.env.E2E_PASSWORD ?? "demo123";
-const BEAT = 2200; // ms to hold each step so a viewer can read it
-
-async function caption(page: Page, text: string) {
-  await page.evaluate((t) => {
-    let el = document.getElementById("__demo_caption");
-    if (!el) {
-      el = document.createElement("div");
-      el.id = "__demo_caption";
-      el.style.cssText =
-        "position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:99999;" +
-        "background:rgba(17,24,39,.92);color:#fff;padding:12px 20px;border-radius:9999px;" +
-        "font:600 16px/1.3 system-ui,Segoe UI,sans-serif;box-shadow:0 6px 24px rgba(0,0,0,.3);" +
-        "max-width:80vw;text-align:center;";
-      document.body.appendChild(el);
-    }
-    el.textContent = t;
-  }, text);
-  await page.waitForTimeout(BEAT);
-}
 
 test("paginated expenses — client walkthrough", async ({ page }) => {
   // Sign in
