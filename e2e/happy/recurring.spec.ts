@@ -1,7 +1,12 @@
 import { expect, test } from "@playwright/test";
-import { API_BASE, STORAGE_STATE, authToken, confirmInModal, modalWithTitle, uniqueName } from "../support";
+import { API_BASE, STORAGE_STATE, authToken, confirmInModal, modalWithTitle, sweepRunData, uniqueName } from "../support";
 
 test.use({ storageState: STORAGE_STATE });
+
+// The net under the in-test delete: a failure between "create" and "delete" must not orphan a bill.
+test.afterEach(async ({ request }) => {
+  await sweepRunData(request);
+});
 
 test.describe("Happy · recurring bills", { tag: "@happy" }, () => {
   test("adds a monthly bill and deletes it", async ({ page }) => {

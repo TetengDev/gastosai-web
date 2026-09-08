@@ -1,7 +1,13 @@
 import { expect, test } from "@playwright/test";
-import { API_BASE, STORAGE_STATE, authToken, confirmInModal, modalWithTitle, uniqueName } from "../support";
+import { API_BASE, STORAGE_STATE, authToken, confirmInModal, modalWithTitle, sweepRunData, uniqueName } from "../support";
 
 test.use({ storageState: STORAGE_STATE });
+
+// The net under the in-test deletes: a failure part-way through must not orphan the budget or
+// the category it hangs on.
+test.afterEach(async ({ request }) => {
+  await sweepRunData(request);
+});
 
 test.describe("Happy · budgets", { tag: "@happy" }, () => {
   test("creates a budget for a fresh category and deletes it", async ({ page }) => {

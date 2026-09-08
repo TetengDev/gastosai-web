@@ -1,7 +1,12 @@
 import { expect, test } from "@playwright/test";
-import { STORAGE_STATE, confirmInModal, modalWithTitle, uniqueName } from "../support";
+import { STORAGE_STATE, confirmInModal, modalWithTitle, sweepRunData, uniqueName } from "../support";
 
 test.use({ storageState: STORAGE_STATE });
+
+// The net under the in-test delete: a failure between "create" and "delete" must not orphan a row.
+test.afterEach(async ({ request }) => {
+  await sweepRunData(request);
+});
 
 test.describe("Happy · expenses", { tag: "@happy" }, () => {
   test("adds an expense, renders it as pesos, and deletes it", async ({ page }) => {
