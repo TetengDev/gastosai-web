@@ -214,10 +214,11 @@ export default function Expenses() {
               disabled={exporting}
               onClick={async () => {
                 setExporting(true);
+                setExportError(null);
                 try {
                   await exportExpenses({ from: from || undefined, to: to || undefined });
                 } catch {
-                  // silent fail
+                  setExportError("The CSV could not be generated. Try again in a moment.");
                 } finally {
                   setExporting(false);
                 }

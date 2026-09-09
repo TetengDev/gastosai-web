@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import Expenses from "./Expenses";
-import { exportExpensesPdf, getExpenses, getProjects } from "../api/expenses";
+import { exportExpenses, exportExpensesPdf, getExpenses, getProjects } from "../api/expenses";
 import { useEntitlements, type UseEntitlements } from "../hooks/useEntitlements";
 import { useExpenses } from "../hooks/useExpenses";
 import type { Expense } from "../api/types";
@@ -20,6 +20,7 @@ vi.mock("../hooks/useExpenses", () => ({ useExpenses: vi.fn() }));
 vi.mock("../hooks/useFeatures", () => ({ useFeatures: vi.fn(() => ({ csvImport: false, chatAttachments: false })) }));
 vi.mock("../hooks/useEntitlements", () => ({ useEntitlements: vi.fn() }));
 
+const mockExportCsv = vi.mocked(exportExpenses);
 const mockExportPdf = vi.mocked(exportExpensesPdf);
 const mockGetProjects = vi.mocked(getProjects);
 const mockUseExpenses = vi.mocked(useExpenses);
@@ -46,10 +47,12 @@ const entitledTo = (features: FeatureKey[]): UseEntitlements => ({
 
 /**
  * The PDF report is a Premium capability served from a different path than the CSV export, and
- * a failure to render one is invisible unless the page says so. These cover the three things
- * TEN-315 asks for: the range and tag that reach the API, the entitlement gate, and the message.
+ * a failure to render either one is invisible unless the page says so. These cover the three
+ * things TEN-315 asks for — the range and tag that reach the API, the entitlement gate, and the
+ * message — plus the CSV failure path, which used to fail silently (TEN-372). Both controls
+ * write to the same alert, so the last failure is the one shown.
  */
-describe("Expenses PDF export", () => {
+describe("Expenses exports", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUseExpenses.mockReturnValue({
@@ -69,10 +72,12 @@ describe("Expenses PDF export", () => {
     mockUseEntitlements.mockReturnValue(entitledTo(["EXPORT_PDF"]));
     mockGetProjects.mockResolvedValue([]);
     mockExportPdf.mockResolvedValue(undefined);
+    mockExportCsv.mockResolvedValue(undefined);
     vi.mocked(getExpenses).mockResolvedValue([]);
   });
 
   const pdfButton = () => screen.getByRole("button", { name: /Export PDF/ });
+  const csvButton = () => screen.getByRole("button", { name: /Export CSV/ });
 
   it("downloads the current date range", async () => {
     render(<Expenses />);
@@ -120,5 +125,28 @@ describe("Expenses PDF export", () => {
 
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toMatch(/could not be generated/i);
+  });
+
+  it("surfaces a message when the CSV download fails", async () => {
+    mockExportCsv.mockRejectedValue(new Error("boom"));
+    render(<Expenses />);
+
+    expect(screen.queryByRole("alert")).toBeNull();
+    fireEvent.click(csvButton());
+
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toMatch(/CSV could not be generated/i);
+  });
+
+  it("clears an earlier failure when a later export succeeds", async () => {
+    mockExportCsv.mockRejectedValueOnce(new Error("boom"));
+    render(<Expenses />);
+
+    fireEvent.click(csvButton());
+    await screen.findByRole("alert");
+
+    fireEvent.click(csvButton());
+    await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+    expect(mockExportCsv).toHaveBeenCalledTimes(2);
   });
 });
