@@ -1,9 +1,10 @@
-import { Download, HelpCircle, Loader2, Pencil, Plus, Trash2, Upload } from "lucide-react";
+import { Download, FileText, HelpCircle, Loader2, Pencil, Plus, Trash2, Upload } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import ExpenseModal from "../components/ExpenseModal";
-import { deleteExpense, downloadImportTemplate, exportExpenses, getExpenses, importExpensesCsv, type ImportResult } from "../api/expenses";
+import { deleteExpense, downloadImportTemplate, exportExpenses, exportExpensesPdf, getExpenses, getProjects, importExpensesCsv, type ImportResult, type Project } from "../api/expenses";
 import type { Expense } from "../api/types";
 import { useExpenses } from "../hooks/useExpenses";
+import { useEntitlements } from "../hooks/useEntitlements";
 import { useFeatures } from "../hooks/useFeatures";
 import { Button, ConfirmDialog, IconButton, Modal, PageHeader } from "../components/ui";
 import { centavosToAmount, formatCentavos, formatDate } from "../lib/formatters";
@@ -11,6 +12,10 @@ import CategoryChip from "../components/CategoryChip";
 
 export default function Expenses() {
   const features = useFeatures();
+  const { has: hasFeature, loading: entLoading } = useEntitlements();
+  // The backend is the real gate; while entitlements load the control renders optimistically,
+  // the way `FeatureGate` does.
+  const canExportPdf = entLoading || hasFeature("EXPORT_PDF");
   const { expenses, loading, loadingMore, error, total, hasMore, add, update, remove, removeAll, refresh, loadMore } = useExpenses();
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
@@ -28,6 +33,10 @@ export default function Expenses() {
   const csvInputRef = useRef<HTMLInputElement>(null);
 
   const [exporting, setExporting] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [projectId, setProjectId] = useState("");
   const [isFetchingFilter, setIsFetchingFilter] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [deletingSelected, setDeletingSelected] = useState(false);
@@ -70,6 +79,18 @@ export default function Expenses() {
     }, 350);
     return () => { clearTimeout(timer); active = false; };
   }, [from, to]);
+
+  // Tags exist only for the PDF report today, so they are fetched only for a plan that can ask
+  // for one. An account with no tagged expense gets an empty list and no tag control at all.
+  const entitledToPdf = !entLoading && hasFeature("EXPORT_PDF");
+  useEffect(() => {
+    if (!entitledToPdf) return;
+    let active = true;
+    getProjects()
+      .then((data) => { if (active) setProjects(data); })
+      .catch(() => { if (active) setProjects([]); });
+    return () => { active = false; };
+  }, [entitledToPdf]);
 
   const displayExpenses = (from || to) ? (filteredExpenses ?? expenses) : expenses;
 
@@ -170,27 +191,75 @@ export default function Expenses() {
           </button>
         )}
         {total > 0 && (
-          <Button
-            variant="secondary"
-            size="sm"
-            className="ml-auto"
-            disabled={exporting}
-            onClick={async () => {
-              setExporting(true);
-              try {
-                await exportExpenses({ from: from || undefined, to: to || undefined });
-              } catch {
-                // silent fail
-              } finally {
-                setExporting(false);
-              }
-            }}
-          >
-            {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
-            {exporting ? "Exporting…" : "Export CSV"}
-          </Button>
+          <div className="ml-auto flex flex-wrap items-center gap-3">
+            {canExportPdf && projects.length > 0 && (
+              <label className="flex items-center gap-2">
+                <span className={labelClass}>Tag</span>
+                <select
+                  aria-label="Tag"
+                  value={projectId}
+                  onChange={(e) => setProjectId(e.target.value)}
+                  className={inputClass}
+                >
+                  <option value="">All tags</option>
+                  {projects.map((p) => (
+                    <option key={p.id} value={String(p.id)}>{p.name}</option>
+                  ))}
+                </select>
+              </label>
+            )}
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={exporting}
+              onClick={async () => {
+                setExporting(true);
+                try {
+                  await exportExpenses({ from: from || undefined, to: to || undefined });
+                } catch {
+                  // silent fail
+                } finally {
+                  setExporting(false);
+                }
+              }}
+            >
+              {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+              {exporting ? "Exporting…" : "Export CSV"}
+            </Button>
+            {canExportPdf && (
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={exportingPdf}
+                onClick={async () => {
+                  setExportingPdf(true);
+                  setExportError(null);
+                  try {
+                    await exportExpensesPdf({
+                      from: from || undefined,
+                      to: to || undefined,
+                      projectId: projectId ? Number(projectId) : undefined,
+                    });
+                  } catch {
+                    setExportError("The PDF could not be generated. Try again in a moment.");
+                  } finally {
+                    setExportingPdf(false);
+                  }
+                }}
+              >
+                {exportingPdf ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
+                {exportingPdf ? "Exporting…" : "Export PDF"}
+              </Button>
+            )}
+          </div>
         )}
       </div>
+
+      {exportError && (
+        <p role="alert" className="text-sm text-[#b30000]">
+          {exportError}
+        </p>
+      )}
 
       {importResult && (
         <div
