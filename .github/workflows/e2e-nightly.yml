@@ -1,0 +1,175 @@
+name: E2E nightly
+
+# Scheduled signal, not a gate: the happy-flow suite (e2e/happy/**, tagged @happy) gives a local
+# signal only until something runs it without a human bringing the stack up first. This does that
+# on a timer, against a real backend, and reports here rather than blocking a PR — see
+# ../../docs/e2e-loop.md.
+#
+# The backend comes from ghcr.io/tetengdev/gastosai-backend, published by
+# gastosai-backend/.github/workflows/build-image.yml. That image is private and deliberately
+# never tagged `latest` (compose.prod.yml pins IMAGE_TAG so a rollback is unambiguous), so this
+# workflow resolves the newest published version tag itself; workflow_dispatch can pin one by
+# hand instead.
+#
+# Pulling a private GHCR image needs read:packages. secrets.PACKAGE_TOKEN already exists for the
+# npm contract package (CONTRACT.md) and is reused here rather than adding a second token — if it
+# turns out to lack read:packages, resolve-tag fails with that sentence instead of a bare 403.
+
+on:
+  schedule:
+    # 18:00 UTC = 02:00 Asia/Manila — off-hours for the one human who'd otherwise see it fail live.
+    - cron: "0 18 * * *"
+  workflow_dispatch:
+    inputs:
+      backend_tag:
+        description: "gastosai-backend image tag to pin (default: resolve the newest published version)"
+        required: false
+        default: ""
+
+env:
+  IMAGE: ghcr.io/tetengdev/gastosai-backend
+
+jobs:
+  resolve-tag:
+    name: Resolve backend image tag
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.resolve.outputs.tag }}
+    steps:
+      - name: Resolve
+        id: resolve
+        env:
+          PACKAGE_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
+          INPUT_TAG: ${{ inputs.backend_tag }}
+        run: |
+          set -euo pipefail
+
+          if [ -n "$INPUT_TAG" ]; then
+            echo "Pinned by workflow_dispatch input: $INPUT_TAG"
+            echo "tag=$INPUT_TAG" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # GHCR speaks the Docker Registry HTTP API v2 regardless of whether the package owner
+          # is a user or an org, which a GitHub-API package lookup would need to know up front.
+          auth=$(curl -sf -u "x:${PACKAGE_TOKEN}" \
+            "https://ghcr.io/token?service=ghcr.io&scope=repository:tetengdev/gastosai-backend:pull") \
+            || { echo "::error::PACKAGE_TOKEN cannot read packages from ghcr.io — grant it read:packages and retry."; exit 1; }
+          token=$(echo "$auth" | jq -r .token)
+          if [ -z "$token" ] || [ "$token" = "null" ]; then
+            echo "::error::PACKAGE_TOKEN cannot read packages from ghcr.io — grant it read:packages and retry."
+            exit 1
+          fi
+
+          tags_json=$(curl -sf -H "Authorization: Bearer $token" \
+            "https://ghcr.io/v2/tetengdev/gastosai-backend/tags/list") \
+            || { echo "::error::PACKAGE_TOKEN cannot read packages from ghcr.io — grant it read:packages and retry."; exit 1; }
+
+          # Version tags only (build-image.yml also pushes a git-SHA tag) — highest by semver.
+          tag=$(echo "$tags_json" | jq -r '.tags[]' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -t. -k1,1n -k2,2n -k3,3n | tail -1)
+          if [ -z "$tag" ]; then
+            echo "::error::No semver-tagged gastosai-backend image found on ghcr.io."
+            exit 1
+          fi
+          echo "Resolved newest published version: $tag"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+  e2e:
+    name: Happy-flow suite
+    needs: resolve-tag
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: gastos
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: dev
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d gastos"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        env:
+          PACKAGE_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Log in to GHCR
+        env:
+          PACKAGE_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
+        run: |
+          set -euo pipefail
+          if ! echo "$PACKAGE_TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin; then
+            echo "::error::PACKAGE_TOKEN cannot read packages from ghcr.io — grant it read:packages and retry."
+            exit 1
+          fi
+
+      - name: Start backend (${{ needs.resolve-tag.outputs.tag }})
+        run: |
+          set -euo pipefail
+          docker run -d --name backend --network host \
+            -e DB_URL=jdbc:postgresql://localhost:5432/gastos \
+            -e DB_USERNAME=postgres \
+            -e DB_PASSWORD=dev \
+            -e OPENAI_API_KEY=ci-placeholder-key \
+            -e GASTOS_SEED_SAMPLE_DATA=true \
+            -e CORS_ALLOWED_ORIGINS=http://localhost:5173 \
+            "${IMAGE}:${{ needs.resolve-tag.outputs.tag }}"
+
+      - name: Wait for /actuator/health
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:8080/actuator/health > /dev/null; then
+              echo "Backend healthy after ${i}0s."
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::Backend never answered /actuator/health within 10 minutes."
+          docker logs backend
+          exit 1
+
+      - name: Start web dev server
+        run: |
+          nohup npm run dev -- --port 5173 > vite.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:5173 > /dev/null; then
+              echo "Dev server up after ${i}s."
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::Vite dev server never answered on :5173."
+          cat vite.log
+          exit 1
+        env:
+          VITE_API_URL: http://localhost:8080
+
+      - name: Run happy-flow suite
+        run: npm run e2e:happy
+
+      - name: Upload artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-nightly-failure
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
