@@ -19,6 +19,20 @@ export const API_BASE_PATH = "/api/v2";
 export const resolveBaseUrl = (apiUrl: string | undefined): string =>
   `${(apiUrl ?? "").replace(/\/+$/, "")}${API_BASE_PATH}`;
 
+/**
+ * The unversioned surface, for the handful of endpoints `/api/v2` does not carry.
+ *
+ * The PDF export and the project tags it filters by are published by the contract at
+ * `/expenses/export/pdf` and `/expenses/projects` only — the v2 controller does not mirror them.
+ * Nothing money-bearing crosses this boundary (a PDF blob, and a tag's id and name), so reading
+ * it does not put a decimal amount in front of the centavos invariant. Anything that does carry
+ * an amount stays on `API_BASE_PATH`.
+ */
+export const resolveUnversionedBaseUrl = (apiUrl: string | undefined): string =>
+  (apiUrl ?? "").replace(/\/+$/, "");
+
+export const UNVERSIONED_BASE_URL = resolveUnversionedBaseUrl(import.meta.env.VITE_API_URL);
+
 const api = axios.create({ baseURL: resolveBaseUrl(import.meta.env.VITE_API_URL) });
 
 api.interceptors.request.use((cfg) => {
