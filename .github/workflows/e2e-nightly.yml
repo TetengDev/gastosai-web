@@ -120,6 +120,8 @@ jobs:
           fi
 
       - name: Start backend (${{ needs.resolve-tag.outputs.tag }})
+        env:
+          BACKEND_TAG: ${{ needs.resolve-tag.outputs.tag }}
         run: |
           set -euo pipefail
           docker run -d --name backend --network host \
@@ -129,7 +131,7 @@ jobs:
             -e OPENAI_API_KEY=ci-placeholder-key \
             -e GASTOS_SEED_SAMPLE_DATA=true \
             -e CORS_ALLOWED_ORIGINS=http://localhost:5173 \
-            "${IMAGE}:${{ needs.resolve-tag.outputs.tag }}"
+            "${IMAGE}:${BACKEND_TAG}"
 
       - name: Wait for /actuator/health
         run: |
