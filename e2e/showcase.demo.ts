@@ -199,17 +199,21 @@ test("GastosAI — feature showcase", async ({ page, request }) => {
   if (await ask.isEnabled()) {
     await caption(page, "Ask about your own money, in plain English", BEAT, "top");
     await ask.fill("How much did I spend this month?");
-    const [chatResponse] = await Promise.all([
+    // The widget routes a question to either `/ai/query` or `/ai/chat` by its own heuristics, so
+    // the wait accepts both — waiting for only one of them would stall the film for the timeout.
+    const [answer] = await Promise.all([
       page
-        .waitForResponse((r) => r.url().includes("/ai/chat") && r.request().method() === "POST", {
-          timeout: 120_000,
-        })
+        .waitForResponse(
+          (r) => /\/ai\/(chat|query)$/.test(new URL(r.url()).pathname) && r.request().method() === "POST",
+          { timeout: 60_000 }
+        )
         .catch(() => null),
       page.getByRole("button", { name: "Send" }).click(),
     ]);
-    // Delete it afterwards: the answer is persisted as a conversation on the demo account.
-    if (chatResponse?.ok()) {
-      const body = (await chatResponse.json().catch(() => null)) as { conversationId?: string } | null;
+    // Only `/ai/chat` persists, and what it persists is a conversation on the demo account —
+    // recorded here so cleanup removes it whatever happens next.
+    if (answer?.ok()) {
+      const body = (await answer.json().catch(() => null)) as { conversationId?: string } | null;
       if (body?.conversationId) traces.conversationIds.push(String(body.conversationId));
     }
     await caption(page, "It reads the numbers the backend already has", BEAT + 800, "top");

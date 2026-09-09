@@ -49,8 +49,11 @@ API_URL="${E2E_API_URL:-http://localhost:8080}"
 # Playwright would otherwise spend a minute failing on a connection refused and leave a video of a
 # browser error page. Both halves are checked: the walkthrough drives the web app, and every number
 # on screen comes from the API behind it.
+#
+# `-f`, so a backend that is running but unhealthy counts as down: the walkthrough reads real
+# numbers out of it, and a 503 would film an app full of error states.
 probe() {  # probe <url> <name>
-  if ! curl -sS -o /dev/null --max-time 5 "$1" 2>/dev/null; then
+  if ! curl -fsS -o /dev/null --max-time 5 "$1" 2>/dev/null; then
     echo "✗ $2 is not answering at $1" >&2
     echo "  bring the stack up first:  python3 ../scripts/verify_local.py --up" >&2
     exit 1
