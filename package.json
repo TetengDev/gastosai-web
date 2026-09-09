@@ -16,7 +16,9 @@
     "e2e": "playwright test",
     "e2e:happy": "playwright test e2e/happy --grep @happy",
     "e2e:report": "playwright show-report",
-    "e2e:demo": "playwright test --config playwright.demo.config.ts"
+    "e2e:demo": "playwright test --config playwright.demo.config.ts",
+    "e2e:showcase": "playwright test --config playwright.demo.config.ts e2e/showcase.demo.ts",
+    "showcase": "./scripts/record-showcase.sh"
   },
   "dependencies": {
     "@tetengdev/gastosai-api-contract": "3.0.0",
