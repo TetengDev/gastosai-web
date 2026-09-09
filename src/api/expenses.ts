@@ -1,4 +1,4 @@
-import api from "./client";
+import api, { UNVERSIONED_BASE_URL } from "./client";
 import type { components } from "./generated/schema";
 // `Complete` marks the fields the API always sends; `Nullable` the ones it
 // sends as `null` — here an unparseable amount, and a first month with no
@@ -95,15 +95,26 @@ export const importExpensesCsv = (file: File, strict = false) => {
     .then((r) => r.data);
 };
 
-export const downloadImportTemplate = async (): Promise<void> => {
-  const res = await api.get<Blob>("/expenses/import/template", { responseType: "blob" });
-  const url = URL.createObjectURL(res.data);
+/** Hands a downloaded blob to the browser under `filename`. */
+const saveBlob = (blob: Blob, filename: string): void => {
+  const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = "gastosai-import-template.csv";
+  a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
 };
+
+export const downloadImportTemplate = async (): Promise<void> => {
+  const res = await api.get<Blob>("/expenses/import/template", { responseType: "blob" });
+  saveBlob(res.data, "gastosai-import-template.csv");
+};
+
+/** A project or client an expense can be tagged to. Filter by `id`; it survives a rename. */
+export type Project = Complete<Schemas["ProjectResponse"]>;
+
+export const getProjects = () =>
+  api.get<Project[]>("/expenses/projects", { baseURL: UNVERSIONED_BASE_URL }).then((r) => r.data);
 
 export const parseExpense = (text: string) =>
   api.post<ParsedExpenseResult>("/expenses/parse", { text }).then((r) => r.data);
@@ -125,10 +136,22 @@ export const getTopTransactions = (month: string, limit = 5) =>
 
 export const exportExpenses = async (params?: { from?: string; to?: string }): Promise<void> => {
   const res = await api.get<Blob>("/expenses/export", { params, responseType: "blob" });
-  const url = URL.createObjectURL(res.data);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "expenses.csv";
-  a.click();
-  URL.revokeObjectURL(url);
+  saveBlob(res.data, "expenses.csv");
+};
+
+/**
+ * The PDF report for a date range, optionally narrowed to one project tag.
+ *
+ * Served from the unversioned surface — see `UNVERSIONED_BASE_URL`. The response is a rendered
+ * document, so nothing here parses an amount.
+ */
+export const exportExpensesPdf = async (
+  params?: { from?: string; to?: string; projectId?: number },
+): Promise<void> => {
+  const res = await api.get<Blob>("/expenses/export/pdf", {
+    params,
+    baseURL: UNVERSIONED_BASE_URL,
+    responseType: "blob",
+  });
+  saveBlob(res.data, "expenses.pdf");
 };
