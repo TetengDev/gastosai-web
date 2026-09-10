@@ -2,7 +2,6 @@
 // call, and the data-change event dispatcher. Extracted from ChatWidget; no UI or state here.
 
 import api, { UNVERSIONED_BASE_URL } from "../../api/client";
-import type { ChatResponseType } from "../../api/ai";
 import type { components } from "../../api/generated/schema";
 
 type Schemas = components["schemas"];
@@ -169,14 +168,12 @@ export function buildPreviewFields(toolName: string, params: Record<string, unkn
 /**
  * One assistant turn from `POST /ai/chat/confirm`.
  *
- * The contract types `type` as a bare string, so the domain is added here the same way
- * `src/api/ai.ts` adds it to a chat turn. Unlike the rest of this client, the payload inside
- * `result` is the v1 shape — see `confirmChatAction` for why — so the aliases in `ai.ts`, which
- * all point at the centavos members, do not describe it and are deliberately not reused.
+ * Taken from the generated schema as-is: the contract already narrows this endpoint's `type` to
+ * the four turn kinds, so unlike a chat turn in `src/api/ai.ts` there is no bare string to add a
+ * domain to. Its `result` is the v1 shape — see `confirmChatAction` for why — so the aliases in
+ * `ai.ts`, which all point at the centavos members, do not describe it and are not reused.
  */
-export type ChatConfirmResponse = Omit<Schemas["ChatResponse"], "type"> & {
-  type: ChatResponseType;
-};
+export type ChatConfirmResponse = Schemas["ChatResponse"];
 
 /**
  * Execute the action the server proposed on a `preview` turn, by handing its `toolName` and
