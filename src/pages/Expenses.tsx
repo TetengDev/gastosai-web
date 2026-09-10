@@ -7,7 +7,7 @@ import { useExpenses } from "../hooks/useExpenses";
 import { useEntitlements } from "../hooks/useEntitlements";
 import { useFeatures } from "../hooks/useFeatures";
 import { Button, ConfirmDialog, IconButton, Modal, PageHeader } from "../components/ui";
-import { centavosToAmount, formatCentavos, formatDate } from "../lib/formatters";
+import { formatCentavos, formatCurrencyAmount, formatDate } from "../lib/formatters";
 import CategoryChip from "../components/CategoryChip";
 
 export default function Expenses() {
@@ -369,7 +369,7 @@ export default function Expenses() {
                         <span className="inline-flex items-center justify-end gap-2">
                           {e.currency !== "PHP" && (
                             <span className="rounded-md bg-link/10 px-1.5 py-0.5 font-mono text-[11px] text-link">
-                              {e.currency} {centavosToAmount(e.amount)}
+                              {formatCurrencyAmount(e.amount, e.currency, "code")}
                             </span>
                           )}
                           <span className="font-display font-medium text-ink-hi">

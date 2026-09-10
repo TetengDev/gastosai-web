@@ -15,11 +15,7 @@ import { Button, ConfirmDialog, IconButton, Modal, PageHeader, SelectionBar } fr
 import { useMultiSelect } from "../hooks/useMultiSelect";
 import { RATE_TTL_MS, rateCache } from "../lib/cache";
 import { categoryIcon } from "../lib/categoryIcon";
-import { centavosToAmount, formatCentavos, parseAmountToCentavos } from "../lib/formatters";
-
-const CURRENCY_SYMBOLS: Record<string, string> = {
-  PHP: "₱", USD: "$", EUR: "€", SGD: "S$", JPY: "¥", GBP: "£", AUD: "A$",
-};
+import { centavosToAmount, currencySymbol, formatCentavos, formatCurrencyAmount, parseAmountToCentavos } from "../lib/formatters";
 
 const DAY_NAMES: Record<number, string> = {
   1: "Monday", 2: "Tuesday", 3: "Wednesday", 4: "Thursday", 5: "Friday", 6: "Saturday", 7: "Sunday",
@@ -400,7 +396,7 @@ export default function Recurring() {
                     <span className="inline-flex items-center justify-end gap-2">
                       {bill.currency !== "PHP" && (
                         <span className="rounded-md bg-link/10 px-1.5 py-0.5 font-mono text-[11px] text-link">
-                          {bill.currency} {centavosToAmount(bill.amount)}
+                          {formatCurrencyAmount(bill.amount, bill.currency, "code")}
                         </span>
                       )}
                       <span className="font-display text-[17px] font-medium text-ink-hi">
@@ -457,7 +453,7 @@ export default function Recurring() {
             <label className={labelClass}>Amount</label>
             <div className="relative">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 select-none text-sm font-medium text-ink-3">
-                {CURRENCY_SYMBOLS[form.currency ?? "PHP"] ?? form.currency}
+                {currencySymbol(form.currency ?? "PHP")}
               </span>
               <input
                 type="number"

@@ -2,17 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getGoals, type Goal } from "../api/goals";
 import { Card, InfoTip, ProgressBar } from "./ui";
-import { centavosToAmount, formatCentavos } from "../lib/formatters";
-
-const CURRENCY_SYMBOLS: Record<string, string> = {
-  PHP: "₱", USD: "$", EUR: "€", SGD: "S$", JPY: "¥", GBP: "£", AUD: "A$",
-};
-
-/** `centavos` is the goal's own currency in its minor unit, not converted pesos. */
-function fmtGoal(centavos: number, currency: string): string {
-  if (currency === "PHP") return formatCentavos(centavos);
-  return `${CURRENCY_SYMBOLS[currency] ?? currency}${centavosToAmount(centavos)}`;
-}
+import { formatCurrencyAmount } from "../lib/formatters";
 
 const STATUS_LABEL: Record<Goal["status"], string> = {
   ON_TRACK: "On Track",
@@ -114,8 +104,8 @@ export default function GoalProgressCard() {
                 className="mb-1"
               />
               <div className="flex justify-between text-xs text-ink-3">
-                <span>{goal.progressPercent}% of {fmtGoal(goal.targetAmount, goal.currency ?? "PHP")}</span>
-                <span>{fmtGoal(goal.savedAmount, goal.currency ?? "PHP")} saved</span>
+                <span>{goal.progressPercent}% of {formatCurrencyAmount(goal.targetAmount, goal.currency ?? "PHP")}</span>
+                <span>{formatCurrencyAmount(goal.savedAmount, goal.currency ?? "PHP")} saved</span>
               </div>
             </div>
           ))}

@@ -4,18 +4,7 @@ import { createGoal, deleteGoal, getGoals, updateGoal, type Goal, type GoalReque
 import CurrencySelect from "../components/CurrencySelect";
 import { Button, ConfirmDialog, IconButton, Modal, PageHeader, ProgressBar, SelectionBar } from "../components/ui";
 import { useMultiSelect } from "../hooks/useMultiSelect";
-import { centavosToAmount, formatCentavos, parseAmountToCentavos } from "../lib/formatters";
-
-const CURRENCY_SYMBOLS: Record<string, string> = {
-  PHP: "₱", USD: "$", EUR: "€", SGD: "S$", JPY: "¥", GBP: "£", AUD: "A$",
-};
-
-/** `centavos` is the goal's own currency in its minor unit, not converted pesos. */
-function formatGoalAmount(centavos: number, currency: string): string {
-  if (currency === "PHP") return formatCentavos(centavos);
-  const sym = CURRENCY_SYMBOLS[currency] ?? currency;
-  return `${sym}${centavosToAmount(centavos)}`;
-}
+import { centavosToAmount, currencySymbol, formatCurrencyAmount, parseAmountToCentavos } from "../lib/formatters";
 
 const STATUS_LABEL: Record<Goal["status"], string> = {
   ON_TRACK: "On Track",
@@ -323,7 +312,7 @@ export default function Goals() {
 
               <div className="mt-6 flex items-baseline justify-between">
                 <span className="font-display text-[18px] font-medium text-deep">
-                  {formatGoalAmount(goal.savedAmount, goal.currency ?? "PHP")}{" "}
+                  {formatCurrencyAmount(goal.savedAmount, goal.currency ?? "PHP")}{" "}
                   <span className="text-sm font-normal text-ink-2">saved</span>
                 </span>
                 <span className="font-mono text-sm text-ink-2">{goal.progressPercent}%</span>
@@ -334,7 +323,7 @@ export default function Goals() {
                 className="mt-3"
               />
               <div className="mt-4 flex items-center justify-between text-[13.5px] text-ink-2">
-                <span>Target: {formatGoalAmount(goal.targetAmount, goal.currency ?? "PHP")}</span>
+                <span>Target: {formatCurrencyAmount(goal.targetAmount, goal.currency ?? "PHP")}</span>
                 {goal.targetDate && <span>By {formatTargetDate(goal.targetDate)}</span>}
               </div>
             </div>
@@ -362,7 +351,7 @@ export default function Goals() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={labelClass}>
-                Target Amount ({CURRENCY_SYMBOLS[form.currency ?? "PHP"] ?? form.currency})
+                Target Amount ({currencySymbol(form.currency ?? "PHP")})
               </label>
               <input
                 type="number"
@@ -375,7 +364,7 @@ export default function Goals() {
             </div>
             <div>
               <label className={labelClass}>
-                Saved So Far ({CURRENCY_SYMBOLS[form.currency ?? "PHP"] ?? form.currency})
+                Saved So Far ({currencySymbol(form.currency ?? "PHP")})
               </label>
               <input
                 type="number"

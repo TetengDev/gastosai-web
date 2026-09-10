@@ -7,6 +7,8 @@ import {
   formatCurrency,
   centavosToAmount,
   formatCentavos,
+  currencySymbol,
+  formatCurrencyAmount,
   parseAmountToCentavos,
   formatDate,
   toDateTimeLocal,
@@ -154,6 +156,49 @@ describe("formatCentavos", () => {
 
   it("puts the minus outside the peso sign", () => {
     expect(formatCentavos(-190000)).toBe("-₱1,900.00");
+  });
+});
+
+describe("currencySymbol", () => {
+  it("maps a supported currency to its symbol", () => {
+    expect(currencySymbol("PHP")).toBe("₱");
+    expect(currencySymbol("USD")).toBe("$");
+    expect(currencySymbol("SGD")).toBe("S$");
+  });
+
+  it("falls back to the code when there is no symbol", () => {
+    expect(currencySymbol("CAD")).toBe("CAD");
+    expect(currencySymbol("")).toBe("");
+  });
+});
+
+describe("formatCurrencyAmount", () => {
+  it("prefixes the symbol in the default style", () => {
+    expect(formatCurrencyAmount(15075, "USD")).toBe("$150.75");
+    expect(formatCurrencyAmount(15075, "JPY")).toBe("¥150.75");
+  });
+
+  it("falls back to the code when the currency has no symbol", () => {
+    expect(formatCurrencyAmount(15075, "CAD")).toBe("CAD150.75");
+  });
+
+  it("routes PHP through formatCentavos so thousands stay grouped", () => {
+    expect(formatCurrencyAmount(123456789, "PHP")).toBe("₱1,234,567.89");
+    expect(formatCurrencyAmount(-190000, "PHP")).toBe("-₱1,900.00");
+  });
+
+  it("leaves a non-PHP amount ungrouped, as the hand-written copies did", () => {
+    expect(formatCurrencyAmount(123456789, "USD")).toBe("$1234567.89");
+  });
+
+  it("names the currency by code in the code style", () => {
+    expect(formatCurrencyAmount(15075, "USD", "code")).toBe("USD 150.75");
+    expect(formatCurrencyAmount(15075, "PHP", "code")).toBe("PHP 150.75");
+    expect(formatCurrencyAmount(-15075, "USD", "code")).toBe("USD -150.75");
+  });
+
+  it("collapses a non-integer amount rather than dividing it", () => {
+    expect(formatCurrencyAmount(150.75, "USD")).toBe("$0.00");
   });
 });
 
