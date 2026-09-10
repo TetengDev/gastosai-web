@@ -17,11 +17,7 @@ import { Button, ConfirmDialog, IconButton, Modal, PageHeader, SelectionBar } fr
 import { useMultiSelect } from "../hooks/useMultiSelect";
 import { RATE_TTL_MS, rateCache } from "../lib/cache";
 import { categoryIcon } from "../lib/categoryIcon";
-import { centavosToAmount, formatCentavos, formatMonth, parseAmountToCentavos } from "../lib/formatters";
-
-const CURRENCY_SYMBOLS: Record<string, string> = {
-  PHP: "₱", USD: "$", EUR: "€", SGD: "S$", JPY: "¥", GBP: "£", AUD: "A$",
-};
+import { centavosToAmount, currencySymbol, formatCentavos, formatCurrencyAmount, formatMonth, parseAmountToCentavos } from "../lib/formatters";
 
 const currentMonth = () => new Date().toISOString().slice(0, 7);
 
@@ -367,7 +363,7 @@ export default function Budget() {
                     <span className="inline-flex items-center justify-end gap-2">
                       {b.currency !== "PHP" && (
                         <span className="rounded-md bg-link/10 px-1.5 py-0.5 font-mono text-[11px] text-link">
-                          {b.currency} {centavosToAmount(b.amountLimit)}
+                          {formatCurrencyAmount(b.amountLimit, b.currency, "code")}
                         </span>
                       )}
                       <span className="font-display text-[17px] font-medium text-ink-hi">
@@ -445,7 +441,7 @@ export default function Budget() {
             <label className={labelClass}>Amount Limit</label>
             <div className="relative">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 select-none text-sm font-medium text-ink-3">
-                {CURRENCY_SYMBOLS[budgetCurrency] ?? budgetCurrency}
+                {currencySymbol(budgetCurrency)}
               </span>
               <input
                 type="number"

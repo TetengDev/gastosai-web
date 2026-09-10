@@ -86,6 +86,40 @@ export const formatCentavos = (centavos: number): string => {
 };
 
 /**
+ * The symbol shown for each currency the app accepts. This is the only copy: it lived in five
+ * components at once, so adding a currency meant five edits and any one of them could be missed.
+ */
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  PHP: "₱", USD: "$", EUR: "€", SGD: "S$", JPY: "¥", GBP: "£", AUD: "A$",
+};
+
+/** The symbol for a currency, falling back to the code itself when there is no symbol for it. */
+export const currencySymbol = (currency: string): string => CURRENCY_SYMBOLS[currency] ?? currency;
+
+/**
+ * An integer minor-unit amount rendered in its own currency — `formatCurrencyAmount(15075, "USD")`
+ * is `"$150.75"`, and `formatCurrencyAmount(15075, "USD", "code")` is `"USD 150.75"`.
+ *
+ * The two styles are the two ways the app already shows a non-PHP amount: `"symbol"` for a figure
+ * read as money (a goal's target), `"code"` for the small chip that names the original currency
+ * beside a peso-converted total, where the code disambiguates and the symbol would not.
+ *
+ * Takes integer minor units and never divides: the amount goes through `centavosToAmount`, so no
+ * float and no `toFixed` sits between the contract and the screen (CLAUDE.md §1.3). PHP in the
+ * symbol style routes to `formatCentavos` for its thousands separators; other currencies are left
+ * ungrouped, which is what every hand-written copy of this did.
+ */
+export const formatCurrencyAmount = (
+  centavos: number,
+  currency: string,
+  style: "symbol" | "code" = "symbol",
+): string => {
+  if (style === "code") return `${currency} ${centavosToAmount(centavos)}`;
+  if (currency === "PHP") return formatCentavos(centavos);
+  return `${currencySymbol(currency)}${centavosToAmount(centavos)}`;
+};
+
+/**
  * A typed amount parsed back to integer centavos — `"150.75"` -> `15075`, exactly.
  *
  * The float route is `parseFloat(input) * 100`, and it is wrong for amounts an expense tracker
