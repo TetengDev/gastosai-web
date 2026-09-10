@@ -4,7 +4,7 @@ import Expenses from "./Expenses";
 import { exportExpenses, exportExpensesPdf, getExpenses, getProjects } from "../api/expenses";
 import { useEntitlements, type UseEntitlements } from "../hooks/useEntitlements";
 import { useExpenses } from "../hooks/useExpenses";
-import type { Expense } from "../api/types";
+import type { Expense } from "../api/expenses";
 import type { FeatureKey } from "../api/entitlements";
 
 vi.mock("../api/expenses", () => ({
@@ -37,6 +37,7 @@ const expense: Expense = {
   description: "Lunch",
   expenseType: "PERSONAL",
   reimbursable: false,
+  source: "MANUAL",
 };
 
 const entitledTo = (features: FeatureKey[]): UseEntitlements => ({

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { getCategories } from "../api/categories";
-import type { Category, Expense, ExpenseRequest, ExpenseType } from "../api/types";
+import type { Category } from "../api/categories";
+import type { Expense, ExpenseRequest, ExpenseType } from "../api/expenses";
 import { centavosToAmount, currencySymbol, parseAmountToCentavos, toDateTimeLocal } from "../lib/formatters";
 import { CAT_TTL_MS, RATE_TTL_MS, getCategoryCache, rateCache, setCategoryCache } from "../lib/cache";
 import CurrencySelect from "./CurrencySelect";

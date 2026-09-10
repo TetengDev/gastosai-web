@@ -8,8 +8,8 @@ import {
   updateBudget,
 } from "../api/budgets";
 import { createCategory, getCategories } from "../api/categories";
-import type { BudgetRequest, BudgetResponse } from "../api/types";
-import type { Category } from "../api/types";
+import type { BudgetRequest, BudgetResponse } from "../api/budgets";
+import type { Category } from "../api/categories";
 import BudgetRuleCard from "../components/BudgetRuleCard";
 import CategoryCombobox from "../components/CategoryCombobox";
 import CurrencySelect from "../components/CurrencySelect";

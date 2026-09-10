@@ -9,7 +9,7 @@ vi.mock("../api/client", () => ({
 
 import api from "../api/client";
 import { getPricing, getSubscription, startCheckout } from "../api/subscription";
-import type { PricingItem, SubscriptionInfo } from "../api/types";
+import type { PricingItem, SubscriptionInfo } from "../api/subscription";
 
 const mockApi = vi.mocked(api);
 

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { deleteConversation, listConversations } from "../api/ai";
-import type { Conversation } from "../api/types";
+import type { Conversation } from "../api/ai";
 
 /** Loads + manages the signed-in user's chat conversation list (history drawer). */
 export function useConversations() {

@@ -107,6 +107,7 @@ describe("ExpenseModal amounts", () => {
       description: "Lunch",
       expenseType: "PERSONAL",
       reimbursable: false,
+      source: "MANUAL",
     });
 
     expect(amountField()).toHaveValue(150.75);
@@ -124,6 +125,7 @@ describe("ExpenseModal amounts", () => {
       description: "Coffee",
       expenseType: "PERSONAL",
       reimbursable: false,
+      source: "MANUAL",
     });
 
     await user.click(screen.getByRole("button", { name: "Save" }));
@@ -170,6 +172,7 @@ describe("ExpenseModal currency prefix", () => {
           description: "Lunch",
           expenseType: "PERSONAL",
           reimbursable: false,
+          source: "MANUAL",
         }}
         onSave={vi.fn().mockResolvedValue(undefined)}
         onClose={vi.fn()}

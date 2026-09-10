@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getSubscription } from "../api/subscription";
-import type { SubscriptionInfo } from "../api/types";
+import type { SubscriptionInfo } from "../api/subscription";
 import { Button } from "./ui";
 import { formatDateOnly } from "../lib/formatters";
 

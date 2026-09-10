@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { getTopTransactions } from "../api/expenses";
-import type { Expense } from "../api/types";
+import type { Expense } from "../api/expenses";
 import { Card, InfoTip } from "./ui";
 import CategoryChip from "./CategoryChip";
 import { formatCentavos, formatDayMonth } from "../lib/formatters";

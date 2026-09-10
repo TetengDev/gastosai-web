@@ -2,7 +2,7 @@ import { Download, FileText, HelpCircle, Loader2, Pencil, Plus, Trash2, Upload }
 import { useEffect, useRef, useState } from "react";
 import ExpenseModal from "../components/ExpenseModal";
 import { deleteExpense, downloadImportTemplate, exportExpenses, exportExpensesPdf, getExpenses, getProjects, importExpensesCsv, type ImportResult, type Project } from "../api/expenses";
-import type { Expense } from "../api/types";
+import type { Expense } from "../api/expenses";
 import { useExpenses } from "../hooks/useExpenses";
 import { useEntitlements } from "../hooks/useEntitlements";
 import { useFeatures } from "../hooks/useFeatures";

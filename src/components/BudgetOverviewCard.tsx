@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getBudgetSummary } from "../api/budgets";
-import type { BudgetSummaryResponse } from "../api/types";
+import type { BudgetSummaryResponse } from "../api/budgets";
 import { Card, InfoTip, ProgressBar } from "./ui";
 import { formatCentavos } from "../lib/formatters";
 

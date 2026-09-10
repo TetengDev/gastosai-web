@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { getChatAuditLog } from "../api/admin";
-import type { ChatAuditLogDto } from "../api/types";
+import type { ChatAuditLogDto } from "../api/admin";
 import { formatDate } from "../lib/formatters";
 
 export default function AdminChatAudit() {

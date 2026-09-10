@@ -2,7 +2,7 @@ import { renderHook, waitFor, act } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useConversations } from "./useConversations";
 import * as ai from "../api/ai";
-import type { Conversation } from "../api/types";
+import type { Conversation } from "../api/ai";
 
 vi.mock("../api/ai");
 

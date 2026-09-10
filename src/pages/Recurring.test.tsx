@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import Recurring from "./Recurring";
 import { createRecurring, getRecurring, updateRecurring } from "../api/recurring";
 import { getCategories } from "../api/categories";
-import type { RecurringExpenseResponse } from "../api/types";
+import type { RecurringExpenseResponse } from "../api/recurring";
 
 vi.mock("../api/recurring", () => ({
   getRecurring: vi.fn(),

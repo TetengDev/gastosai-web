@@ -8,7 +8,8 @@ import {
   updateRecurring,
 } from "../api/recurring";
 import { getCategories } from "../api/categories";
-import type { Category, RecurringExpenseRequest, RecurringExpenseResponse, RecurringFrequency } from "../api/types";
+import type { Category } from "../api/categories";
+import type { RecurringExpenseRequest, RecurringExpenseResponse, RecurringFrequency } from "../api/recurring";
 import CategoryCombobox from "../components/CategoryCombobox";
 import CurrencySelect from "../components/CurrencySelect";
 import { Button, ConfirmDialog, IconButton, Modal, PageHeader, SelectionBar } from "../components/ui";

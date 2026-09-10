@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { CheckCircle } from "lucide-react";
 import { useEntitlements } from "../hooks/useEntitlements";
 import { getPricing, startCheckout } from "../api/subscription";
-import type { BillingPeriod, PricingItem } from "../api/types";
+import type { BillingPeriod, PricingItem } from "../api/subscription";
 import { Button } from "../components/ui";
 // Plan prices have always been integer centavos. They now render through the same formatter as
 // every other amount, which drops the `/ 100` float that stood between the price and the screen.
