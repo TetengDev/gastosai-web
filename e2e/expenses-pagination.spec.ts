@@ -1,6 +1,7 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect } from "@playwright/test";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { STORAGE_STATE } from "./support";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
@@ -11,26 +12,15 @@ const here = path.dirname(fileURLToPath(import.meta.url));
  */
 
 const ARTIFACTS = path.join(here, "artifacts");
-const DEMO_EMAIL = process.env.E2E_EMAIL ?? "demo@gastosai.dev";
-const DEMO_PASSWORD = process.env.E2E_PASSWORD ?? "demo123";
 
-async function login(page: Page) {
-  await page.goto("/login");
-  // Two email inputs exist (password form + magic-link form); use the password form's.
-  await page.locator('input[type="email"]').first().fill(DEMO_EMAIL);
-  await page.locator('input[type="password"]').fill(DEMO_PASSWORD);
-  await page.getByRole("button", { name: "Sign in" }).click();
-  // Land on the dashboard (login redirects to "/").
-  await expect(page).toHaveURL(/\/$|\/dashboard/, { timeout: 15000 });
-}
+test.use({ storageState: STORAGE_STATE });
 
-async function shot(page: Page, name: string) {
+async function shot(page: import("@playwright/test").Page, name: string) {
   await page.screenshot({ path: path.join(ARTIFACTS, `${name}.png`), fullPage: true });
 }
 
 test.describe("Expenses pagination", () => {
   test("loads first page, Load more appends, counts reflect total", async ({ page }) => {
-    await login(page);
     await page.goto("/expenses");
 
     // Subtitle shows the real total (e.g. "78 total entries").
@@ -57,7 +47,6 @@ test.describe("Expenses pagination", () => {
   });
 
   test("date filter narrows the list and Clear restores it", async ({ page }) => {
-    await login(page);
     await page.goto("/expenses");
     await expect(page.getByText(/total entries/)).toBeVisible({ timeout: 15000 });
 
@@ -74,7 +63,6 @@ test.describe("Expenses pagination", () => {
   });
 
   test("dashboard still renders (full-list path unchanged)", async ({ page }) => {
-    await login(page);
     await page.goto("/");
     // Charts/cards present — pick a stable dashboard signal.
     await expect(page.locator("svg.recharts-surface").first()).toBeVisible({ timeout: 20000 });

@@ -1,6 +1,7 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect } from "@playwright/test";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { API_URL, STORAGE_STATE, authToken } from "./support";
 
 /**
  * E2E for chat conversation history (Phase 2b): a persisted conversation appears in the History
@@ -11,29 +12,19 @@ import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const ARTIFACTS = path.join(here, "artifacts");
-const API = process.env.E2E_API_URL ?? "http://localhost:8080";
-const EMAIL = process.env.E2E_EMAIL ?? "demo@gastosai.dev";
-const PASSWORD = process.env.E2E_PASSWORD ?? "demo123";
 
-async function login(page: Page) {
-  await page.goto("/login");
-  await page.locator('input[type="email"]').first().fill(EMAIL);
-  await page.locator('input[type="password"]').fill(PASSWORD);
-  await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page).toHaveURL(/\/$|\/dashboard/, { timeout: 15000 });
-}
+test.use({ storageState: STORAGE_STATE });
 
 test("a persisted conversation shows in History and can be reopened, started new, and deleted", async ({ page }) => {
   test.setTimeout(120_000);
-  await login(page);
+  await page.goto("/");
 
   // Seed a conversation server-side using the browser's auth token (persists via POST /ai/chat).
-  const token = await page.evaluate(() => localStorage.getItem("token"));
-  expect(token).toBeTruthy();
+  const token = await authToken(page);
   // Letters only — the redaction layer masks long digit runs (timestamps) in the stored title.
   const suffix = Math.random().toString(36).replace(/[^a-z]/g, "").slice(0, 6).padEnd(6, "x");
   const marker = `E2Ehist${suffix}`;
-  const seed = await page.request.post(`${API}/ai/chat`, {
+  const seed = await page.request.post(`${API_URL}/ai/chat`, {
     headers: { Authorization: `Bearer ${token}` },
     data: { message: marker, mode: "plain" },
     timeout: 90_000,
