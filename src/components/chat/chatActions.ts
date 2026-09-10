@@ -1,5 +1,11 @@
-// Pure helpers for chatbot CRUD action cards (labels, editable field specs, confirm-message
-// builder, and the data-change event dispatcher). Extracted from ChatWidget; no UI or state here.
+// Helpers for chatbot CRUD action cards: labels, editable field specs, the structured confirm
+// call, and the data-change event dispatcher. Extracted from ChatWidget; no UI or state here.
+
+import api, { UNVERSIONED_BASE_URL } from "../../api/client";
+import type { ChatResponseType } from "../../api/ai";
+import type { components } from "../../api/generated/schema";
+
+type Schemas = components["schemas"];
 
 export function actionLabel(toolName: string): string {
   const labels: Record<string, string> = {
@@ -160,35 +166,44 @@ export function buildPreviewFields(toolName: string, params: Record<string, unkn
   }
 }
 
-export function buildConfirmMessage(toolName: string, params: Record<string, unknown>): string {
-  switch (toolName) {
-    case "create_budget":
-      return `create a budget for ${params.categoryName} ₱${params.amountLimit} month ${params.month}`;
-    case "create_goal":
-      return `create a goal called ${params.name} target ₱${params.targetAmount}${params.savedAmount ? ` saved ₱${params.savedAmount}` : ""}`;
-    case "create_recurring":
-      return `create recurring ${params.name} ₱${params.amount} ${params.frequency}${params.categoryName ? ` ${params.categoryName}` : ""}`;
-    case "create_expense":
-      return `₱${params.amount} ${params.description}${params.category ? ` ${params.category}` : ""}`;
-    case "create_category":
-      return `create category ${params.name}${params.icon ? ` icon ${params.icon}` : ""}`;
-    case "rename_category":
-      return `rename category ${params.currentName} to ${params.newName}`;
-    case "delete_category":
-      return `delete category ${params.name}`;
-    case "update_goal":
-      return `update goal${params.id ? ` id ${params.id}` : params.name ? ` ${params.name}` : ""}${params.targetAmount !== undefined ? ` target ₱${params.targetAmount}` : ""}${params.savedAmount !== undefined ? ` saved ₱${params.savedAmount}` : ""}${params.paused !== undefined ? ` paused ${params.paused}` : ""}`;
-    case "update_recurring":
-      return `update recurring${params.id ? ` id ${params.id}` : params.name ? ` ${params.name}` : ""}${params.amount !== undefined ? ` ₱${params.amount}` : ""}${params.frequency !== undefined ? ` ${params.frequency}` : ""}${params.active !== undefined ? ` active ${params.active}` : ""}`;
-    case "update_profile":
-      return `update profile${params.name ? ` name ${params.name}` : ""}${params.nickname ? ` nickname ${params.nickname}` : ""}${params.avatar ? ` avatar ${params.avatar}` : ""}`;
-    case "delete_expenses":
-      return `delete expenses${params.category ? ` category ${params.category}` : ""}${params.from ? ` from ${params.from}` : ""}${params.to ? ` to ${params.to}` : ""}`;
-    case "recategorize_expenses":
-      return `recategorize expenses from ${params.fromCategory} to ${params.toCategory}`;
-    default:
-      return "";
-  }
+/**
+ * One assistant turn from `POST /ai/chat/confirm`.
+ *
+ * The contract types `type` as a bare string, so the domain is added here the same way
+ * `src/api/ai.ts` adds it to a chat turn. Unlike the rest of this client, the payload inside
+ * `result` is the v1 shape — see `confirmChatAction` for why — so the aliases in `ai.ts`, which
+ * all point at the centavos members, do not describe it and are deliberately not reused.
+ */
+export type ChatConfirmResponse = Omit<Schemas["ChatResponse"], "type"> & {
+  type: ChatResponseType;
+};
+
+/**
+ * Execute the action the server proposed on a `preview` turn, by handing its `toolName` and
+ * `params` straight back. No sentence is rebuilt, so nothing is re-parsed and the action that
+ * runs is the one the card showed.
+ *
+ * Two things about this call are not like the other 19 modules in `src/api/`:
+ *
+ * - **It is posted to the unversioned surface.** The contract publishes `/ai/chat/confirm` only
+ *   there — `/api/v2` has no twin — which is on purpose: a preview's `params` are the v1 decimal
+ *   arguments, and converting them to centavos on the way back would confirm the amount a
+ *   hundredfold. They are echoed unchanged, and no money is parsed here.
+ * - **Its `result` carries decimal money.** It is the v1 `ChatResponse`. Every tool reachable
+ *   through a preview is a write, and a write's result is rendered as prose plus an id — no
+ *   amount from it reaches a formatter. A read tool's money-bearing payload still arrives over
+ *   `/api/v2/ai/chat` as centavos.
+ */
+export async function confirmChatAction(
+  toolName: string,
+  params: Record<string, unknown>,
+  conversationId?: number,
+): Promise<ChatConfirmResponse> {
+  const body: Schemas["ChatConfirmRequest"] = { toolName, params, mode: "execute", conversationId };
+  const res = await api.post<ChatConfirmResponse>("/ai/chat/confirm", body, {
+    baseURL: UNVERSIONED_BASE_URL,
+  });
+  return res.data;
 }
 
 export function dispatchDataEvents(toolName: string) {

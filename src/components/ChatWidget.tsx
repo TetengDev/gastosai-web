@@ -18,7 +18,7 @@ import { useEntitlements } from "../hooks/useEntitlements";
 import { centavosToAmount, formatCentavos, formatDate, parseAmountToCentavos } from "../lib/formatters";
 import { looksLikeExpenseLog, looksLikeNlQuery } from "../lib/intentDetection";
 import { TypingDots, BotAvatar, ExpandIcon, CollapseIcon } from "./chat/ChatChrome";
-import { actionLabel, savedLabel, buildPreviewFields, buildConfirmMessage, dispatchDataEvents, dispatchAllDataEvents } from "./chat/chatActions";
+import { actionLabel, savedLabel, buildPreviewFields, confirmChatAction, dispatchDataEvents, dispatchAllDataEvents } from "./chat/chatActions";
 
 const OPENAI_KEY_REGEX = /\bsk-[A-Za-z0-9_-]{16,}\b/;
 
@@ -999,9 +999,11 @@ export default function ChatWidget() {
       return;
     }
 
-    const confirmMsg = buildConfirmMessage(toolName, mergedParams);
+    // The card's own tool and arguments go back as they were proposed — the edits the user made
+    // in the preview fields are already merged into them. Nothing is phrased as a sentence, so
+    // there is no wording for the backend to re-parse and nothing to keep in step with mobile.
     try {
-      const res = await chatAction(confirmMsg, "execute", conversationId ?? undefined);
+      const res = await confirmChatAction(toolName, mergedParams, conversationId ?? undefined);
       if (res.conversationId) setConversationId(res.conversationId);
       if (res.type === "action") {
         setMessages((prev) =>
