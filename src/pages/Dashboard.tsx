@@ -44,6 +44,19 @@ function splitAmount(centavos: number): { head: string; dec: string } {
   return { head: s.slice(0, idx), dec: s.slice(idx + 1) };
 }
 
+/**
+ * The month's spend so far, averaged over the elapsed days, as a whole number of centavos.
+ *
+ * The rounding is the point: the average of an integer number of centavos is not itself one, and
+ * `formatCentavos` renders a non-integer as `"0.00"` rather than throwing. Dropping the rounding
+ * would therefore show a plausible zero on the dashboard instead of failing loudly.
+ */
+// Exported for its own test; it is centavo arithmetic on the money path, not a component.
+// eslint-disable-next-line react-refresh/only-export-components
+export function dailyAverageCentavos(totalCentavos: number, elapsedDays: number): number {
+  return elapsedDays > 0 ? Math.round(totalCentavos / elapsedDays) : 0;
+}
+
 const MAX_SLICES = 8;
 
 function buildChartData(categoryData: CategoryReport[]) {
@@ -103,9 +116,7 @@ export default function Dashboard() {
   const daysInMonth = new Date(cy, cm, 0).getDate();
   const today = Math.min(new Date().getDate(), daysInMonth);
   const daysLeft = Math.max(daysInMonth - today, 0);
-  // Rounded to a whole centavo before it reaches the formatter: the average of an integer
-  // number of centavos is not itself one, and formatCentavos only renders integers.
-  const dailyAvg = today > 0 ? Math.round(total / today) : 0;
+  const dailyAvg = dailyAverageCentavos(total, today);
 
   const remainingBudget =
     budgetSummary && budgetSummary.items.length > 0 ? budgetSummary.safeToSpend : null;
@@ -410,8 +421,12 @@ export default function Dashboard() {
  * `Math.round(c / 1000)` is 1250, and the formatter renders that as `₱12.50` — the `₱12.5` the
  * axis wants, once the trailing zeros come off.
  */
-function abbrevCentavos(centavos: number): string {
-  const trimZeros = (s: string) => s.replace(/\.?0+$/, "");
+// eslint-disable-next-line react-refresh/only-export-components
+export function abbrevCentavos(centavos: number): string {
+  // Strips only zeros that sit after the decimal point, plus the point itself once nothing is left
+  // behind it: `₱12.50` -> `₱12.5`, `₱1,000.00` -> `₱1,000`. The anchored fraction group is what
+  // keeps it off the pesos — a bare `/\.?0+$/` would turn a point-less `₱100` into `₱1`.
+  const trimZeros = (s: string) => s.replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "");
   if (Math.abs(centavos) >= 100_000) {
     return `${trimZeros(formatCentavos(Math.round(centavos / 1000)))}k`;
   }
