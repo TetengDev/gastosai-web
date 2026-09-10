@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import ExpenseModal from "./ExpenseModal";
 import { getCategories } from "../api/categories";
 import { useAuth } from "../context/AuthContext";
@@ -130,5 +130,79 @@ describe("ExpenseModal amounts", () => {
 
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
     expect(onSave.mock.calls[0][0].amount).toBe(887);
+  });
+});
+
+/**
+ * The amount prefix now reads its symbol from `formatters.currencySymbol` rather than a local
+ * table. These assert the rendered string, not the import, so they would still fail if the shared
+ * helper's table drifted away from what this modal used to show.
+ */
+describe("ExpenseModal currency prefix", () => {
+  beforeEach(() => {
+    mockGetCategories.mockResolvedValue([]);
+    mockUseAuth.mockReturnValue({
+      user: null,
+      login: vi.fn(),
+      logout: vi.fn(),
+      loading: false,
+    } as unknown as ReturnType<typeof useAuth>);
+    // A non-PHP currency makes the modal fetch a suggested rate. The component swallows the
+    // rejection; this only keeps the test off the network.
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("no network in tests")));
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  const renderWith = (currency: string) => {
+    render(
+      <ExpenseModal
+        expense={{
+          id: 1,
+          amount: 15075,
+          currency,
+          exchangeRate: 1,
+          amountInBaseCurrency: 15075,
+          category: "Food",
+          date: "2026-09-05T12:00:00+08:00",
+          description: "Lunch",
+          expenseType: "PERSONAL",
+          reimbursable: false,
+        }}
+        onSave={vi.fn().mockResolvedValue(undefined)}
+        onClose={vi.fn()}
+      />,
+    );
+  };
+
+  it.each([
+    ["PHP", "₱"],
+    ["USD", "$"],
+    ["EUR", "€"],
+    ["SGD", "S$"],
+    ["JPY", "¥"],
+    ["GBP", "£"],
+    ["AUD", "A$"],
+  ])("shows %s as %s", (currency, symbol) => {
+    renderWith(currency);
+    expect(screen.getByText(symbol)).toBeTruthy();
+  });
+
+  it("falls back to the code for a currency with no symbol", () => {
+    renderWith("CAD");
+    expect(screen.getByText("CAD")).toBeTruthy();
+  });
+
+  it("follows the currency picker", async () => {
+    const user = userEvent.setup();
+    renderWith("PHP");
+
+    await user.click(screen.getByRole("button", { name: /PHP/ }));
+    await user.click(screen.getByRole("button", { name: /USD/ }));
+
+    expect(await screen.findByText("$")).toBeTruthy();
+    expect(screen.queryByText("₱")).toBeNull();
   });
 });

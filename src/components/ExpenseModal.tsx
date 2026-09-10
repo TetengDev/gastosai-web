@@ -1,15 +1,11 @@
 import { useEffect, useState } from "react";
 import { getCategories } from "../api/categories";
 import type { Category, Expense, ExpenseRequest, ExpenseType } from "../api/types";
-import { centavosToAmount, parseAmountToCentavos, toDateTimeLocal } from "../lib/formatters";
+import { centavosToAmount, currencySymbol, parseAmountToCentavos, toDateTimeLocal } from "../lib/formatters";
 import { CAT_TTL_MS, RATE_TTL_MS, getCategoryCache, rateCache, setCategoryCache } from "../lib/cache";
 import CurrencySelect from "./CurrencySelect";
 import { Button, Modal } from "./ui";
 import { useAuth } from "../context/AuthContext";
-
-const CURRENCY_SYMBOLS: Record<string, string> = {
-  PHP: "₱", USD: "$", EUR: "€", SGD: "S$", JPY: "¥", GBP: "£", AUD: "A$",
-};
 
 interface Props {
   expense?: Expense;
@@ -124,7 +120,7 @@ export default function ExpenseModal({ expense, onSave, onClose }: Props) {
             <label className={labelClass}>Amount</label>
             <div className="relative">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 select-none text-sm font-medium text-ink-3">
-                {CURRENCY_SYMBOLS[form.currency ?? "PHP"] ?? form.currency}
+                {currencySymbol(form.currency ?? "PHP")}
               </span>
               <input
                 type="number"
