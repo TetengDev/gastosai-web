@@ -6,7 +6,7 @@ import {
   getExpensesPage,
   updateExpense,
 } from "../api/expenses";
-import type { Expense, ExpenseRequest } from "../api/types";
+import type { Expense, ExpenseRequest } from "../api/expenses";
 
 const PAGE_SIZE = 50;
 

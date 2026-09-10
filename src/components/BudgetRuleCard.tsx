@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { Sparkles } from "lucide-react";
 import { assignBuckets, getBudgetRule, getBudgetRuleSummary, putBudgetRule, setBudgetRuleEnabled } from "../api/budgetRules";
-import type { Bucket, BudgetRuleSummary, BudgetRuleType, Category } from "../api/types";
+import type { Bucket, BudgetRuleSummary, BudgetRuleType } from "../api/budgetRules";
+import type { Category } from "../api/categories";
 import { Button, InfoTip } from "./ui";
 import { centavosToAmount, formatCentavos, parseAmountToCentavos } from "../lib/formatters";
 

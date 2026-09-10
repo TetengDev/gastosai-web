@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Category } from "../api/types";
+import type { Category } from "../api/categories";
 
 interface Props {
   categories: Category[];

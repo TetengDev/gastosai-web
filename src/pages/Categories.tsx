@@ -8,7 +8,7 @@ import {
   getCategories,
   updateCategory,
 } from "../api/categories";
-import type { Category } from "../api/types";
+import type { Category } from "../api/categories";
 import { useAuth } from "../context/AuthContext";
 import { Button, ConfirmDialog, IconButton, Modal, PageHeader, SelectionBar } from "../components/ui";
 import { useMultiSelect } from "../hooks/useMultiSelect";

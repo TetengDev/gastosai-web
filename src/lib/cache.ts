@@ -1,4 +1,4 @@
-import type { Category } from "../api/types";
+import type { Category } from "../api/categories";
 
 interface RateCacheEntry { rate: number; ts: number; }
 export const rateCache: Record<string, RateCacheEntry> = {};

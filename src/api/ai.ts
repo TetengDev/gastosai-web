@@ -43,6 +43,28 @@ export type ChatMessageDto = Omit<
 
 export type Conversation = Nullable<Schemas["ConversationSummaryDto"], "title">;
 
+/**
+ * The payloads `ChatResponse.result` can carry, named so a renderer can narrow onto one.
+ *
+ * The contract publishes each of these twice — a v1 shape with decimal money and a `V2`
+ * shape with integer centavos. This client is on `/api/v2`, so every alias below points at
+ * the `V2` member; `ChatPreviewData` and `AlertChatItem` carry no money and have only one
+ * shape. None of them needs `Complete`: unlike the response DTOs, the contract already
+ * marks these properties required, and the two genuinely optional ones — a goal with no
+ * target date, a preview that is not a duplicate confirmation — are optional on purpose.
+ */
+export type ChatPreviewData = Schemas["ChatPreviewData"];
+export type GoalChatItem = Schemas["GoalChatItemV2"];
+export type AlertChatItem = Schemas["AlertChatItem"];
+export type ExpenseChatItem = Schemas["ExpenseChatItemV2"];
+export type CategoryTotalChatItem = Schemas["CategoryTotalChatItemV2"];
+export type BudgetChatItem = Schemas["BudgetChatItemV2"];
+export type BudgetSummaryChatResult = Schemas["BudgetSummaryChatResultV2"];
+export type RecurringChatItem = Schemas["RecurringChatItemV2"];
+export type UpcomingBillChatItem = Schemas["UpcomingBillChatItemV2"];
+export type RecurringChatResult = Schemas["RecurringChatResultV2"];
+export type MonthlyReportChatResult = Schemas["MonthlyReportChatResultV2"];
+
 export const askQuery = (question: string, mode: ChatMode): Promise<AiQueryResponse> => {
   const body: AiQueryRequest = { question, mode };
   return api.post<AiQueryResponse>("/ai/query", body).then((r) => r.data);

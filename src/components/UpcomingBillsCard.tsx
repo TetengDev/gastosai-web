@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getUpcomingBills } from "../api/recurring";
-import type { UpcomingBillResponse } from "../api/types";
+import type { UpcomingBillResponse } from "../api/recurring";
 import { Card, InfoTip } from "./ui";
 import CategoryChip from "./CategoryChip";
 import { centavosToAmount, formatCentavos } from "../lib/formatters";

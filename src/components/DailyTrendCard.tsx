@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { getDailyReport } from "../api/expenses";
-import type { DailyReport } from "../api/types";
+import type { DailyReport } from "../api/expenses";
 import { Card, InfoTip } from "./ui";
 import { formatCentavos } from "../lib/formatters";
 

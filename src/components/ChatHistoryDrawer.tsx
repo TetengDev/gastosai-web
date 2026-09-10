@@ -1,4 +1,4 @@
-import type { Conversation } from "../api/types";
+import type { Conversation } from "../api/ai";
 import { formatDateOnly } from "../lib/formatters";
 
 interface Props {

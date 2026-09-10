@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getTopCategoryInsight, getMonthSummaryInsight, getRecommendationsInsight } from "../api/insights";
-import type { TopCategoryInsight, MonthSummaryInsight, RecommendationsInsight } from "../api/types";
+import type { TopCategoryInsight, MonthSummaryInsight, RecommendationsInsight } from "../api/insights";
 import { useAiAvailability } from "../hooks/useAiAvailability";
 import { Card, InfoTip } from "./ui";
 import { formatCentavos } from "../lib/formatters";

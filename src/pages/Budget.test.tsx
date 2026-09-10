@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import Budget from "./Budget";
 import { getBudgets, updateBudget } from "../api/budgets";
 import { getCategories } from "../api/categories";
-import type { BudgetResponse } from "../api/types";
+import type { BudgetResponse } from "../api/budgets";
 
 vi.mock("../api/budgets", () => ({
   getBudgets: vi.fn(),

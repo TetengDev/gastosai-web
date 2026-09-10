@@ -11,7 +11,8 @@ import {
 } from "recharts";
 import { getBudgetSummary } from "../api/budgets";
 import { getCategoryReport, getExpensesPage, getMonthlyComparison, getMonthlyReport } from "../api/expenses";
-import type { BudgetSummaryResponse, CategoryReport, Expense, MonthlyComparison, MonthlyReport } from "../api/types";
+import type { BudgetSummaryResponse } from "../api/budgets";
+import type { CategoryReport, Expense, MonthlyComparison, MonthlyReport } from "../api/expenses";
 import AiInsightsCard from "../components/AiInsightsCard";
 import FeatureGate from "../components/FeatureGate";
 import BudgetOverviewCard from "../components/BudgetOverviewCard";
