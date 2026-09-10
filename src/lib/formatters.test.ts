@@ -136,6 +136,23 @@ describe("centavosToAmount", () => {
   it("collapses non-finite input rather than rendering NaN", () => {
     expect(centavosToAmount(Number.NaN)).toBe("0.00");
     expect(centavosToAmount(Number.POSITIVE_INFINITY)).toBe("0.00");
+    expect(centavosToAmount(Number.NEGATIVE_INFINITY)).toBe("0.00");
+  });
+
+  /**
+   * The guard is `Number.isInteger`, not `Number.isFinite`. Under the weaker check `150.5` reached
+   * the slicing path as the string `"150.5"` and rendered `"1.50"` — a hundredfold error that reads
+   * as a plausible amount, which is the worst shape a money bug can take. These are the cases that
+   * separate the two guards: every one of them is finite.
+   */
+  it("collapses a non-integer amount rather than slicing its decimal point", () => {
+    expect(centavosToAmount(150.5)).toBe("0.00");
+    expect(centavosToAmount(-150.5)).toBe("0.00");
+    expect(centavosToAmount(0.5)).toBe("0.00");
+  });
+
+  it("renders negative zero without a stray minus sign", () => {
+    expect(centavosToAmount(-0)).toBe("0.00");
   });
 
   it("stays exact at the top of the safe integer range, where a float loses centavos", () => {
@@ -156,6 +173,18 @@ describe("formatCentavos", () => {
 
   it("puts the minus outside the peso sign", () => {
     expect(formatCentavos(-190000)).toBe("-₱1,900.00");
+  });
+
+  it("keeps the minus outside the peso sign for a sub-peso amount", () => {
+    expect(formatCentavos(-5)).toBe("-₱0.05");
+    expect(formatCentavos(-99)).toBe("-₱0.99");
+  });
+
+  /** Either side of the first separator: `groupDigits` must not insert one at three digits. */
+  it("inserts the first separator only above the thousands boundary", () => {
+    expect(formatCentavos(99999)).toBe("₱999.99");
+    expect(formatCentavos(100000)).toBe("₱1,000.00");
+    expect(formatCentavos(-100000)).toBe("-₱1,000.00");
   });
 });
 
@@ -230,6 +259,14 @@ describe("parseAmountToCentavos", () => {
 
   it("returns null rather than rounding a third decimal place away", () => {
     expect(parseAmountToCentavos("150.755")).toBeNull();
+    expect(parseAmountToCentavos("150.7500")).toBeNull();
+    expect(parseAmountToCentavos("0.001")).toBeNull();
+  });
+
+  it("returns null for an empty or whitespace-only input", () => {
+    expect(parseAmountToCentavos("")).toBeNull();
+    expect(parseAmountToCentavos("   ")).toBeNull();
+    expect(parseAmountToCentavos("₱")).toBeNull();
   });
 
   it("returns null for anything that is not an amount", () => {
@@ -243,6 +280,18 @@ describe("parseAmountToCentavos", () => {
 
   it("returns null past the safe integer range instead of a lossy number", () => {
     expect(parseAmountToCentavos("99999999999999999.99")).toBeNull();
+  });
+
+  /**
+   * The exact edge of the `Number.isSafeInteger` guard: `90071992547409.91` is
+   * `Number.MAX_SAFE_INTEGER` centavos and must still parse, one centavo more is `2 ** 53` and
+   * must not — past that point a number no longer holds every integer, so the value returned
+   * would not be the value typed.
+   */
+  it("parses the largest safe amount and rejects the next centavo", () => {
+    expect(parseAmountToCentavos("90071992547409.91")).toBe(Number.MAX_SAFE_INTEGER);
+    expect(parseAmountToCentavos("90071992547409.92")).toBeNull();
+    expect(parseAmountToCentavos("-90071992547409.92")).toBeNull();
   });
 
   it("round-trips through the renderer without drift", () => {
