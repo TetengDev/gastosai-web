@@ -1,5 +1,12 @@
-import { createElement, useState } from "react";
+import { createElement, useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import {
+  AI_LANGUAGES,
+  DEFAULT_AI_LANGUAGE,
+  getAiSettings,
+  updateAiSettings,
+  type AiLanguage,
+} from "../api/aiSettings";
 import { AVATAR_COLORS, getAvatarGradient, getInitials } from "../lib/formatters";
 import { AVATAR_ICONS, avatarIconFor } from "../lib/avatarIcons";
 import AiKeySection from "../components/AiKeySection";
@@ -19,6 +26,54 @@ export default function Settings() {
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // The two AI languages are stored server-side and are independent: each
+  // control sends only its own field, so saving one leaves the other alone.
+  const [insightLanguage, setInsightLanguage] = useState<AiLanguage>(DEFAULT_AI_LANGUAGE);
+  const [chatLanguage, setChatLanguage] = useState<AiLanguage>(DEFAULT_AI_LANGUAGE);
+  const [languagesLoading, setLanguagesLoading] = useState(true);
+  const [languageSaving, setLanguageSaving] = useState<"insight" | "chat" | null>(null);
+  const [languageError, setLanguageError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getAiSettings()
+      .then((s) => {
+        if (cancelled) return;
+        // Null means the user has not chosen; the API then uses the default.
+        setInsightLanguage(s.insightLanguage ?? DEFAULT_AI_LANGUAGE);
+        setChatLanguage(s.chatLanguage ?? DEFAULT_AI_LANGUAGE);
+      })
+      .catch(() => {
+        if (!cancelled) setLanguageError("Failed to load AI language settings.");
+      })
+      .finally(() => {
+        if (!cancelled) setLanguagesLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const saveLanguage = async (field: "insight" | "chat", value: AiLanguage) => {
+    const set = field === "insight" ? setInsightLanguage : setChatLanguage;
+    const previous = field === "insight" ? insightLanguage : chatLanguage;
+    set(value);
+    setLanguageSaving(field);
+    setLanguageError(null);
+    try {
+      const s = await updateAiSettings(
+        field === "insight" ? { insightLanguage: value } : { chatLanguage: value },
+      );
+      setInsightLanguage(s.insightLanguage ?? DEFAULT_AI_LANGUAGE);
+      setChatLanguage(s.chatLanguage ?? DEFAULT_AI_LANGUAGE);
+    } catch {
+      set(previous);
+      setLanguageError("Failed to save language.");
+    } finally {
+      setLanguageSaving(null);
+    }
+  };
 
   const gradient = getAvatarGradient(selectedColor);
 
@@ -170,6 +225,56 @@ export default function Settings() {
       </section>
 
       <AiKeySection />
+
+      <section className="mt-6 rounded-2xl border border-edge bg-surface p-8">
+        <div className="font-display text-[21px] font-medium tracking-tight text-ink-hi">AI language</div>
+
+        <div className="mt-5 space-y-5">
+          <div>
+            <label htmlFor="insight-language" className={labelClass}>
+              Insights
+            </label>
+            <select
+              id="insight-language"
+              value={insightLanguage}
+              onChange={(e) => saveLanguage("insight", e.target.value as AiLanguage)}
+              disabled={languagesLoading || languageSaving !== null}
+              className={inputClass}
+            >
+              {AI_LANGUAGES.map(({ code, label }) => (
+                <option key={code} value={code}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            <p className="mt-2 text-[13px] text-ink-3">
+              The language of the insight cards on the Dashboard.
+            </p>
+          </div>
+
+          <div>
+            <label htmlFor="chat-language" className={labelClass}>
+              Assistant
+            </label>
+            <select
+              id="chat-language"
+              value={chatLanguage}
+              onChange={(e) => saveLanguage("chat", e.target.value as AiLanguage)}
+              disabled={languagesLoading || languageSaving !== null}
+              className={inputClass}
+            >
+              {AI_LANGUAGES.map(({ code, label }) => (
+                <option key={code} value={code}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            <p className="mt-2 text-[13px] text-ink-3">The language the chat assistant replies in.</p>
+          </div>
+        </div>
+
+        {languageError && <p className="mt-4 text-sm font-medium text-[#b30000]">{languageError}</p>}
+      </section>
 
       {BILLING_ENABLED && <BillingSection />}
 
