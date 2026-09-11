@@ -22,9 +22,19 @@ const steps: Step[] = [
       "A 60-second tour of what you can do — track spending, plan budgets, and let the AI assistant do the typing. Close it anytime.",
   },
   {
+    target: "[data-tour='nav-dashboard']",
+    title: "Your money at a glance",
+    content: "Where you land: this month's spending, budgets and goals summarised on one screen.",
+  },
+  {
     target: "[data-tour='nav-expenses']",
     title: "Log expenses your way",
     content: "Add them by hand, import a CSV, snap a receipt, or just tell the assistant — they all land here.",
+  },
+  {
+    target: "[data-tour='nav-categories']",
+    title: "Categories",
+    content: "Shape the buckets your spending falls into — they're what budgets and reports are built on.",
   },
   {
     target: "[data-tour='nav-budget']",
