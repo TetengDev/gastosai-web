@@ -16,9 +16,9 @@ interface Props {
 }
 
 const NAV_ITEMS = [
-  { to: "/", label: "Dashboard", end: true, tour: undefined },
+  { to: "/", label: "Dashboard", end: true, tour: "nav-dashboard" },
   { to: "/expenses", label: "Expenses", end: false, tour: "nav-expenses" },
-  { to: "/categories", label: "Categories", end: false, tour: undefined },
+  { to: "/categories", label: "Categories", end: false, tour: "nav-categories" },
   { to: "/budget", label: "Budget", end: false, tour: "nav-budget" },
   { to: "/recurring", label: "Recurring", end: false, tour: "nav-recurring" },
   { to: "/goals", label: "Goals", end: false, tour: "nav-goals" },
