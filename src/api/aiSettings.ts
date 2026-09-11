@@ -1,16 +1,19 @@
 import api, { UNVERSIONED_BASE_URL } from "./client";
 import type { components } from "./generated/schema";
-import type { Nullable } from "./typeHelpers";
+import type { Complete, Nullable } from "./typeHelpers";
 
 type Schemas = components["schemas"];
 
 /**
- * A language the server offers for AI prose. The set is configuration-driven on
- * the backend and served by `GET /ai/languages`, so the code is a plain string
- * here — the server rejects anything it does not know with a 400. There is no
- * local union to keep in step with it, which is the point.
+ * A language the server offers for AI prose.
+ *
+ * The set is configuration-driven on the backend and served by
+ * `GET /ai/languages`, so `code` stays the contract's bare string — the server
+ * rejects anything it does not know with a 400. There is no local union to keep
+ * in step with it, which is the point. `Complete` puts back the presence
+ * springdoc drops: both fields are always sent.
  */
-export type AiLanguageOption = { code: string; displayName: string };
+export type AiLanguageOption = Complete<Schemas["AiLanguageOption"]>;
 
 /** The language the API falls back to for a user who has not chosen one. */
 export const DEFAULT_AI_LANGUAGE = "en";
