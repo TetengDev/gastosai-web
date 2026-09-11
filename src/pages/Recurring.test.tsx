@@ -23,6 +23,7 @@ const bill = (over: Partial<RecurringExpenseResponse> = {}): RecurringExpenseRes
   id: 1,
   name: "Netflix",
   amount: 54900,
+  amountInBaseCurrency: 54900,
   categoryName: "Subscriptions",
   frequency: "MONTHLY",
   dayOfMonth: 1,
