@@ -1,12 +1,9 @@
 import api from "./client";
 import type { components } from "./generated/schema";
-// springdoc marks every response property optional: the key flags and
-// `aiAvailable` are always sent, and the two languages are always present but
-// `null` until the user picks one.
 import type {
   AssertContractUnionCovered,
-  Complete,
   CoversContractUnion,
+  Nullable,
 } from "./typeHelpers";
 
 type Schemas = components["schemas"];
@@ -37,16 +34,21 @@ export type AiSettingsChatLanguageCovered = AssertContractUnionCovered<
   CoversContractUnion<Schemas["AiSettingsResponse"]["chatLanguage"], AiLanguage>
 >;
 
-type ResponseLanguage =
-  (Extract<Schemas["AiSettingsResponse"]["insightLanguage"], string> & AiLanguage) | null;
+type ResponseLanguage = Extract<Schemas["AiSettingsResponse"]["insightLanguage"], string> &
+  AiLanguage;
 
-export type AiSettings = Omit<
-  Complete<Schemas["AiSettingsResponse"]>,
+/**
+ * springdoc marks every response property optional: the key flags and
+ * `aiAvailable` are always sent, and the two languages are always present but
+ * `null` until the user picks one — which is what `Nullable` says.
+ */
+export type AiSettings = Nullable<
+  Omit<Schemas["AiSettingsResponse"], "insightLanguage" | "chatLanguage"> & {
+    insightLanguage?: ResponseLanguage;
+    chatLanguage?: ResponseLanguage;
+  },
   "insightLanguage" | "chatLanguage"
-> & {
-  insightLanguage: ResponseLanguage;
-  chatLanguage: ResponseLanguage;
-};
+>;
 
 /**
  * An omitted field leaves the stored value alone, which is what makes the two
