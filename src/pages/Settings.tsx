@@ -1,11 +1,11 @@
 import { createElement, useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import {
-  AI_LANGUAGES,
   DEFAULT_AI_LANGUAGE,
+  fetchAiLanguages,
   getAiSettings,
   updateAiSettings,
-  type AiLanguage,
+  type AiLanguageOption,
 } from "../api/aiSettings";
 import { AVATAR_COLORS, getAvatarGradient, getInitials } from "../lib/formatters";
 import { AVATAR_ICONS, avatarIconFor } from "../lib/avatarIcons";
@@ -29,11 +29,27 @@ export default function Settings() {
 
   // The two AI languages are stored server-side and are independent: each
   // control sends only its own field, so saving one leaves the other alone.
-  const [insightLanguage, setInsightLanguage] = useState<AiLanguage>(DEFAULT_AI_LANGUAGE);
-  const [chatLanguage, setChatLanguage] = useState<AiLanguage>(DEFAULT_AI_LANGUAGE);
+  const [insightLanguage, setInsightLanguage] = useState<string>(DEFAULT_AI_LANGUAGE);
+  const [chatLanguage, setChatLanguage] = useState<string>(DEFAULT_AI_LANGUAGE);
+  // The supported set lives in server configuration, so the picker renders what
+  // the API reports. English alone is the starting point and the fallback.
+  const [languages, setLanguages] = useState<AiLanguageOption[]>([
+    { code: DEFAULT_AI_LANGUAGE, displayName: "English" },
+  ]);
   const [languagesLoading, setLanguagesLoading] = useState(true);
   const [languageSaving, setLanguageSaving] = useState<"insight" | "chat" | null>(null);
   const [languageError, setLanguageError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    // Never rejects: a failed call resolves to English alone.
+    fetchAiLanguages().then((options) => {
+      if (!cancelled) setLanguages(options);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -55,7 +71,18 @@ export default function Settings() {
     };
   }, []);
 
-  const saveLanguage = async (field: "insight" | "chat", value: AiLanguage) => {
+  /**
+   * A stored code the server no longer offers stays visible and changeable: a
+   * `<select>` whose value is absent from its options silently shows the first
+   * one, which would misreport the saved setting. Appending it — labelled with
+   * the raw code, since no display name is on offer — keeps it honest.
+   */
+  const optionsFor = (current: string): AiLanguageOption[] =>
+    languages.some((l) => l.code === current)
+      ? languages
+      : [...languages, { code: current, displayName: current }];
+
+  const saveLanguage = async (field: "insight" | "chat", value: string) => {
     const set = field === "insight" ? setInsightLanguage : setChatLanguage;
     const previous = field === "insight" ? insightLanguage : chatLanguage;
     set(value);
@@ -237,13 +264,13 @@ export default function Settings() {
             <select
               id="insight-language"
               value={insightLanguage}
-              onChange={(e) => saveLanguage("insight", e.target.value as AiLanguage)}
+              onChange={(e) => saveLanguage("insight", e.target.value)}
               disabled={languagesLoading || languageSaving !== null}
               className={inputClass}
             >
-              {AI_LANGUAGES.map(({ code, label }) => (
+              {optionsFor(insightLanguage).map(({ code, displayName }) => (
                 <option key={code} value={code}>
-                  {label}
+                  {displayName}
                 </option>
               ))}
             </select>
@@ -259,13 +286,13 @@ export default function Settings() {
             <select
               id="chat-language"
               value={chatLanguage}
-              onChange={(e) => saveLanguage("chat", e.target.value as AiLanguage)}
+              onChange={(e) => saveLanguage("chat", e.target.value)}
               disabled={languagesLoading || languageSaving !== null}
               className={inputClass}
             >
-              {AI_LANGUAGES.map(({ code, label }) => (
+              {optionsFor(chatLanguage).map(({ code, displayName }) => (
                 <option key={code} value={code}>
-                  {label}
+                  {displayName}
                 </option>
               ))}
             </select>

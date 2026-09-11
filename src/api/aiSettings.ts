@@ -1,41 +1,42 @@
-import api from "./client";
+import api, { UNVERSIONED_BASE_URL } from "./client";
 import type { components } from "./generated/schema";
-import type {
-  AssertContractUnionCovered,
-  CoversContractUnion,
-  Nullable,
-} from "./typeHelpers";
+import type { Nullable } from "./typeHelpers";
 
 type Schemas = components["schemas"];
 
 /**
- * The contract types both language fields as bare strings — the backend's
- * `AiLanguage` allow-list is not expressed in the spec. The values are a closed
- * set on the server (anything else is a 400), so the domain is added here.
+ * A language the server offers for AI prose. The set is configuration-driven on
+ * the backend and served by `GET /ai/languages`, so the code is a plain string
+ * here — the server rejects anything it does not know with a 400. There is no
+ * local union to keep in step with it, which is the point.
  */
-export type AiLanguage = "en" | "fil";
+export type AiLanguageOption = { code: string; displayName: string };
 
 /** The language the API falls back to for a user who has not chosen one. */
-export const DEFAULT_AI_LANGUAGE: AiLanguage = "en";
+export const DEFAULT_AI_LANGUAGE = "en";
 
-export const AI_LANGUAGES: { code: AiLanguage; label: string }[] = [
-  { code: "en", label: "English" },
-  { code: "fil", label: "Filipino" },
-];
+/** What the picker falls back to, so a failed call still leaves a usable control. */
+const ENGLISH_ONLY: AiLanguageOption[] = [{ code: DEFAULT_AI_LANGUAGE, displayName: "English" }];
 
 /**
- * Build failures that name the missing member should the contract later publish
- * the real enum. Exported because `noUnusedLocals` is on.
+ * The picker's options, in the order the server gives. A failed call returns
+ * English alone rather than throwing: a settings page that cannot render its
+ * language control is worse than one offering only the default.
+ *
+ * The contract publishes this at `/ai/languages` and nowhere else — `/api/v2`
+ * does not mirror it — so it is read from the unversioned surface, like
+ * `/expenses/projects`. Nothing money-bearing crosses it: a code and a name.
  */
-export type AiSettingsInsightLanguageCovered = AssertContractUnionCovered<
-  CoversContractUnion<Schemas["AiSettingsResponse"]["insightLanguage"], AiLanguage>
->;
-export type AiSettingsChatLanguageCovered = AssertContractUnionCovered<
-  CoversContractUnion<Schemas["AiSettingsResponse"]["chatLanguage"], AiLanguage>
->;
-
-type ResponseLanguage = Extract<Schemas["AiSettingsResponse"]["insightLanguage"], string> &
-  AiLanguage;
+export const fetchAiLanguages = async (): Promise<AiLanguageOption[]> => {
+  try {
+    const { data } = await api.get<AiLanguageOption[]>("/ai/languages", {
+      baseURL: UNVERSIONED_BASE_URL,
+    });
+    return data;
+  } catch {
+    return ENGLISH_ONLY;
+  }
+};
 
 /**
  * springdoc marks every response property optional: the key flags and
@@ -43,10 +44,7 @@ type ResponseLanguage = Extract<Schemas["AiSettingsResponse"]["insightLanguage"]
  * `null` until the user picks one — which is what `Nullable` says.
  */
 export type AiSettings = Nullable<
-  Omit<Schemas["AiSettingsResponse"], "insightLanguage" | "chatLanguage"> & {
-    insightLanguage?: ResponseLanguage;
-    chatLanguage?: ResponseLanguage;
-  },
+  Schemas["AiSettingsResponse"],
   "insightLanguage" | "chatLanguage"
 >;
 
@@ -54,13 +52,7 @@ export type AiSettings = Nullable<
  * An omitted field leaves the stored value alone, which is what makes the two
  * languages independent: saving one sends only that one.
  */
-export type AiSettingsUpdate = Omit<
-  Schemas["AiSettingsRequest"],
-  "insightLanguage" | "chatLanguage"
-> & {
-  insightLanguage?: Extract<Schemas["AiSettingsRequest"]["insightLanguage"], string> & AiLanguage;
-  chatLanguage?: Extract<Schemas["AiSettingsRequest"]["chatLanguage"], string> & AiLanguage;
-};
+export type AiSettingsUpdate = Schemas["AiSettingsRequest"];
 
 export const AI_SETTINGS_CHANGED_EVENT = "gastosai:ai-settings-changed";
 
