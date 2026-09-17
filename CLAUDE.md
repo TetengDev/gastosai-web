@@ -12,7 +12,7 @@ document to open for which task, and do not preload the rest.
 
 1. **API types come from the pinned contract package**
    (`@tetengdev/gastosai-api-contract`) generated into `src/api/generated/` — never
-   hand-edited. Migration of the existing hand-written types is in progress; see §3.
+   hand-edited.
 2. **No business logic in the browser.** Totals, budgets, categorization, AI
    orchestration, quota accounting — all backend. Render responses, send input.
 3. **Money is never floating point in transit; format only at the display edge.** The API
@@ -45,15 +45,6 @@ document to open for which task, and do not preload the rest.
   resulting TypeScript errors, migrate call sites. Those errors are the safety net.
 - CI installs (with `PACKAGE_TOKEN`), runs `gen:api`, and fails if
   `src/api/generated/` is stale versus the pinned version, then type-checks.
-
-**In-progress migration.** The 19 modules in `src/api/` and the types in `src/api/types.ts`
-predate the contract and are still hand-written. They are being re-typed against
-`generated/` module by module. Rules while that is underway:
-
-- New API calls use the generated types. Do not add to `types.ts`.
-- When you touch a module in `src/api/`, re-type it against `generated/` rather than
-  extending the hand-written shape.
-- `types.ts` is deleted when its last importer is migrated — not before.
 
 ---
 

@@ -10,35 +10,7 @@ Keep this file honest. When a gap closes, delete its entry.
 
 ---
 
-## 1. The API layer is still hand-written
-
-**Target:** every request/response type comes from `src/api/generated/`, produced by
-`openapi-typescript` from the pinned contract package.
-**Today:** the contract loop is wired — the pin, `gen:api`, and the CI drift guard all work —
-but nothing consumes the generated types yet.
-
-Still hand-written:
-
-- 19 modules in `src/api/` (`expenses.ts`, `auth.ts`, `budgets.ts`, `categories.ts`, …)
-- `src/api/types.ts` — 378 lines, 50 exported types
-- 43 files import from `src/api/`; 24 of those import `src/api/types`
-
-**Why it is not done here:** re-typing ~50 types and 43 call sites is a large diff, and doing it
-in the same change as the repository split would have meant reviewing both at once with no way
-to bisect a regression between them.
-
-**How to close it, incrementally:**
-
-1. New API calls use the generated types. Do not add to `types.ts`.
-2. When you touch a module in `src/api/`, re-type it against `generated/` in that PR.
-3. Delete `types.ts` when its last importer is gone — not before.
-
-The generated types are already present and type-checked, so each migration step is a
-mechanical, independently reviewable change.
-
----
-
-## 2. Money is a decimal number in transit, not integer centavos
+## 1. Money is a decimal number in transit, not integer centavos
 
 **Target (CONTRACT.md):** money is an integer number of centavos.
 **Today:** the backend serves `BigDecimal` at full precision, so amounts arrive as JSON numbers
@@ -55,7 +27,7 @@ Until then: never parse an amount into a float and round-trip it, and keep all f
 
 ---
 
-## 3. Tests fail on Node 26 locally; CI pins Node 24
+## 2. Tests fail on Node 26 locally; CI pins Node 24
 
 `src/test/tips.test.ts` and `src/test/TipsPopover.test.tsx` fail on **Node 26** — six tests
 across two files. Node 26 ships a native experimental `localStorage` global that displaces the
@@ -81,7 +53,7 @@ Node pin is load-bearing rather than incidental.
 
 ---
 
-## 4. `openapi-typescript` needs a peer-dependency override
+## 3. `openapi-typescript` needs a peer-dependency override
 
 `openapi-typescript@7.13.0` declares `peer typescript@^5.x`, but this project is on
 `typescript@6.0.3`, so a plain `npm install` fails with `ERESOLVE`. `package.json` carries a
@@ -100,7 +72,7 @@ TypeScript 6. Remove the override once openapi-typescript widens its peer range.
 
 ---
 
-## 5. `react-router` carries an unfixed CSRF advisory (waived, expires 2026-10-31)
+## 4. `react-router` carries an unfixed CSRF advisory (waived, expires 2026-10-31)
 
 `GHSA-qwww-vcr4-c8h2` — "RSC Mode CSRF Bypass Allows Action Execution Before 400 Response",
 high severity, affects `react-router` 7.12.0–8.2.0. This repo is on 7.18.1.
@@ -125,7 +97,7 @@ today too.
 
 ---
 
-## 6. `CONTRACT.md` referred to a Supabase anon key
+## 5. `CONTRACT.md` referred to a Supabase anon key
 
 The shared contract text originally described the Supabase anon key as the client's only
 credential. That is not this app: auth is a **backend-issued JWT** held in `localStorage`, and
@@ -135,7 +107,7 @@ this repo. `CONTRACT.md` has been corrected in both repos; noted here because th
 
 ---
 
-## 7. Branch protection is not enabled (blocked by plan/visibility)
+## 6. Branch protection is not enabled (blocked by plan/visibility)
 
 The monorepo had two active rulesets — `Protect master` (block deletion and force-push,
 require a PR, and require `Backend tests` / `Frontend audit & lint` / `Validate release branch`
