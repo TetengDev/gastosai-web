@@ -1,7 +1,7 @@
 {
   "name": "gastosai-web",
   "private": true,
-  "version": "0.70.0",
+  "version": "0.71.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -21,7 +21,7 @@
     "showcase": "./scripts/record-showcase.sh"
   },
   "dependencies": {
-    "@tetengdev/gastosai-api-contract": "3.2.0",
+    "@tetengdev/gastosai-api-contract": "3.3.0",
     "axios": "^1.20.0",
     "lucide-react": "^1.44.0",
     "react": "^19.3.0",
