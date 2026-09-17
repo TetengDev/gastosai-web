@@ -42,7 +42,6 @@ export default defineConfig({
         "src/api/ai.ts",
         "src/api/features.ts",
         "src/api/profile.ts",
-        "src/api/types.ts",
         "src/context/**",
         "src/pages/**",
         "src/components/**",
