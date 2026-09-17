@@ -148,8 +148,11 @@ jobs:
       - name: Type check
         run: npm run typecheck
 
+      # Coverage, not a bare test run: test.coverage.thresholds in vite.config.ts carries the
+      # per-repo line floor (../docs/coverage.md). The floor only ever rises, so a PR that
+      # deletes or weakens tests fails here, before review.
       - name: Tests
-        run: npm run test:run
+        run: npm run test:coverage
 
   security-scan:
     name: Dependency vulnerability scan
