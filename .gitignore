@@ -21,6 +21,9 @@ dist-ssr
 test-screenshots/
 test-app.mjs
 
+# Coverage output from `vitest run --coverage`
+coverage/
+
 # Playwright output
 playwright-report/
 test-results/
