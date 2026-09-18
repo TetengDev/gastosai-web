@@ -42,8 +42,9 @@ never allowed — publish what was found and say it did not converge.
   user-visible change.
 - **Never hand-edit `src/api/generated/`.** If the contract pin moved, run `npm run gen:api` and
   commit the output in the same PR.
-- **New API calls use generated types.** Do not add to `src/api/types.ts` — it is being retired,
-  and adding to it moves the finish line backwards.
+- **New API calls use generated types.** Take request and response shapes from
+  `src/api/generated/`; do not hand-write a local duplicate of a type the contract already
+  publishes.
 - No `any`. No float arithmetic on money. All `₱` formatting through `src/lib/formatters.ts`.
 - The suite must pass on Node 20, which is what CI pins. If you are on Node 26 and six tests fail
   on `localStorage`, that is the known environment artifact — not a reason to change the tests.
