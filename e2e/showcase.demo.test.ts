@@ -13,7 +13,7 @@ import { SHOWCASE_SCENES, newTraces, scene } from "./support";
  * second copy of the caption helper pasted in, a cleanup that stops running on failure, and the
  * recording script losing one of the four properties the issue asks it to have.
  *
- * Playwright rather than Vitest because `vitest.config.ts` excludes `e2e/**` — the specs here are
+ * Playwright rather than Vitest because `vite.config.ts` excludes `e2e/**` — the specs here are
  * Playwright's, and a Vitest file in this directory would be collected by neither.
  */
 
