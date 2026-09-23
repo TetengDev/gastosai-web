@@ -29,8 +29,30 @@ Be terse: run each command once, report the table, do not re-explain checks that
    invisible to `git diff`.
 5. **Secrets** — `git status --porcelain` and `git diff --staged`. Blocker on any `.env`, key or
    token. Everything here ships to the browser.
-6. **Version** — if anything under `src/` changed, `package.json` version must be bumped.
-   `feat:`→MINOR, `fix:`/`perf:`→PATCH, `!`/`BREAKING CHANGE:`→MAJOR, `docs:`/`chore:`/`ci:`→none.
+6. **Version** — **a comparison, not a reading.** Finding a version in `package.json` proves
+   nothing: the value on `main` is also a version. Run these and report the numbers you saw.
+
+   ```bash
+   git fetch origin main --tags --quiet
+   ver() { python3 -c 'import json,sys; print(json.load(sys.stdin)["version"])'; }
+   base=$(git show origin/main:package.json | ver); head=$(ver < package.json)
+   echo "base=$base head=$head"
+   git tag -l "v$head"                    # any output => that version is already released here
+   git ls-remote --tags origin "v$head"   # any output => already released on the remote
+   ```
+
+   Blocker when any of these holds, and the note must name **the version found and the version
+   expected**, never a bare PASS:
+
+   - anything under `src/` changed and `head` equals `base` — the version was never bumped
+   - `v<head>` already exists as a tag, locally or on the remote — that version is released
+   - the bump does not match the commit types: `feat:`→MINOR, `fix:`/`perf:`→PATCH,
+     `!`/`BREAKING CHANGE:`→MAJOR, `docs:`/`chore:`/`ci:`→none
+
+   **Why this is spelled out.** The backend gate twice reported this check passing while its
+   manifest still read the value already on `main` and already tagged (TEN-409). A session that
+   trusts a passing gate stops looking, so a check that reports a pass it did not perform is worse
+   than no check at all.
 7. **Branch lane** — must not be `main`. `meta/*` must not touch `src/` or change the version.
 8. **Browser execution** — the check that is usually skipped, and the reason this agent exists.
 
@@ -60,7 +82,7 @@ Be terse: run each command once, report the table, do not re-explain checks that
 | Tests              | ✅ PASS  | 190 passed (Node 20)                   |
 | Contract drift     | ✅ PASS  | generated client matches the pin       |
 | Secrets            | ✅ PASS  |                                        |
-| Version bump       | ✅ PASS  | 0.64.1 → 0.65.0 (feat: MINOR)          |
+| Version bump       | ✅ PASS  | base 0.64.1 → head 0.65.0 (feat: MINOR); v0.65.0 untagged |
 | Branch lane        | ✅ PASS  | release/0.65.0                         |
 | Browser execution  | ✅ PASS  | Expenses filter + empty state exercised |
 | Rollback           | ✅ PASS  | redeploy previous Vercel build         |
@@ -68,4 +90,9 @@ Be terse: run each command once, report the table, do not re-explain checks that
 Overall: PASS — ready to open the PR.
 ```
 
-Any blocker → `Overall: FAIL` plus exactly what must be fixed.
+Any blocker → `Overall: FAIL` plus exactly what must be fixed. A failed version check reads like
+this — the numbers, not an adjective:
+
+```
+| Version bump       | ❌ FAIL  | base 0.72.0 = head 0.72.0, and v0.72.0 is already tagged; expected 0.72.1 (fix: PATCH) |
+```
