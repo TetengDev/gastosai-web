@@ -61,12 +61,36 @@ jobs:
             exit 1
           fi
 
-          tags_json=$(curl -sf -H "Authorization: Bearer $token" \
-            "https://ghcr.io/v2/tetengdev/gastosai-backend/tags/list") \
-            || { echo "::error::PACKAGE_TOKEN cannot read packages from ghcr.io — grant it read:packages and retry."; exit 1; }
+          # `/tags/list` is paginated, and a single unpaged read is not the whole list. This step
+          # asked for one page and reported the highest semver on it as "newest published version".
+          # On 2026-09-29 that was 0.80.0 while 0.94.3 was published and working, so the suite
+          # tested a backend fourteen minor versions stale and still went green — a silent pass is
+          # worse than the three red nights that preceded it. build-image.yml pushes two tags per
+          # run (version + git SHA), so the page fills roughly twice as fast as releases happen.
+          #
+          # Ask for a large page, then follow `Link: rel="next"` until the registry stops offering
+          # one. `n` alone is not enough: it is an upper bound the registry may narrow.
+          url="https://ghcr.io/v2/tetengdev/gastosai-backend/tags/list?n=1000"
+          all_tags=""
+          while [ -n "$url" ]; do
+            hdr="$(mktemp)"
+            page=$(curl -sf -D "$hdr" -H "Authorization: Bearer $token" "$url") \
+              || { rm -f "$hdr"; echo "::error::PACKAGE_TOKEN cannot read packages from ghcr.io — grant it read:packages and retry."; exit 1; }
+            all_tags="${all_tags}$(echo "$page" | jq -r '.tags[]?')"$'\n'
+            next=$(grep -i '^link:' "$hdr" | sed -n 's/.*<\([^>]*\)>.*rel="next".*/\1/p' || true)
+            rm -f "$hdr"
+            case "$next" in
+              "")  url="" ;;
+              /*)  url="https://ghcr.io${next}" ;;
+              *)   url="$next" ;;
+            esac
+          done
 
           # Version tags only (build-image.yml also pushes a git-SHA tag) — highest by semver.
-          tag=$(echo "$tags_json" | jq -r '.tags[]' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -t. -k1,1n -k2,2n -k3,3n | tail -1)
+          # `|| true` so an empty result reaches the explicit check below instead of dying on
+          # grep's exit 1 under `pipefail`, which made that error message unreachable.
+          tag=$(printf '%s\n' "$all_tags" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -t. -k1,1n -k2,2n -k3,3n | tail -1 || true)
+          echo "Scanned $(printf '%s\n' "$all_tags" | grep -c . || true) tags across all pages."
           if [ -z "$tag" ]; then
             echo "::error::No semver-tagged gastosai-backend image found on ghcr.io."
             exit 1
