@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import {
   Bar,
@@ -24,6 +25,7 @@ import { Button, Card, InfoTip } from "../components/ui";
 import { formatCentavos, formatDate } from "../lib/formatters";
 import { categoryIcon } from "../lib/categoryIcon";
 import CategoryChip from "../components/CategoryChip";
+import Piso from "../brand/Piso";
 
 const currentMonth = new Date().toISOString().slice(0, 7);
 
@@ -135,26 +137,33 @@ export default function Dashboard() {
 
   if (loading)
     return (
-      <div className="animate-pulse space-y-7">
-        <div className="grid grid-cols-1 gap-7 lg:grid-cols-3">
+      // The skeleton mirrors the real layout: one hero block beside two ruled columns, then
+      // ruled sections. It used to be twelve rounded cards, which promised a card grid the
+      // page no longer is.
+      <div className="animate-pulse space-y-10">
+        <div className="grid grid-cols-1 gap-7 lg:grid-cols-[1.45fr_1.1fr]">
           <div className="h-40 rounded-2xl bg-surface-2" />
-          <div className="h-40 rounded-2xl bg-surface-2" />
-          <div className="h-40 rounded-2xl bg-surface-2" />
+          <div className="grid grid-cols-1 gap-7 sm:grid-cols-2">
+            <div className="space-y-3 py-1">
+              <div className="h-3 w-28 rounded bg-surface-2" />
+              <div className="h-10 w-36 rounded bg-surface-2" />
+              <div className="h-3 w-40 rounded bg-surface-2" />
+            </div>
+            <div className="space-y-3 py-1">
+              <div className="h-3 w-24 rounded bg-surface-2" />
+              <div className="h-10 w-32 rounded bg-surface-2" />
+              <div className="h-3 w-36 rounded bg-surface-2" />
+            </div>
+          </div>
         </div>
-        <div className="h-32 rounded-2xl bg-surface-2" />
-        <div className="grid grid-cols-1 gap-7 lg:grid-cols-[1.7fr_1fr]">
-          <div className="h-80 rounded-2xl bg-surface-2" />
-          <div className="h-80 rounded-2xl bg-surface-2" />
+        <div className="h-28 rounded-lg bg-surface-2" />
+        <div className="grid grid-cols-1 gap-10 lg:grid-cols-[1.7fr_1fr]">
+          <div className="h-72 rounded-lg bg-surface-2" />
+          <div className="h-72 rounded-lg bg-surface-2" />
         </div>
-        <div className="grid grid-cols-1 gap-7 lg:grid-cols-[1fr_1.5fr]">
-          <div className="h-72 rounded-2xl bg-surface-2" />
-          <div className="h-72 rounded-2xl bg-surface-2" />
-        </div>
-        <div className="h-64 rounded-2xl bg-surface-2" />
-        <div className="grid grid-cols-1 gap-7 md:grid-cols-2 lg:grid-cols-3">
-          <div className="h-64 rounded-2xl bg-surface-2" />
-          <div className="h-64 rounded-2xl bg-surface-2" />
-          <div className="h-64 rounded-2xl bg-surface-2" />
+        <div className="grid grid-cols-1 gap-10 lg:grid-cols-[1fr_1.5fr]">
+          <div className="h-80 rounded-lg bg-surface-2" />
+          <div className="h-80 rounded-lg bg-surface-2" />
         </div>
       </div>
     );
@@ -162,7 +171,7 @@ export default function Dashboard() {
   if (error)
     return (
       <Card className="mx-auto mt-8 max-w-md text-center">
-        <p className="text-[#b30000]">{error}</p>
+        <p className="text-danger">{error}</p>
         <Button
           variant="secondary"
           className="mt-4"
@@ -181,22 +190,33 @@ export default function Dashboard() {
   const budgetSplit = remainingBudget !== null ? splitAmount(remainingBudget) : null;
   const avgSplit = splitAmount(dailyAvg);
 
+  const overBudget = (budgetSummary?.items ?? []).filter((i) => i.status === "OVER_BUDGET");
+
   const kpiStrip = (
-    <div className="grid grid-cols-1 items-stretch gap-7 lg:grid-cols-3">
-      {/* Total Spend (brand hero) */}
-      <div className="rounded-2xl bg-hero p-7 text-white">
-        <div className="font-mono text-[11px] uppercase tracking-[0.14em] text-[#7fd6b8]">
+    <div className="grid grid-cols-1 items-stretch gap-7 lg:grid-cols-[1.45fr_1.1fr]">
+      {/*
+        The hero is the one card on this page, because it is the one figure that outranks the
+        others. `dark` is deliberate and is not a copy-paste slip: the tile is a permanently dark
+        surface, so the token variables inside it are resolved in their dark form — that is how
+        `text-deep` reads as mint on deep green in light mode and keeps working unchanged when
+        the whole app flips. It replaces four hardcoded mint and coral literals.
+      */}
+      <div data-kpi="Total Spend" className="dark rounded-2xl bg-hero p-7 text-white">
+        <div className="font-mono text-xs uppercase tracking-[0.14em] text-deep">
           Total Spend · {monthLabel}
         </div>
-        <div className="mt-2.5 flex items-end font-display text-[44px] font-medium leading-none tracking-tight">
+        <div className="mt-3 flex items-end font-display text-5xl font-medium leading-none tracking-tight">
           <span>{totalSplit.head}</span>
-          {totalSplit.dec && <span className="text-[24px] text-[#9fe3c9]">.{totalSplit.dec}</span>}
+          {totalSplit.dec && <span className="text-2xl text-deep">.{totalSplit.dec}</span>}
         </div>
-        <div className="mt-3.5 flex flex-wrap items-center gap-2">
+        <div className="mt-4 flex flex-wrap items-center gap-2">
           {momPercent !== null && momPercent !== 0 && (
             <span
               className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
-                momPercent > 0 ? "bg-[#ff9b8a]/20 text-[#ffb4a6]" : "bg-[#9fe3c9]/15 text-[#9fe3c9]"
+                // `chart-1`/`chart-2` are theme-invariant, so the coral delta is the same here as
+                // it was. The mint delta uses `deep`, not `green-soft`: inside this tile's
+                // dark-resolved scope `green-soft` is #003c33, which is the tile's own background.
+                momPercent > 0 ? "bg-chart-1/20 text-chart-2" : "bg-deep/15 text-deep"
               }`}
             >
               {momPercent > 0 ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
@@ -207,70 +227,94 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Remaining Budget */}
-      <Card tone="panel" className="h-full">
-        <div className="flex items-center gap-1.5">
-          <div className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-3">
-            Remaining Budget
+      {/* Two secondary KPIs, separated by a hairline rule rather than wrapped in two cards. */}
+      <div className="grid grid-cols-1 divide-y divide-edge sm:grid-cols-2 sm:divide-x sm:divide-y-0">
+        <div data-kpi="Remaining Budget" className="py-5 sm:py-1 sm:pr-7">
+          <div className="flex items-center gap-1.5">
+            <div className="font-mono text-xs uppercase tracking-[0.14em] text-ink-3">
+              Remaining Budget
+            </div>
+            <InfoTip text="What's left to spend this month while staying within your budgets." />
           </div>
-          <InfoTip text="What's left to spend this month while staying within your budgets." />
-        </div>
-        <div className="mt-2.5 flex items-end font-display text-[44px] font-medium leading-none tracking-tight text-[#003c33] dark:text-[#7fd6b8]">
           {budgetSplit ? (
             <>
-              <span>{budgetSplit.head}</span>
-              {budgetSplit.dec && <span className="text-[24px] opacity-60">.{budgetSplit.dec}</span>}
+              <div className="mt-3 flex items-end font-display text-4xl font-medium leading-none tracking-tight text-deep">
+                <span>{budgetSplit.head}</span>
+                {budgetSplit.dec && <span className="text-2xl opacity-60">.{budgetSplit.dec}</span>}
+              </div>
+              <div className="mt-4 text-xs text-ink-2">
+                {formatCentavos(dailyAllowance)} / day safe · {daysLeft}{" "}
+                {daysLeft === 1 ? "day" : "days"} left
+              </div>
             </>
           ) : (
-            "—"
+            // A bare "—" here looked like a figure that failed to load. The sentence says
+            // which of the two it is, and what to do about it.
+            <>
+              <div className="mt-3 font-display text-xl font-medium leading-tight text-ink-2">
+                No budget set
+              </div>
+              <div className="mt-2 text-xs text-ink-3">
+                Set a monthly budget to see what's safe to spend.
+              </div>
+            </>
           )}
         </div>
-        <div className="mt-3.5 text-[12.5px] text-ink-2">
-          {budgetSplit
-            ? `${formatCentavos(dailyAllowance)} / day safe · ${daysLeft} ${daysLeft === 1 ? "day" : "days"} left`
-            : "No budget set"}
-        </div>
-      </Card>
 
-      {/* Daily Average */}
-      <Card className="h-full">
-        <div className="flex items-center gap-1.5">
-          <div className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-3">
-            Daily Average
+        <div data-kpi="Daily Average" className="py-5 sm:py-1 sm:pl-7">
+          <div className="flex items-center gap-1.5">
+            <div className="font-mono text-xs uppercase tracking-[0.14em] text-ink-3">
+              Daily Average
+            </div>
+            <InfoTip text="Average spend per day so far this month (total ÷ days elapsed)." />
           </div>
-          <InfoTip text="Average spend per day so far this month (total ÷ days elapsed)." />
+          <div className="mt-3 flex items-end font-display text-4xl font-medium leading-none tracking-tight text-ink-hi">
+            <span>{avgSplit.head}</span>
+            {avgSplit.dec && <span className="text-2xl text-ink-3">.{avgSplit.dec}</span>}
+          </div>
+          <div className="mt-4 text-xs text-ink-2">
+            Day {today} of {daysInMonth} · {monthLabel}
+          </div>
         </div>
-        <div className="mt-2.5 flex items-end font-display text-[44px] font-medium leading-none tracking-tight text-ink-hi">
-          <span>{avgSplit.head}</span>
-          {avgSplit.dec && <span className="text-[24px] text-ink-3">.{avgSplit.dec}</span>}
-        </div>
-        <div className="mt-3.5 text-[12.5px] text-ink-2">
-          Day {today} of {daysInMonth} · {monthLabel}
-        </div>
-      </Card>
+      </div>
     </div>
   );
 
-  const recentExpensesCard = (
-    <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-edge bg-surface">
-      <div className="flex items-center justify-between border-b border-edge-2 px-6 py-4">
-        <div className="flex items-center gap-1.5">
-          <h2 className="font-display text-[19px] font-medium text-ink-hi">Recent Expenses</h2>
-          <InfoTip text="Your most recently added expenses across all categories." />
-        </div>
+  // A warning, not a failure: amber, no figure, and the sentence carries the meaning on its own.
+  const overBudgetNotice = overBudget.length > 0 && (
+    <div className="flex items-center gap-4 rounded-lg border border-warn-edge bg-warn-bg px-5 py-4">
+      <Piso state="overBudget" size={48} className="shrink-0" />
+      <div className="min-w-0">
+        <p className="m-0 text-sm font-medium text-warn-ink">
+          {overBudget.length === 1
+            ? `${overBudget[0].categoryName} is over budget this month.`
+            : `${overBudget.length} categories are over budget this month.`}
+        </p>
+        <Link to="/budget" className="text-xs text-ink-2 underline underline-offset-2 hover:text-ink-hi">
+          Review your budgets
+        </Link>
+      </div>
+    </div>
+  );
+
+  const recentExpensesSection = (
+    <section data-section="recent" className="flex h-full flex-col">
+      <div className="flex items-center gap-1.5 border-b border-edge pb-3">
+        <h2 className="m-0 font-display text-lg font-medium text-ink-hi">Recent Expenses</h2>
+        <InfoTip text="Your most recently added expenses across all categories." />
       </div>
       {recentExpenses.length === 0 ? (
-        <div className="flex flex-1 flex-col items-center justify-center p-10 text-center">
-          <p className="mb-3 text-4xl">💸</p>
-          <p className="font-semibold text-ink">No expenses yet</p>
-          <p className="mt-1 text-sm text-ink-3">Add an expense to see it here</p>
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 py-12 text-center">
+          <Piso state="empty" size={72} />
+          <p className="m-0 font-semibold text-ink">No expenses yet</p>
+          <p className="m-0 text-sm text-ink-3">Add an expense to see it here</p>
         </div>
       ) : (
-        <ul className="flex-1 overflow-y-auto">
+        <ul className="m-0 flex-1 list-none overflow-y-auto p-0">
           {recentExpenses.slice(0, 10).map((e) => (
             <li
               key={e.id}
-              className="flex items-center justify-between gap-3 border-b border-edge-3 px-6 py-3 transition-colors last:border-0 hover:bg-surface-2"
+              className="flex items-center justify-between gap-3 border-b border-edge-3 py-3 transition-colors last:border-0 hover:bg-surface-2"
             >
               <div className="min-w-0">
                 <CategoryChip name={e.category ?? "Uncategorized"} />
@@ -286,22 +330,23 @@ export default function Dashboard() {
           ))}
         </ul>
       )}
-    </div>
+    </section>
   );
 
-  const spendingByCategoryCard = (
-    <Card>
-      <div className="flex items-baseline justify-between">
+  const spendingByCategorySection = (
+    <section data-section="categories">
+      <div className="flex items-baseline justify-between gap-3 border-b border-edge pb-3">
         <div className="flex items-center gap-1.5">
-          <div className="font-display text-[22px] font-medium tracking-tight text-ink-hi">
+          <h2 className="m-0 font-display text-xl font-medium tracking-tight text-ink-hi">
             Spending by Category
-          </div>
+          </h2>
           <InfoTip text="Your total spend per category (all time), longest bar = highest spend." />
         </div>
+        {/* Metadata, not navigation — so it reads as a caption rather than a fifth eyebrow. */}
         {categoryData.length > 0 && (
-          <div className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
+          <span className="shrink-0 text-xs text-ink-3">
             {categoryData.length} {categoryData.length === 1 ? "category" : "categories"}
-          </div>
+          </span>
         )}
       </div>
       {chartData.length === 0 ? (
@@ -321,30 +366,30 @@ export default function Dashboard() {
               </div>
               <div className="h-2.5 overflow-hidden rounded-full bg-track">
                 <div
-                  className="h-full rounded-full bg-[#1f8a5b]"
+                  className="h-full rounded-full bg-brand"
                   style={{ width: `${chartMax > 0 ? (c.value / chartMax) * 100 : 0}%` }}
                 />
               </div>
-              <div className="text-right font-mono text-[12.5px] text-ink-2">
+              <div className="text-right font-mono text-xs text-ink-2">
                 {formatCentavos(c.value)}
               </div>
             </div>
           ))}
         </div>
       )}
-    </Card>
+    </section>
   );
 
-  const monthlyTrendCard = (
-    <Card>
-      <div className="flex items-center gap-1.5">
-        <div className="font-display text-[22px] font-medium tracking-tight text-ink-hi">
-          Monthly Trend
+  const monthlyTrendSection = (
+    <section data-section="monthly">
+      <div className="flex items-baseline justify-between gap-3 border-b border-edge pb-3">
+        <div className="flex items-center gap-1.5">
+          <h2 className="m-0 font-display text-xl font-medium tracking-tight text-ink-hi">
+            Monthly Trend
+          </h2>
+          <InfoTip text="Total spend per month over the last 6 months." />
         </div>
-        <InfoTip text="Total spend per month over the last 6 months." />
-      </div>
-      <div className="mt-0.5 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
-        Last 6 months
+        <span className="shrink-0 text-xs text-ink-3">Last 6 months</span>
       </div>
       {monthlyData.length === 0 ? (
         <div className="flex h-[180px] items-center justify-center text-sm text-ink-3">
@@ -369,46 +414,59 @@ export default function Dashboard() {
               width={56}
             />
             <Tooltip formatter={(v) => [formatCentavos(v as number), "Spend"]} />
-            <Bar dataKey="total" fill="#1f8a5b" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="total" fill="var(--color-brand)" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       )}
-    </Card>
+    </section>
   );
 
   return (
-    <div className="space-y-7">
-      {/* Row 1: KPI strip */}
+    <div className="space-y-10">
+      {/* Row 1: what this month costs, and what is left of it. */}
       {kpiStrip}
 
-      {/* Row 2: AI interpretation of this month */}
+      {/* Row 2: the one thing that needs acting on, if there is one. */}
+      {overBudgetNotice}
+
+      {/* Row 3: AI interpretation of this month. */}
       <FeatureGate feature="ADVANCED_INSIGHTS">
         <AiInsightsCard month={currentMonth} />
       </FeatureGate>
 
-      {/* Row 3: Spending breakdown vs budget — items-start so the shorter card keeps its
+      {/* Row 4: spending breakdown vs budget — items-start so the shorter side keeps its
           natural height instead of stretching into a tall empty panel. */}
-      <div className="grid grid-cols-1 items-start gap-7 lg:grid-cols-[1.7fr_1fr]">
-        {spendingByCategoryCard}
+      <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-[1.7fr_1fr]">
+        {spendingByCategorySection}
         <BudgetOverviewCard month={currentMonth} />
       </div>
 
-      {/* Row 4: Recent expenses beside the two trend charts (grouped together) */}
-      <div className="grid grid-cols-1 gap-7 lg:grid-cols-[1fr_1.5fr]">
-        {recentExpensesCard}
-        <div className="flex flex-col gap-7">
+      {/* Row 5: recent expenses beside the two trend charts. */}
+      <div className="grid grid-cols-1 gap-10 lg:grid-cols-[1fr_1.5fr]">
+        {recentExpensesSection}
+        <div className="flex flex-col gap-10">
           <DailyTrendCard month={currentMonth} />
-          {monthlyTrendCard}
+          {monthlyTrendSection}
         </div>
       </div>
 
-      {/* Row 6: Forward-looking + ranked — go straight 1→3 columns (no 2-col stage that
-          would orphan the third card) and items-start so shorter cards don't stretch. */}
-      <div className="grid grid-cols-1 items-start gap-7 md:grid-cols-3">
-        <UpcomingBillsCard month={currentMonth} />
-        <GoalProgressCard />
-        <TopExpensesCard month={currentMonth} />
-      </div>
+      {/*
+        Row 6: forward-looking. Deliberately *not* the KPI row's three-up — two tiles with the
+        ranked list spanning beneath them, so the eye reads a new kind of information rather than
+        a second helping of the first row.
+      */}
+      <section className="border-t border-edge pt-8">
+        <h2 className="m-0 font-display text-xl font-medium tracking-tight text-ink-hi">
+          Coming up
+        </h2>
+        <div className="mt-5 grid grid-cols-1 items-start gap-7 md:grid-cols-2">
+          <UpcomingBillsCard month={currentMonth} />
+          <GoalProgressCard />
+          <div className="md:col-span-2">
+            <TopExpensesCard month={currentMonth} />
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
