@@ -23,6 +23,16 @@
   --ga-cta-bg: #17171c;
   --ga-cta-text: #ffffff;
   --ga-green-hi: #003c33;
+  /* Piso's body, paired with --ga-green-hi as its line. The two swap between themes, so the
+     character inverts on its own and its own outline keeps reading: 8.44:1 light, ~7.3:1 dark.
+     Using --color-brand (#1f8a5b) as the body instead would have measured 2.86:1. */
+  --ga-green-soft: #9fe3c9;
+  /* Error text. Distinct from --color-alert, which is the required-field asterisk coral. */
+  --ga-danger: #b30000;
+  /* Decorative delta fills. Theme-invariant on purpose: both only ever sit on the deep-green
+     hero tile, which is the same colour in both themes. */
+  --ga-chart-1: #ff9b8a;
+  --ga-chart-2: #ffb4a6;
   --ga-warn-bg: #fff8ea;
   --ga-warn-border: #f0dca0;
   --ga-warn-text: #8a6a00;
@@ -48,6 +58,10 @@
   --ga-cta-bg: #f0f0f0;
   --ga-cta-text: #17171c;
   --ga-green-hi: #7fd6b8;
+  --ga-green-soft: #003c33;
+  --ga-danger: #ff8a8a;
+  --ga-chart-1: #ff9b8a;
+  --ga-chart-2: #ffb4a6;
   --ga-warn-bg: rgba(240, 220, 160, 0.07);
   --ga-warn-border: rgba(240, 220, 160, 0.2);
   --ga-warn-text: #d4b060;
@@ -82,6 +96,10 @@
   --color-cta: var(--ga-cta-bg);
   --color-cta-fg: var(--ga-cta-text);
   --color-deep: var(--ga-green-hi);
+  --color-green-soft: var(--ga-green-soft);
+  --color-danger: var(--ga-danger);
+  --color-chart-1: var(--ga-chart-1);
+  --color-chart-2: var(--ga-chart-2);
 
   --color-warn-bg: var(--ga-warn-bg);
   --color-warn-edge: var(--ga-warn-border);

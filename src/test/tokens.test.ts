@@ -65,6 +65,9 @@ const rootTokens = {
   text: extractToken(rootBlock, "--ga-text"),
   text2: extractToken(rootBlock, "--ga-text2"),
   text3: extractToken(rootBlock, "--ga-text3"),
+  danger: extractToken(rootBlock, "--ga-danger"),
+  greenHi: extractToken(rootBlock, "--ga-green-hi"),
+  greenSoft: extractToken(rootBlock, "--ga-green-soft"),
 };
 
 const darkTokens = {
@@ -72,6 +75,9 @@ const darkTokens = {
   text: extractToken(darkBlock, "--ga-text"),
   text2: extractToken(darkBlock, "--ga-text2"),
   text3: extractToken(darkBlock, "--ga-text3"),
+  danger: extractToken(darkBlock, "--ga-danger"),
+  greenHi: extractToken(darkBlock, "--ga-green-hi"),
+  greenSoft: extractToken(darkBlock, "--ga-green-soft"),
 };
 
 describe("design token contrast (WCAG AA)", () => {
@@ -105,6 +111,39 @@ describe("design token contrast (WCAG AA)", () => {
     const text3 = contrastRatio(darkTokens.text3, darkTokens.page);
     expect(text).toBeGreaterThan(text2);
     expect(text2).toBeGreaterThan(text3);
+  });
+});
+
+/**
+ * The tokens added for TEN-433. Both earn an assertion for the same reason: their values were
+ * chosen *because* of a contrast measurement, so the measurement is the thing worth pinning.
+ */
+describe("ga-danger is readable error text in both themes", () => {
+  it("light theme: at least 4.5:1 against ga-page", () => {
+    expect(contrastRatio(rootTokens.danger, rootTokens.page)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("dark theme: at least 4.5:1 against ga-page", () => {
+    expect(contrastRatio(darkTokens.danger, darkTokens.page)).toBeGreaterThanOrEqual(4.5);
+  });
+});
+
+describe("the green-soft / green-hi pair keeps Piso's outline readable", () => {
+  // Piso paints its body from ga-green-soft and its line from ga-green-hi. The two swap between
+  // themes, which is what makes the character invert from one stylesheet — but only if the pair
+  // is a real contrast pair at both ends. #1f8a5b as the body measured 2.86:1 and was rejected
+  // for exactly this reason, so the floor is asserted rather than trusted.
+  it("light theme: the line reads against the body at AA for text", () => {
+    expect(contrastRatio(rootTokens.greenHi, rootTokens.greenSoft)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("dark theme: the line reads against the body at AA for text", () => {
+    expect(contrastRatio(darkTokens.greenHi, darkTokens.greenSoft)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("the pair is the same two colours in both themes, just swapped", () => {
+    expect(rootTokens.greenSoft).not.toBe(darkTokens.greenSoft);
+    expect(darkTokens.greenSoft).toBe(rootTokens.greenHi);
   });
 });
 
