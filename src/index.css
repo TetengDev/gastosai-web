@@ -17,8 +17,8 @@
   --ga-border-input: #d9d9dd;
   --ga-text-hi: #17171c;
   --ga-text: #212121;
-  --ga-text2: #75758a;
-  --ga-text3: #93939f;
+  --ga-text2: #5d5d6e;
+  --ga-text3: #71717a;
   --ga-input-bg: #ffffff;
   --ga-cta-bg: #17171c;
   --ga-cta-text: #ffffff;
@@ -42,8 +42,8 @@
   --ga-border-input: rgba(255, 255, 255, 0.15);
   --ga-text-hi: #f0f0f0;
   --ga-text: #e0e0e8;
-  --ga-text2: #8b8b9e;
-  --ga-text3: #6b6b7a;
+  --ga-text2: #9494a5;
+  --ga-text3: #7e7e8b;
   --ga-input-bg: #1e1e24;
   --ga-cta-bg: #f0f0f0;
   --ga-cta-text: #17171c;
@@ -113,8 +113,8 @@ input:focus,
 textarea:focus,
 select:focus {
   outline: none;
-  border-color: #9b60aa;
-  box-shadow: 0 0 0 3px rgba(155, 96, 170, 0.12);
+  border-color: var(--ga-green-hi);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ga-green-hi) 12%, transparent);
 }
 
 ::placeholder {
@@ -132,6 +132,8 @@ select:focus {
   }
 }
 
-.animate-pop {
-  animation: gaPop 0.25s ease forwards;
+@media (prefers-reduced-motion: no-preference) {
+  .animate-pop {
+    animation: gaPop 0.25s ease forwards;
+  }
 }
