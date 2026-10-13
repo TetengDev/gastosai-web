@@ -17,7 +17,8 @@ import { useAiAvailability } from "../hooks/useAiAvailability";
 import { useEntitlements } from "../hooks/useEntitlements";
 import { centavosToAmount, formatCentavos, formatDate, parseAmountToCentavos } from "../lib/formatters";
 import { looksLikeExpenseLog, looksLikeNlQuery } from "../lib/intentDetection";
-import { TypingDots, BotAvatar, ExpandIcon, CollapseIcon } from "./chat/ChatChrome";
+import { TypingDots, ExpandIcon, CollapseIcon } from "./chat/ChatChrome";
+import Piso from "../brand/Piso";
 import { actionLabel, savedLabel, buildPreviewFields, confirmChatAction, dispatchDataEvents, dispatchAllDataEvents } from "./chat/chatActions";
 
 const OPENAI_KEY_REGEX = /\bsk-[A-Za-z0-9_-]{16,}\b/;
@@ -1153,7 +1154,9 @@ export default function ChatWidget() {
             {/* Title row */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <BotAvatar gradient={theme.avatarGradient} />
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/90">
+                  <Piso state="resting" size={22} />
+                </span>
                 <div>
                   <h2 className="font-semibold text-white text-sm leading-tight">
                     GastosAI
@@ -1224,7 +1227,7 @@ export default function ChatWidget() {
                 className={`flex gap-2 ${m.role === "user" ? "justify-end" : "justify-start"}`}
               >
                 {m.role === "assistant" && (
-                  <BotAvatar gradient={theme.avatarGradient} />
+                  <Piso state="resting" size={28} className="mt-0.5 shrink-0" />
                 )}
                 <div
                   className={`flex flex-col gap-0.5 min-w-0 ${
@@ -1270,9 +1273,12 @@ export default function ChatWidget() {
                           })}
                         </div>
                         {m.actionType === "success" ? (
-                          <p className="text-xs text-green-600 dark:text-green-400 font-medium pt-1">
-                            {savedLabel(m.actionPreview.toolName)}
-                          </p>
+                          <div className="flex items-center gap-2 pt-1">
+                            <Piso state="saved" size={32} className="shrink-0" />
+                            <p className="m-0 text-xs text-green-600 dark:text-green-400 font-medium">
+                              {savedLabel(m.actionPreview.toolName)}
+                            </p>
+                          </div>
                         ) : m.actionType === "error" ? (
                           <p className="text-xs text-red-500 dark:text-red-400 font-medium pt-1">
                             {typeof m.content === "string" ? m.content : "Action failed."}
@@ -1572,8 +1578,8 @@ export default function ChatWidget() {
             ))}
 
             {loading && (
-              <div className="flex gap-2 justify-start">
-                <BotAvatar gradient={theme.avatarGradient} />
+              <div className="flex gap-2 justify-start" aria-live="polite" aria-atomic="true">
+                <Piso state="thinking" size={32} className="shrink-0" />
                 <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm rounded-2xl rounded-bl-sm px-3.5 py-2.5">
                   <TypingDots dotClass={theme.typingDot} />
                 </div>
