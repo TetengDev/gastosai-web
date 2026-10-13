@@ -133,7 +133,8 @@ describe("Navbar — Log expense", () => {
   it("ignores n inside a contenteditable region", () => {
     renderNavbar();
     const editable = document.createElement("div");
-    editable.contentEditable = "true";
+    // jsdom does not reflect the `contentEditable` property, so set the attribute a browser would.
+    editable.setAttribute("contenteditable", "true");
     document.body.appendChild(editable);
     fireEvent.keyDown(editable, { key: "n" });
     editable.remove();

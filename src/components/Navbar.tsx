@@ -1,10 +1,17 @@
-import { createElement } from "react";
-import { LogOut, Moon, Sun, Zap } from "lucide-react";
+import { createElement, useEffect, useState } from "react";
+import { LogOut, Moon, Plus, Sun, Zap } from "lucide-react";
 import { Link, NavLink } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { getAvatarGradient, getInitials } from "../lib/formatters";
+import { getBudgetSummary } from "../api/budgets";
+import { createExpense, getExpensesPage } from "../api/expenses";
+import type { ExpenseRequest } from "../api/expenses";
+import Piso from "../brand/Piso";
+import { APP_TIME_ZONE, getAvatarGradient, getInitials } from "../lib/formatters";
 import { avatarIconFor } from "../lib/avatarIcons";
+import { pisoMoodFor, toBand, type BudgetBand } from "../lib/pisoMood";
 import AdminViewAsToggle from "./AdminViewAsToggle";
+import ExpenseModal from "./ExpenseModal";
+import { Button } from "./ui";
 import { NotificationBell } from "./NotificationBell";
 import TipsPopover from "./TipsPopover";
 import { useEntitlements } from "../hooks/useEntitlements";
@@ -24,9 +31,78 @@ const NAV_ITEMS = [
   { to: "/goals", label: "Goals", end: false, tour: "nav-goals" },
 ] as const;
 
+const EXPENSE_CHANGED = "gastosai:expense-changed";
+/** Spec §2: Piso holds `saved` for 1.2 s after a log, then falls back to the month's mood. */
+const SAVED_MS = 1200;
+
+/** `yyyy-mm` for today in Manila, which is the month the budget summary is keyed by. */
+function currentMonth(): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: APP_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+  }).format(new Date());
+}
+
+/** A key typed into a field is text, not a shortcut. */
+function isTextEntry(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  if (["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)) return true;
+  return target.closest("[contenteditable]:not([contenteditable='false'])") !== null;
+}
+
 export default function Navbar({ isDark, onToggleDark }: Props) {
   const { user, isAdmin, logout } = useAuth();
   const { entitlements } = useEntitlements();
+  const [logging, setLogging] = useState(false);
+  const [bands, setBands] = useState<BudgetBand[]>([]);
+  // Assume there are expenses until told otherwise, so the mark never flashes `empty` on load.
+  const [hasExpenses, setHasExpenses] = useState(true);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    const load = () => {
+      getBudgetSummary(currentMonth())
+        .then((s) => alive && setBands(s.items.map((item) => toBand(item.status))))
+        .catch(() => {});
+      getExpensesPage({ page: 0, size: 1 })
+        .then((p) => alive && setHasExpenses(p.totalElements > 0))
+        .catch(() => {});
+    };
+    load();
+    window.addEventListener(EXPENSE_CHANGED, load);
+    return () => {
+      alive = false;
+      window.removeEventListener(EXPENSE_CHANGED, load);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (savedAt === null) return;
+    const timer = window.setTimeout(() => setSavedAt(null), SAVED_MS);
+    return () => window.clearTimeout(timer);
+  }, [savedAt]);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() !== "n" || e.ctrlKey || e.metaKey || e.altKey || e.defaultPrevented) return;
+      if (isTextEntry(e.target)) return;
+      e.preventDefault();
+      setLogging(true);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  const mood = pisoMoodFor({ bands, hasExpenses, saved: savedAt !== null });
+
+  const saveExpense = async (data: ExpenseRequest) => {
+    await createExpense(data);
+    setLogging(false);
+    setSavedAt(Date.now());
+    window.dispatchEvent(new CustomEvent(EXPENSE_CHANGED));
+  };
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     `rounded-full px-4 py-2 text-[15px] font-medium transition-colors ${
@@ -37,11 +113,17 @@ export default function Navbar({ isDark, onToggleDark }: Props) {
 
   return (
     <nav className="sticky top-0 z-40 flex h-[72px] items-center justify-between border-b border-edge-2 bg-nav px-5 backdrop-blur-md md:px-10">
-      <Link to="/" className="flex flex-1 select-none items-center">
-        <span className="font-display text-[21px] font-bold tracking-tight text-ink-hi">
-          Gastos<span className="text-brand">AI</span>
+      <div className="flex flex-1 items-center gap-2">
+        {/* Outside the link, so an announced mood is read as itself rather than as the link's name. */}
+        <span data-testid="nav-mood-mark" className="flex shrink-0">
+          <Piso state={mood} size={24} />
         </span>
-      </Link>
+        <Link to="/" className="flex select-none items-center">
+          <span className="font-display text-[21px] font-bold tracking-tight text-ink-hi">
+            Gastos<span className="text-brand">AI</span>
+          </span>
+        </Link>
+      </div>
 
       <div className="hidden items-center gap-1 md:flex">
         {NAV_ITEMS.map((item) => (
@@ -79,6 +161,18 @@ export default function Navbar({ isDark, onToggleDark }: Props) {
       </div>
 
       <div className="flex flex-1 items-center justify-end gap-2.5">
+        <Button
+          size="sm"
+          onClick={() => setLogging(true)}
+          aria-label="Log expense"
+          aria-keyshortcuts="n"
+          title="Log expense (N)"
+          data-testid="nav-log-expense"
+          className="shrink-0 px-3 sm:px-4"
+        >
+          <Plus className="h-4 w-4" aria-hidden="true" />
+          <span className="hidden sm:inline">Log expense</span>
+        </Button>
         {isAdmin && <AdminViewAsToggle />}
         <TipsPopover />
         <NotificationBell />
@@ -124,6 +218,8 @@ export default function Navbar({ isDark, onToggleDark }: Props) {
           </>
         )}
       </div>
+
+      {logging && <ExpenseModal onSave={saveExpense} onClose={() => setLogging(false)} />}
     </nav>
   );
 }
