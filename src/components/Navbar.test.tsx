@@ -111,6 +111,13 @@ describe("Navbar — Log expense", () => {
     expect(screen.getByRole("dialog", { name: "Expense form" })).toBeInTheDocument();
   });
 
+  it("renders the form outside the nav, whose backdrop blur would trap a fixed overlay", () => {
+    const { container } = renderNavbar();
+    fireEvent.click(screen.getByRole("button", { name: /log expense/i }));
+    const dialog = screen.getByRole("dialog", { name: "Expense form" });
+    expect(container.querySelector("nav")?.contains(dialog)).toBe(false);
+  });
+
   it("advertises the n shortcut on the button", () => {
     renderNavbar();
     expect(screen.getByRole("button", { name: /log expense/i })).toHaveAttribute("aria-keyshortcuts", "n");
@@ -207,6 +214,16 @@ describe("Navbar — mood mark", () => {
     });
 
     await waitFor(() => expect(moodMark(container)).toHaveAttribute("data-piso-state", "overBudget"));
+  });
+
+  it("refetches the mood on navigation, so a budget edited on its page shows on leaving it", async () => {
+    const { container } = renderNavbar();
+    await waitFor(() => expect(moodMark(container)).toHaveAttribute("data-piso-state", "resting"));
+
+    api.getBudgetSummary.mockResolvedValue(summary(["WARNING"]));
+    fireEvent.click(screen.getByRole("link", { name: "Goals" }));
+
+    await waitFor(() => expect(moodMark(container)).toHaveAttribute("data-piso-state", "worried"));
   });
 
   it("keeps a resting mark when the budget summary fails", async () => {
