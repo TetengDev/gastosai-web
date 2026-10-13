@@ -241,10 +241,14 @@ describe("Navbar — mood mark", () => {
     fireEvent.click(screen.getByRole("button", { name: /log expense/i }));
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(moodMark(container)).toHaveAttribute("data-piso-state", "saved"));
+    // Flush the passive effect that arms the reset timer before moving the clock; advancing first
+    // races it under load and leaves the reset to real time, past waitFor's timeout. The clock
+    // also drifts with real time here, so the lower bound is not pinned to the millisecond.
+    await act(async () => {});
 
     act(() => {
       vi.advanceTimersByTime(1200);
     });
-    await waitFor(() => expect(moodMark(container)).toHaveAttribute("data-piso-state", "resting"));
+    expect(moodMark(container)).toHaveAttribute("data-piso-state", "resting");
   });
 });
