@@ -225,4 +225,21 @@ describe("gaPop respects prefers-reduced-motion", () => {
     const braceEnd = css.indexOf("}", braceStart);
     expect(css.slice(braceStart, braceEnd)).toMatch(/animation:\s*gaPop/);
   });
+
+  // The meter fill and Celebrate's coin follow the same rule, and every declaration counts: a
+  // second, ungated copy of either selector would run the animation for everyone.
+  it.each([
+    [".animate-meter", /animation:\s*gaMeter/],
+    [".animate-coin-drop", /animation:\s*gaCoinDrop/],
+  ])("declares %s only inside a no-preference query", (selector, animation) => {
+    const positions = [...css.matchAll(new RegExp(`\\${selector}\\s*\\{`, "g"))].map((m) => m.index!);
+    expect(positions.length).toBeGreaterThan(0);
+    for (const position of positions) {
+      const gates = enclosingAtRules(css, position).filter((c) => c.includes("prefers-reduced-motion"));
+      expect(gates.some((c) => /prefers-reduced-motion:\s*no-preference/.test(c))).toBe(true);
+      expect(gates.some((c) => /prefers-reduced-motion:\s*reduce/.test(c))).toBe(false);
+    }
+    const braceStart = css.indexOf("{", positions[0]);
+    expect(css.slice(braceStart, css.indexOf("}", braceStart))).toMatch(animation);
+  });
 });
