@@ -32,11 +32,10 @@ const renderCard = () =>
 describe("GoalProgressCard meters", () => {
   beforeEach(() => vi.clearAllMocks());
 
+  // The card lists active goals only, so COMPLETED and PAUSED never reach a meter here.
   it.each([
     ["ON_TRACK", "bg-brand"],
-    ["COMPLETED", "bg-brand"],
     ["BEHIND", "bg-warn-ink"],
-    ["PAUSED", "bg-ink-3"],
   ] as const)("tones a %s goal's meter %s", async (status, fill) => {
     mockGetGoals.mockResolvedValue([goal({ status })]);
     renderCard();
@@ -45,7 +44,7 @@ describe("GoalProgressCard meters", () => {
   });
 
   it("never hatches a goal past its target", async () => {
-    mockGetGoals.mockResolvedValue([goal({ status: "COMPLETED", progressPercent: 120 })]);
+    mockGetGoals.mockResolvedValue([goal({ status: "ON_TRACK", progressPercent: 120 })]);
     renderCard();
     const bar = await screen.findByRole("progressbar", { name: "Trip fund" });
     expect(bar.querySelector('[data-testid="meter-overflow"]')).toBeNull();
