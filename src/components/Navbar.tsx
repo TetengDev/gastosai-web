@@ -1,6 +1,7 @@
 import { createElement, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { LogOut, Moon, Plus, Sun, Zap } from "lucide-react";
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { getBudgetSummary } from "../api/budgets";
 import { createExpense, getExpensesPage } from "../api/expenses";
@@ -59,7 +60,9 @@ export default function Navbar({ isDark, onToggleDark }: Props) {
   // Assume there are expenses until told otherwise, so the mark never flashes `empty` on load.
   const [hasExpenses, setHasExpenses] = useState(true);
   const [savedAt, setSavedAt] = useState<number | null>(null);
+  const { pathname } = useLocation();
 
+  // Refetched on every navigation too: a budget edited on its own page fires no expense event.
   useEffect(() => {
     let alive = true;
     const load = () => {
@@ -76,7 +79,7 @@ export default function Navbar({ isDark, onToggleDark }: Props) {
       alive = false;
       window.removeEventListener(EXPENSE_CHANGED, load);
     };
-  }, []);
+  }, [pathname]);
 
   useEffect(() => {
     if (savedAt === null) return;
@@ -224,7 +227,13 @@ export default function Navbar({ isDark, onToggleDark }: Props) {
         )}
       </div>
 
-      {logging && <ExpenseModal onSave={saveExpense} onClose={() => setLogging(false)} />}
+      {/* Portalled out of the nav: its backdrop-blur makes it the containing block for the
+          modal's fixed overlay, which would otherwise be pinned to the 72px bar. */}
+      {logging &&
+        createPortal(
+          <ExpenseModal onSave={saveExpense} onClose={() => setLogging(false)} />,
+          document.body,
+        )}
     </nav>
   );
 }
