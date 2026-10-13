@@ -120,3 +120,19 @@ describe("Goals amounts", () => {
     expect(mockUpdateGoal.mock.calls[0][1]).toMatchObject({ targetAmount: 10000000, savedAmount: 2500050 });
   });
 });
+
+describe("Goals meters", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it.each([
+    ["ON_TRACK", "bg-brand"],
+    ["BEHIND", "bg-warn-ink"],
+    ["PAUSED", "bg-ink-3"],
+  ] as const)("tones a %s goal's meter %s, named for the goal", async (status, fill) => {
+    mockGetGoals.mockResolvedValue([goal({ status, progressPercent: 40 })]);
+    render(<Goals />);
+    const bar = await screen.findByRole("progressbar", { name: "Emergency Fund" });
+    expect(bar).toHaveAttribute("aria-valuenow", "40");
+    expect(bar.querySelector('[data-testid="meter-fill"]')).toHaveClass(fill);
+  });
+});
