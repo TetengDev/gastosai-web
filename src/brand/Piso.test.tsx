@@ -16,13 +16,15 @@ const svgOf = (el: HTMLElement) => el.querySelector("svg")!;
 const eyeCount = (svg: SVGElement) => svg.querySelectorAll('circle[r="4.2"]').length;
 
 describe("Piso", () => {
-  it("exports exactly the five documented states", () => {
+  it("exports exactly the seven documented states", () => {
     expect([...PISO_STATES]).toEqual([
       "resting",
       "saved",
       "empty",
       "overBudget",
       "thinking",
+      "worried",
+      "cheer",
     ]);
   });
 
@@ -37,6 +39,8 @@ describe("Piso", () => {
     ["saved", "Expense saved"],
     ["overBudget", "Over budget"],
     ["thinking", "Thinking"],
+    ["worried", "Close to budget"],
+    ["cheer", "Celebrating"],
   ] as const)("announces the %s state as %s", (state, label) => {
     const { container } = render(<Piso state={state} />);
     const svg = svgOf(container as HTMLElement);
@@ -180,6 +184,15 @@ describe("Piso", () => {
 
     expect(dots.map((d) => d.getAttribute("cx"))).toEqual(["46", "64", "82"]);
     expect(dots.map((d) => d.getAttribute("opacity"))).toEqual([".35", ".6", "1"]);
+  });
+
+  it("closes its eyes into crescents only when saved or cheering", () => {
+    for (const state of PISO_STATES) {
+      const { container, unmount } = render(<Piso state={state} />);
+      const closed = state === "saved" || state === "cheer";
+      expect(eyeCount(svgOf(container as HTMLElement))).toBe(closed ? 0 : 2);
+      unmount();
+    }
   });
 
   it("animates nothing, in any state", () => {

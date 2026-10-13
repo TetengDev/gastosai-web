@@ -3,12 +3,20 @@
  * five colour roles it is painted from.
  *
  * These live beside the component rather than inside it because they are not implementation
- * detail — the same five states and five roles are the API on both platforms, and keeping them
+ * detail — the same seven states and five roles are the API on both platforms, and keeping them
  * in a module of their own is also what lets `Piso.tsx` stay a file that only exports a
  * component (`react-refresh/only-export-components`).
  */
 
-export const PISO_STATES = ["resting", "saved", "empty", "overBudget", "thinking"] as const;
+export const PISO_STATES = [
+  "resting",
+  "saved",
+  "empty",
+  "overBudget",
+  "thinking",
+  "worried",
+  "cheer",
+] as const;
 
 export type PisoState = (typeof PISO_STATES)[number];
 
@@ -37,11 +45,13 @@ export const PISO_ROLES = {
   amberFg: "var(--ga-warn-text)",
 } as const;
 
-/** Only these three are worth a screen reader's attention; the other two are decoration. */
+/** Only these five are worth a screen reader's attention; `resting` and `empty` are decoration. */
 export const PISO_LABELS: Partial<Record<PisoState, string>> = {
   saved: "Expense saved",
   overBudget: "Over budget",
   thinking: "Thinking",
+  worried: "Close to budget",
+  cheer: "Celebrating",
 };
 
 export const PISO_MOUTHS: Record<PisoState, string> = {
@@ -52,6 +62,10 @@ export const PISO_MOUTHS: Record<PisoState, string> = {
   empty: "M57 78h14",
   overBudget: "M57 80q7-5 14 0",
   thinking: "M57 77q7 5 14 0",
+  // A wobble, not a frown: close to the limit is a nudge, and overBudget keeps the downturn.
+  worried: "M56 79q3.5-3 7 0t7 0",
+  // The widest mouth Piso has.
+  cheer: "M52 75q12 10 24 0",
 };
 
 /** `empty` waits on the warm panel; `overBudget` goes amber; everything else is mint. */

@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getGoals, type Goal } from "../api/goals";
-import { Card, InfoTip, ProgressBar } from "./ui";
+import { Card, InfoTip, ProgressMeter } from "./ui";
 import { formatCurrencyAmount } from "../lib/formatters";
+import { goalTone } from "../lib/pisoMood";
 
 const STATUS_LABEL: Record<Goal["status"], string> = {
   ON_TRACK: "On Track",
@@ -16,13 +17,6 @@ const STATUS_BADGE: Record<Goal["status"], string> = {
   BEHIND: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400",
   COMPLETED: "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400",
   PAUSED: "bg-surface-2 text-ink-3",
-};
-
-const STATUS_BAR: Record<Goal["status"], string> = {
-  ON_TRACK: "#1f8a5b",
-  BEHIND: "#e8590c",
-  COMPLETED: "#1f8a5b",
-  PAUSED: "#c4c4cc",
 };
 
 export default function GoalProgressCard() {
@@ -97,9 +91,10 @@ export default function GoalProgressCard() {
                   {STATUS_LABEL[goal.status]}
                 </span>
               </div>
-              <ProgressBar
+              <ProgressMeter
                 percent={goal.progressPercent}
-                color={STATUS_BAR[goal.status]}
+                tone={goalTone(goal.status)}
+                label={goal.name}
                 height={6}
                 className="mb-1"
               />

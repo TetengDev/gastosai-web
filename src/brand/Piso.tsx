@@ -10,8 +10,8 @@
  *
  *  - **The size threshold.** Below 32px the face is four grey pixels, so below 32px it renders
  *    the faceless mark instead. A caller asking for a 16px avatar cannot get a broken face.
- *  - **Who announces.** `saved`, `overBudget` and `thinking` are states a screen reader needs;
- *    `resting` and `empty` sit beside text that already carries the meaning, so announcing them
+ *  - **Who announces.** `saved`, `overBudget`, `thinking`, `worried` and `cheer` are states a
+ *    screen reader needs; `resting` and `empty` sit beside text that already carries the meaning, so announcing them
  *    is noise. Callers do not get to choose, because the choice is a property of the state.
  *
  * Piso is never the only signal for a state — the text always stays.
@@ -84,8 +84,8 @@ export default function Piso({ state, size = 96, className }: Props) {
       <path d="M28 54h72M28 84h72" stroke={line} strokeWidth="4.5" strokeLinecap="round" fill="none" />
       <rect x="50" y="31" width="28" height="7" rx="3.5" fill={line} />
 
-      {state === "saved" ? (
-        /* Crescent eyes — the only state that closes them. */
+      {state === "saved" || state === "cheer" ? (
+        /* Crescent eyes — closed in contentment, for a save and for a celebration only. */
         <path
           d="M47 69q5-6 10 0M71 69q5-6 10 0"
           stroke={line}

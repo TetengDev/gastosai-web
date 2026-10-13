@@ -178,6 +178,25 @@ describe("focus ring uses a token, not a hardcoded colour", () => {
   });
 });
 
+// The hatch is drawn over an amber fill, and in dark mode it is the only thing that tells 130%
+// from 100%. A translucent stripe blends into the amber beneath it, so both stripes must be
+// opaque hex tokens in both themes and must differ from each other by at least 3:1 (WCAG 1.4.11).
+describe(".ga-hatch stays visible in both themes", () => {
+  const stripes = [...extractBlock(css, ".ga-hatch").matchAll(/var\((--ga-[\w-]+)\)/g)].map((m) => m[1]);
+
+  it("is drawn from two stripe tokens", () => {
+    expect(stripes).toHaveLength(2);
+  });
+
+  it.each([
+    ["light", rootBlock],
+    ["dark", darkBlock],
+  ])("separates its stripes by at least 3:1 in %s", (_theme, block) => {
+    const [a, b] = stripes.map((name) => extractToken(block, name));
+    expect(contrastRatio(a, b)).toBeGreaterThanOrEqual(3);
+  });
+});
+
 describe("gaPop respects prefers-reduced-motion", () => {
   // Find the brace range of every at-rule block so a rule's position can be
   // tested for containment. A stylesheet-wide substring search is not enough:
@@ -224,5 +243,22 @@ describe("gaPop respects prefers-reduced-motion", () => {
     const braceStart = css.indexOf("{", popRuleIndex);
     const braceEnd = css.indexOf("}", braceStart);
     expect(css.slice(braceStart, braceEnd)).toMatch(/animation:\s*gaPop/);
+  });
+
+  // The meter fill and Celebrate's coin follow the same rule, and every declaration counts: a
+  // second, ungated copy of either selector would run the animation for everyone.
+  it.each([
+    [".animate-meter", /animation:\s*gaMeter/],
+    [".animate-coin-drop", /animation:\s*gaCoinDrop/],
+  ])("declares %s only inside a no-preference query", (selector, animation) => {
+    const positions = [...css.matchAll(new RegExp(`\\${selector}\\s*\\{`, "g"))].map((m) => m.index!);
+    expect(positions.length).toBeGreaterThan(0);
+    for (const position of positions) {
+      const gates = enclosingAtRules(css, position).filter((c) => c.includes("prefers-reduced-motion"));
+      expect(gates.some((c) => /prefers-reduced-motion:\s*no-preference/.test(c))).toBe(true);
+      expect(gates.some((c) => /prefers-reduced-motion:\s*reduce/.test(c))).toBe(false);
+    }
+    const braceStart = css.indexOf("{", positions[0]);
+    expect(css.slice(braceStart, css.indexOf("}", braceStart))).toMatch(animation);
   });
 });
