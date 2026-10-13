@@ -156,6 +156,34 @@ describe("Navbar — Log expense", () => {
     expect(screen.queryByRole("dialog", { name: "Expense form" })).toBeNull();
   });
 
+  it.each([
+    // ui/Modal's overlay, which every other form in the app opens in (it carries no dialog role).
+    ["another page's modal", () => {
+      const overlay = document.createElement("div");
+      overlay.className = "fixed inset-0 z-[80]";
+      return overlay;
+    }],
+    // The first-run tour's tooltip.
+    ["the tour", () => {
+      const tooltip = document.createElement("div");
+      tooltip.setAttribute("aria-modal", "true");
+      return tooltip;
+    }],
+  ])("ignores n while %s is open", (_label, makeLayer) => {
+    renderNavbar();
+    const layer = makeLayer();
+    document.body.appendChild(layer);
+    fireEvent.keyDown(document.body, { key: "n" });
+    layer.remove();
+    expect(screen.queryByRole("dialog", { name: "Expense form" })).toBeNull();
+  });
+
+  it("ignores n typed as part of an IME composition", () => {
+    renderNavbar();
+    fireEvent.keyDown(document.body, { key: "n", isComposing: true });
+    expect(screen.queryByRole("dialog", { name: "Expense form" })).toBeNull();
+  });
+
   it("stops listening for n once unmounted", () => {
     const { unmount } = renderNavbar();
     unmount();
@@ -224,6 +252,36 @@ describe("Navbar — mood mark", () => {
     fireEvent.click(screen.getByRole("link", { name: "Goals" }));
 
     await waitFor(() => expect(moodMark(container)).toHaveAttribute("data-piso-state", "worried"));
+  });
+
+  it.each([
+    ["2026-09-30T16:30:00Z", "2026-10"], // 00:30 on 1 Oct in Manila, still September in UTC
+    ["2026-12-31T16:30:00Z", "2027-01"], // and across the year
+    ["2026-10-31T15:59:00Z", "2026-10"], // 23:59 on 31 Oct in Manila
+  ])("keys the budget summary by the Manila month at %s", async (now, month) => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(now));
+    renderNavbar();
+    await waitFor(() => expect(api.getBudgetSummary).toHaveBeenCalledWith(month));
+  });
+
+  it("keeps the newest mood when an older refetch lands after it", async () => {
+    const { container } = renderNavbar();
+    await waitFor(() => expect(moodMark(container)).toHaveAttribute("data-piso-state", "resting"));
+
+    let resolveOlder!: (s: BudgetSummaryResponse) => void;
+    let resolveNewer!: (s: BudgetSummaryResponse) => void;
+    api.getBudgetSummary
+      .mockReturnValueOnce(new Promise((r) => (resolveOlder = r)))
+      .mockReturnValueOnce(new Promise((r) => (resolveNewer = r)));
+    act(() => {
+      window.dispatchEvent(new CustomEvent("gastosai:expense-changed"));
+      window.dispatchEvent(new CustomEvent("gastosai:expense-changed"));
+    });
+
+    await act(async () => resolveNewer(summary(["WARNING"])));
+    await act(async () => resolveOlder(summary(["OVER_BUDGET"])));
+    expect(moodMark(container)).toHaveAttribute("data-piso-state", "worried");
   });
 
   it("keeps a resting mark when the budget summary fails", async () => {
