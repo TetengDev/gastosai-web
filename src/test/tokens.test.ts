@@ -178,6 +178,25 @@ describe("focus ring uses a token, not a hardcoded colour", () => {
   });
 });
 
+// The hatch is drawn over an amber fill, and in dark mode it is the only thing that tells 130%
+// from 100%. A translucent stripe blends into the amber beneath it, so both stripes must be
+// opaque hex tokens in both themes and must differ from each other by at least 3:1 (WCAG 1.4.11).
+describe(".ga-hatch stays visible in both themes", () => {
+  const stripes = [...extractBlock(css, ".ga-hatch").matchAll(/var\((--ga-[\w-]+)\)/g)].map((m) => m[1]);
+
+  it("is drawn from two stripe tokens", () => {
+    expect(stripes).toHaveLength(2);
+  });
+
+  it.each([
+    ["light", rootBlock],
+    ["dark", darkBlock],
+  ])("separates its stripes by at least 3:1 in %s", (_theme, block) => {
+    const [a, b] = stripes.map((name) => extractToken(block, name));
+    expect(contrastRatio(a, b)).toBeGreaterThanOrEqual(3);
+  });
+});
+
 describe("gaPop respects prefers-reduced-motion", () => {
   // Find the brace range of every at-rule block so a rule's position can be
   // tested for containment. A stylesheet-wide substring search is not enough:

@@ -18,10 +18,14 @@ describe("celebrateStore", () => {
     expect(hasCelebrated("goal-7")).toBe(true);
   });
 
-  it("does not throw when storage cannot be written", () => {
+  it("reports a failed write instead of throwing", () => {
     vi.spyOn(localStorage, "setItem").mockImplementation(() => {
       throw new Error("quota");
     });
-    expect(() => markCelebrated("goal-7")).not.toThrow();
+    expect(markCelebrated("goal-7")).toBe(false);
+  });
+
+  it("reports a successful write", () => {
+    expect(markCelebrated("goal-8")).toBe(true);
   });
 });

@@ -1,10 +1,22 @@
 import { render } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import Celebrate from "./Celebrate";
 
 const cheering = (c: HTMLElement) => c.querySelector('[data-piso-state="cheer"]');
 
 describe("Celebrate", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  // Spec §3: a storage failure skips the animation. An unwritable flag cannot stop a replay on
+  // the next visit, so the celebration does not start at all.
+  it("skips the celebration when the seen flag cannot be written", () => {
+    vi.spyOn(localStorage, "setItem").mockImplementation(() => {
+      throw new Error("quota");
+    });
+    const { container } = render(<Celebrate event="goal-3" />);
+    expect(cheering(container)).toBeNull();
+  });
+
   it("plays once, then never again for the same event", () => {
     const first = render(<Celebrate event="first-expense" />);
     expect(cheering(first.container)).not.toBeNull();
