@@ -107,15 +107,17 @@ export default function Navbar({ isDark, onToggleDark }: Props) {
     window.dispatchEvent(new CustomEvent(EXPENSE_CHANGED));
   };
 
+  // Tighter below xl, where the six links share the bar with Log expense; at lg the 1024px nav
+  // otherwise overflows by the width of the logout button.
   const linkClass = ({ isActive }: { isActive: boolean }) =>
-    `rounded-full px-4 py-2 text-[15px] font-medium transition-colors ${
+    `rounded-full px-3 py-2 text-[15px] font-medium xl:px-4 transition-colors ${
       isActive
         ? "bg-cta text-cta-fg"
         : "text-ink-2 hover:text-ink-hi hover:bg-surface-2"
     }`;
 
   return (
-    <nav className="sticky top-0 z-40 flex h-[72px] items-center justify-between gap-4 border-b border-edge-2 bg-nav px-3 backdrop-blur-md sm:px-5 md:px-10">
+    <nav className="sticky top-0 z-40 flex h-[72px] items-center justify-between gap-4 border-b border-edge-2 bg-nav px-3 backdrop-blur-md sm:px-5 xl:px-10">
       <div className="flex flex-1 items-center gap-2">
         {/* Outside the link, so an announced mood is read as itself rather than as the link's name. */}
         <span data-testid="nav-mood-mark" className="flex shrink-0">
