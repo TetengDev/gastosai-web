@@ -112,7 +112,7 @@ export default function Navbar({ isDark, onToggleDark }: Props) {
     }`;
 
   return (
-    <nav className="sticky top-0 z-40 flex h-[72px] items-center justify-between border-b border-edge-2 bg-nav px-5 backdrop-blur-md md:px-10">
+    <nav className="sticky top-0 z-40 flex h-[72px] items-center justify-between gap-4 border-b border-edge-2 bg-nav px-3 backdrop-blur-md sm:px-5 md:px-10">
       <div className="flex flex-1 items-center gap-2">
         {/* Outside the link, so an announced mood is read as itself rather than as the link's name. */}
         <span data-testid="nav-mood-mark" className="flex shrink-0">
@@ -160,7 +160,7 @@ export default function Navbar({ isDark, onToggleDark }: Props) {
         )}
       </div>
 
-      <div className="flex flex-1 items-center justify-end gap-2.5">
+      <div className="flex flex-1 items-center justify-end gap-1 sm:gap-2.5">
         <Button
           size="sm"
           onClick={() => setLogging(true)}
@@ -168,13 +168,17 @@ export default function Navbar({ isDark, onToggleDark }: Props) {
           aria-keyshortcuts="n"
           title="Log expense (N)"
           data-testid="nav-log-expense"
-          className="shrink-0 px-3 sm:px-4"
+          className="shrink-0 whitespace-nowrap px-2.5 xl:px-4"
         >
           <Plus className="h-4 w-4" aria-hidden="true" />
-          <span className="hidden sm:inline">Log expense</span>
+          {/* The full nav only has room for the label from xl; below that the button is icon-only. */}
+          <span className="hidden xl:inline">Log expense</span>
         </Button>
         {isAdmin && <AdminViewAsToggle />}
-        <TipsPopover />
+        {/* Below sm the bar cannot also hold Log expense; tips are the one control a phone can spare. */}
+        <span className="hidden sm:flex">
+          <TipsPopover />
+        </span>
         <NotificationBell />
         <button
           onClick={onToggleDark}
@@ -203,7 +207,8 @@ export default function Navbar({ isDark, onToggleDark }: Props) {
                   ? createElement(avatarIconFor(user.avatar)!, { className: "h-4 w-4 text-white" })
                   : <span className="select-none text-xs font-semibold leading-none text-white">{getInitials(user.name)}</span>}
               </span>
-              <span className="hidden max-w-[100px] truncate pr-2 text-[15px] font-medium text-ink-hi lg:block">
+              {/* Shown only once the labelled Log expense button and the name both fit beside the nav. */}
+              <span className="hidden max-w-[100px] truncate pr-2 text-[15px] font-medium text-ink-hi min-[1400px]:block">
                 {user.nickname || user.name}
               </span>
             </NavLink>
