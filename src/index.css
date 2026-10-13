@@ -189,11 +189,15 @@ select:focus {
   }
 }
 
-/* The part of a budget beyond 100%: the amber pair as a stripe, never the danger red. */
+/*
+ * The part of a budget beyond 100%: amber striped with the surface, never the danger red. The
+ * second stripe is the opaque surface rather than `--ga-warn-border`, which is translucent in
+ * dark mode and vanished into the amber fill beneath it.
+ */
 .ga-hatch {
   background: repeating-linear-gradient(
     135deg,
     var(--ga-warn-text) 0 4px,
-    var(--ga-warn-border) 4px 8px
+    var(--ga-surface) 4px 8px
   );
 }
