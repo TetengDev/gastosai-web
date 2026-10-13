@@ -2,7 +2,8 @@ import { Pencil, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { createGoal, deleteGoal, getGoals, updateGoal, type Goal, type GoalRequest } from "../api/goals";
 import CurrencySelect from "../components/CurrencySelect";
-import { Button, ConfirmDialog, IconButton, Modal, PageHeader, ProgressBar, SelectionBar } from "../components/ui";
+import { Button, ConfirmDialog, IconButton, Modal, PageHeader, ProgressMeter, SelectionBar } from "../components/ui";
+import { goalTone } from "../lib/pisoMood";
 import { useMultiSelect } from "../hooks/useMultiSelect";
 import { centavosToAmount, currencySymbol, formatCurrencyAmount, parseAmountToCentavos } from "../lib/formatters";
 
@@ -317,9 +318,10 @@ export default function Goals() {
                 </span>
                 <span className="font-mono text-sm text-ink-2">{goal.progressPercent}%</span>
               </div>
-              <ProgressBar
+              <ProgressMeter
                 percent={goal.progressPercent}
-                color={STATUS_COLOR[goal.status]}
+                tone={goalTone(goal.status)}
+                label={goal.name}
                 className="mt-3"
               />
               <div className="mt-4 flex items-center justify-between text-[13.5px] text-ink-2">

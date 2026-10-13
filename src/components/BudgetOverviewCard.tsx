@@ -2,18 +2,22 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getBudgetSummary } from "../api/budgets";
 import type { BudgetSummaryResponse } from "../api/budgets";
-import { Card, InfoTip, ProgressBar } from "./ui";
+import { Card, InfoTip, ProgressMeter } from "./ui";
 import { formatCentavos } from "../lib/formatters";
+import { budgetTone, toBand, type MeterTone } from "../lib/pisoMood";
 
 interface Props {
   month: string;
 }
 
-function barColor(percentUsed: number): string {
-  if (percentUsed >= 80) return "#e8590c";
-  if (percentUsed === 0) return "#c4c4cc";
-  return "#1f8a5b";
-}
+/** The "% used" label follows the meter's tone, so both read the server's status. */
+const USED_TEXT: Record<MeterTone, string> = {
+  onTrack: "text-deep",
+  goal: "text-deep",
+  warning: "text-warn-ink",
+  over: "text-warn-ink",
+  paused: "text-ink-3",
+};
 
 export default function BudgetOverviewCard({ month }: Props) {
   const [summary, setSummary] = useState<BudgetSummaryResponse | null>(null);
@@ -79,24 +83,25 @@ export default function BudgetOverviewCard({ month }: Props) {
           </div>
 
           <div className="mt-6 space-y-4">
-            {summary.items.slice(0, 5).map((item) => (
-              <div key={item.categoryId}>
-                <div className="mb-1.5 flex items-center justify-between text-sm">
-                  <span className="truncate text-ink">{item.categoryName}</span>
-                  <span
-                    className="ml-2 flex-shrink-0 font-mono text-xs"
-                    style={{ color: barColor(item.percentUsed) }}
-                  >
-                    {item.percentUsed.toFixed(0)}% used
-                  </span>
+            {summary.items.slice(0, 5).map((item) => {
+              const tone = budgetTone(toBand(item.status));
+              return (
+                <div key={item.categoryId}>
+                  <div className="mb-1.5 flex items-center justify-between text-sm">
+                    <span className="truncate text-ink">{item.categoryName}</span>
+                    <span className={`ml-2 flex-shrink-0 font-mono text-xs ${USED_TEXT[tone]}`}>
+                      {item.percentUsed.toFixed(0)}% used
+                    </span>
+                  </div>
+                  <ProgressMeter
+                    percent={item.percentUsed}
+                    tone={tone}
+                    label={`${item.categoryName} budget`}
+                    height={6}
+                  />
                 </div>
-                <ProgressBar
-                  percent={item.percentUsed}
-                  color={barColor(item.percentUsed)}
-                  height={6}
-                />
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {summary.items.length > 5 && (
