@@ -12,10 +12,12 @@ export function hasCelebrated(event: string): boolean {
   }
 }
 
-export function markCelebrated(event: string): void {
+/** Records the event as seen. `false` means the flag could not be written, so it cannot hold. */
+export function markCelebrated(event: string): boolean {
   try {
     localStorage.setItem(PREFIX + event, "1");
+    return true;
   } catch {
-    // Unwritable storage means it may play again next visit; that is the lesser failure.
+    return false;
   }
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Piso from "../../brand/Piso";
 import { hasCelebrated, markCelebrated } from "../../lib/celebrateStore";
 
@@ -9,15 +9,13 @@ interface Props {
 }
 
 /**
- * Mount it only when the trigger holds. Whether to play is decided once, at mount, from storage;
- * the effect then records it, so a StrictMode remount keeps the decision and cannot replay it.
+ * Mount it only when the trigger holds. Spec §3: on mount it marks the event seen first and only
+ * then plays, so a remount (StrictMode, navigation) finds the flag and cannot replay it. React
+ * keeps the first initializer result when StrictMode calls it twice. A flag that cannot be
+ * written skips the animation, because nothing would stop it replaying on every visit.
  */
 export default function Celebrate({ event, size = 96 }: Props) {
-  const [playing] = useState(() => !hasCelebrated(event));
-
-  useEffect(() => {
-    if (playing) markCelebrated(event);
-  }, [playing, event]);
+  const [playing] = useState(() => !hasCelebrated(event) && markCelebrated(event));
 
   if (!playing) return null;
 

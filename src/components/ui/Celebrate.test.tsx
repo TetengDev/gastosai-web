@@ -1,4 +1,5 @@
 import { render } from "@testing-library/react";
+import { StrictMode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import Celebrate from "./Celebrate";
 
@@ -24,6 +25,17 @@ describe("Celebrate", () => {
 
     const second = render(<Celebrate event="first-expense" />);
     expect(cheering(second.container)).toBeNull();
+  });
+
+  // StrictMode calls the state initializer twice; the second call finds the flag already set.
+  // The first result must win, or marking before playing would cancel every celebration in dev.
+  it("still plays under StrictMode's double invocation", () => {
+    const { container } = render(
+      <StrictMode>
+        <Celebrate event="goal-strict" />
+      </StrictMode>,
+    );
+    expect(cheering(container)).not.toBeNull();
   });
 
   it("keeps events independent", () => {
