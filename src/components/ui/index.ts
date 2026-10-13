@@ -7,6 +7,7 @@ export { default as ConfirmDialog } from "./ConfirmDialog";
 export { default as Pill } from "./Pill";
 export { default as IconButton } from "./IconButton";
 export { default as ProgressMeter } from "./ProgressMeter";
+export { default as Amount } from "./Amount";
 export { default as StatTile } from "./StatTile";
 export { default as SelectionBar } from "./SelectionBar";
 export { default as InfoTip } from "./InfoTip";
