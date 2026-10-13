@@ -52,6 +52,15 @@ function isTextEntry(target: EventTarget | null): boolean {
   return target.closest("[contenteditable]:not([contenteditable='false'])") !== null;
 }
 
+/**
+ * Something already sits over the page. `ui/Modal`, which every form in the app opens in, has no
+ * dialog role, so its full-viewport `fixed inset-0` overlay is the signal; the tour's tooltip is
+ * `aria-modal`. The popovers' click-away layers match too, and that is wanted: close them first.
+ */
+function isOverlayOpen(): boolean {
+  return document.querySelector("[aria-modal='true'], [role='dialog'], .fixed.inset-0") !== null;
+}
+
 export default function Navbar({ isDark, onToggleDark }: Props) {
   const { user, isAdmin, logout } = useAuth();
   const { entitlements } = useEntitlements();
@@ -65,12 +74,17 @@ export default function Navbar({ isDark, onToggleDark }: Props) {
   // Refetched on every navigation too: a budget edited on its own page fires no expense event.
   useEffect(() => {
     let alive = true;
+    // Two saves in quick succession start two loads; only the newer one may land.
+    let latest = 0;
+    // A failed fetch keeps the last mood: the mark is decoration, and the pages report the error.
     const load = () => {
+      const seq = ++latest;
+      const current = () => alive && seq === latest;
       getBudgetSummary(currentMonth())
-        .then((s) => alive && setBands(s.items.map((item) => toBand(item.status))))
+        .then((s) => current() && setBands(s.items.map((item) => toBand(item.status))))
         .catch(() => {});
       getExpensesPage({ page: 0, size: 1 })
-        .then((p) => alive && setHasExpenses(p.totalElements > 0))
+        .then((p) => current() && setHasExpenses(p.totalElements > 0))
         .catch(() => {});
     };
     load();
@@ -90,7 +104,7 @@ export default function Navbar({ isDark, onToggleDark }: Props) {
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key.toLowerCase() !== "n" || e.ctrlKey || e.metaKey || e.altKey || e.defaultPrevented) return;
-      if (isTextEntry(e.target)) return;
+      if (e.isComposing || isTextEntry(e.target) || isOverlayOpen()) return;
       e.preventDefault();
       setLogging(true);
     };
