@@ -17,9 +17,9 @@ import { Button, ConfirmDialog, IconButton, Modal, PageHeader, SelectionBar } fr
 import { useMultiSelect } from "../hooks/useMultiSelect";
 import { RATE_TTL_MS, rateCache } from "../lib/cache";
 import { categoryIcon } from "../lib/categoryIcon";
-import { centavosToAmount, currencySymbol, formatCentavos, formatCurrencyAmount, formatMonth, parseAmountToCentavos } from "../lib/formatters";
+import { centavosToAmount, currencySymbol, formatCentavos, formatCurrencyAmount, formatMonth, manilaMonth, parseAmountToCentavos } from "../lib/formatters";
 
-const currentMonth = () => new Date().toISOString().slice(0, 7);
+const currentMonth = () => manilaMonth();
 
 export default function Budget() {
   const [month, setMonth] = useState(currentMonth);

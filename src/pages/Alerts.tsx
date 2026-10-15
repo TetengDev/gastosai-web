@@ -1,6 +1,7 @@
 import { Bell, BellOff, CheckCheck, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { type Alert, dismissAlert, getAlerts, markAlertRead } from "../api/alerts";
+import { manilaMonth } from "../lib/formatters";
 
 function severityBadge(severity: Alert["severity"]) {
   if (severity === "CRITICAL")
@@ -21,7 +22,7 @@ export default function Alerts() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
+  const [month, setMonth] = useState(() => manilaMonth());
 
   useEffect(() => {
     getAlerts(month)

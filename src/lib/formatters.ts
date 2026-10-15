@@ -155,6 +155,15 @@ export const parseAmountToCentavos = (input: string): number | null => {
  */
 export const APP_TIME_ZONE = "Asia/Manila";
 
+/**
+ * `yyyy-mm` for the month `now` falls in, in Manila — the key every month-scoped endpoint takes.
+ *
+ * `toISOString().slice(0, 7)` is the UTC month, which is the previous month from 00:00 to 08:00
+ * Manila time on the 1st. `en-CA` is used only because it formats as `yyyy-mm`.
+ */
+export const manilaMonth = (now: Date = new Date()): string =>
+  new Intl.DateTimeFormat("en-CA", { timeZone: APP_TIME_ZONE, year: "numeric", month: "2-digit" }).format(now);
+
 export const formatDate = (date: string | null | undefined): string => {
   if (!date) return "-";
   return new Date(date).toLocaleString("en-PH", {
