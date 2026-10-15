@@ -22,12 +22,12 @@ import GoalProgressCard from "../components/GoalProgressCard";
 import TopExpensesCard from "../components/TopExpensesCard";
 import UpcomingBillsCard from "../components/UpcomingBillsCard";
 import { Button, Card, InfoTip } from "../components/ui";
-import { formatCentavos, formatDate } from "../lib/formatters";
+import { formatCentavos, formatDate, manilaMonth } from "../lib/formatters";
 import { categoryIcon } from "../lib/categoryIcon";
 import CategoryChip from "../components/CategoryChip";
 import Piso from "../brand/Piso";
 
-const currentMonth = new Date().toISOString().slice(0, 7);
+const currentMonth = manilaMonth();
 
 function formatMonthLabel(yyyyMM: string): string {
   const [y, m] = yyyyMM.split("-").map(Number);

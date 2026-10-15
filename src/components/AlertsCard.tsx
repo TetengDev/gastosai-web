@@ -2,6 +2,7 @@ import { CheckCheck } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { type Alert, getAlerts, markAlertRead } from "../api/alerts";
+import { manilaMonth } from "../lib/formatters";
 import { Card, IconButton, InfoTip } from "./ui";
 
 function severityColor(severity: Alert["severity"]): string {
@@ -15,7 +16,7 @@ export default function AlertsCard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const currentMonth = new Date().toISOString().slice(0, 7);
+  const currentMonth = manilaMonth();
 
   const fetchData = useCallback(() => {
     getAlerts(currentMonth)
