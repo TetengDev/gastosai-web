@@ -13,6 +13,7 @@ import {
   formatDate,
   toDateTimeLocal,
   formatMonth,
+  manilaMonth,
 } from "./formatters";
 
 describe("getAvatarGradient", () => {
@@ -319,5 +320,15 @@ describe("formatMonth", () => {
     const result = formatMonth("2026-06");
     expect(result).toContain("2026");
     expect(result).toMatch(/June|Jun/);
+  });
+});
+
+describe("manilaMonth", () => {
+  it.each([
+    ["2026-09-30T16:30:00Z", "2026-10"], // 00:30 on 1 Oct in Manila, still September in UTC
+    ["2026-12-31T16:30:00Z", "2027-01"], // 00:30 on 1 Jan in Manila, still last year in UTC
+    ["2026-10-31T15:59:00Z", "2026-10"], // 23:59 on 31 Oct in Manila
+  ])("keys %s to the Manila month %s", (now, month) => {
+    expect(manilaMonth(new Date(now))).toBe(month);
   });
 });

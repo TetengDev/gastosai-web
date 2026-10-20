@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { getAlerts } from "../api/alerts";
+import { manilaMonth } from "../lib/formatters";
 
-const currentMonth = new Date().toISOString().slice(0, 7);
+const currentMonth = manilaMonth();
 
 export function useUnreadAlertCount(): number {
   const [count, setCount] = useState(0);
