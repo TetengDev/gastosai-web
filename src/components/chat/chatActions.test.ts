@@ -1,8 +1,8 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
 import type { AxiosAdapter } from "axios";
 import api from "../../api/client";
 import * as chatActions from "./chatActions";
-import { confirmChatAction } from "./chatActions";
+import { buildPreviewFields, confirmChatAction } from "./chatActions";
 
 /**
  * What actually goes on the wire when a preview card is confirmed (TEN-167).
@@ -92,5 +92,17 @@ describe("confirmChatAction", () => {
   // an import can quietly bring back.
   it("no longer exports a confirm-message builder", () => {
     expect(chatActions).not.toHaveProperty("buildConfirmMessage");
+  });
+});
+
+describe("buildPreviewFields default month (TEN-470)", () => {
+  afterEach(() => vi.useRealTimers());
+
+  it.each(["create_budget", "update_budget"])("%s defaults to the Manila month, not the UTC one", (tool) => {
+    // 00:30 on 1 Oct in Manila is still 30 Sep in UTC.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-09-30T16:30:00Z"));
+    const month = buildPreviewFields(tool, {}, {}).find((f) => f.field === "month");
+    expect(month?.value).toBe("2026-10");
   });
 });

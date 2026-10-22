@@ -15,7 +15,7 @@ import { useAuth } from "../context/AuthContext";
 import { useFeatures } from "../hooks/useFeatures";
 import { useAiAvailability } from "../hooks/useAiAvailability";
 import { useEntitlements } from "../hooks/useEntitlements";
-import { centavosToAmount, formatCentavos, formatDate, parseAmountToCentavos } from "../lib/formatters";
+import { centavosToAmount, formatCentavos, formatDate, manilaMonth, parseAmountToCentavos } from "../lib/formatters";
 import { looksLikeExpenseLog, looksLikeNlQuery } from "../lib/intentDetection";
 import { TypingDots, ExpandIcon, CollapseIcon } from "./chat/ChatChrome";
 import Piso from "../brand/Piso";
@@ -961,7 +961,7 @@ export default function ChatWidget() {
     if (toolName === "update_budget") {
       const id = Number(mergedParams.id);
       const categoryId = Number(mergedParams.categoryId);
-      const month = String(mergedParams.month ?? new Date().toISOString().slice(0, 7));
+      const month = String(mergedParams.month ?? manilaMonth());
       const categoryName = String(mergedParams.categoryName ?? "budget");
       // A preview's params are the assistant's decimal arguments, and the edit field hands back
       // whatever the user typed over them — both are peso text. `/api/v2` takes centavos, so the

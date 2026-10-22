@@ -28,6 +28,7 @@ fixing commit or PR in place of an issue.
 | 2026-10-13 | Review of [#80](https://github.com/TetengDev/gastosai-web/pull/80) | `BudgetRuleCard` colours its bar from its own threshold, not the server's budget status | `barColor` re-derives the status on the client | [TEN-441](https://linear.app/tengdev/issue/TEN-441) ([TEN-452](https://linear.app/tengdev/issue/TEN-452) closed as its duplicate) | open |
 | 2026-10-13 | Playwright, against the local stack | The login page's Email and Password inputs have no accessible name; `getByLabel(/email/i)` finds nothing | The `<label>`s are not associated with their inputs: no `id`/`htmlFor` and no `aria-label` | not filed yet | open |
 | 2026-10-13 | Review of [#83](https://github.com/TetengDev/gastosai-web/pull/83) | From 00:00 to 08:00 Manila time on the 1st, Dashboard, Budget and alerts show the previous month, disagreeing with the nav mood mark | Each took the current month as `new Date().toISOString().slice(0, 7)`, the UTC month | [TEN-458](https://linear.app/tengdev/issue/TEN-458) | open |
+| 2026-10-22 | Review of [#84](https://github.com/TetengDev/gastosai-web/pull/84) | From 00:00 to 08:00 Manila time on the 1st, the assistant pre-fills the previous month on budget previews and on confirming a budget update | `ChatWidget` and `chatActions` defaulted `month` to `new Date().toISOString().slice(0, 7)`, the UTC month | [TEN-470](https://linear.app/tengdev/issue/TEN-470) | open |
 
 ## Tests and tooling
 

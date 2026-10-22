@@ -7,7 +7,7 @@ import { getBudgetSummary } from "../api/budgets";
 import { createExpense, getExpensesPage } from "../api/expenses";
 import type { ExpenseRequest } from "../api/expenses";
 import Piso from "../brand/Piso";
-import { APP_TIME_ZONE, getAvatarGradient, getInitials } from "../lib/formatters";
+import { getAvatarGradient, getInitials, manilaMonth } from "../lib/formatters";
 import { avatarIconFor } from "../lib/avatarIcons";
 import { pisoMoodFor, toBand, type BudgetBand } from "../lib/pisoMood";
 import AdminViewAsToggle from "./AdminViewAsToggle";
@@ -35,15 +35,6 @@ const NAV_ITEMS = [
 const EXPENSE_CHANGED = "gastosai:expense-changed";
 /** Spec §2: Piso holds `saved` for 1.2 s after a log, then falls back to the month's mood. */
 const SAVED_MS = 1200;
-
-/** `yyyy-mm` for today in Manila, which is the month the budget summary is keyed by. */
-function currentMonth(): string {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: APP_TIME_ZONE,
-    year: "numeric",
-    month: "2-digit",
-  }).format(new Date());
-}
 
 /** A key typed into a field is text, not a shortcut. */
 function isTextEntry(target: EventTarget | null): boolean {
@@ -80,7 +71,7 @@ export default function Navbar({ isDark, onToggleDark }: Props) {
     const load = () => {
       const seq = ++latest;
       const current = () => alive && seq === latest;
-      getBudgetSummary(currentMonth())
+      getBudgetSummary(manilaMonth())
         .then((s) => current() && setBands(s.items.map((item) => toBand(item.status))))
         .catch(() => {});
       getExpensesPage({ page: 0, size: 1 })
