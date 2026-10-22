@@ -3,6 +3,7 @@
 
 import api, { UNVERSIONED_BASE_URL } from "../../api/client";
 import type { components } from "../../api/generated/schema";
+import { manilaMonth } from "../../lib/formatters";
 
 type Schemas = components["schemas"];
 
@@ -82,7 +83,7 @@ export function buildPreviewFields(toolName: string, params: Record<string, unkn
       return [
         { field: "categoryName", label: "Category", value: String(p.categoryName ?? ""), inputType: "select" },
         { field: "amountLimit", label: "Amount Limit (₱)", value: String(p.amountLimit ?? 0), inputType: "number" },
-        { field: "month", label: "Month", value: String(p.month ?? new Date().toISOString().slice(0, 7)), inputType: "month" },
+        { field: "month", label: "Month", value: String(p.month ?? manilaMonth()), inputType: "month" },
       ];
     case "create_goal":
       return [
@@ -108,7 +109,7 @@ export function buildPreviewFields(toolName: string, params: Record<string, unkn
     case "update_budget":
       return [
         { field: "categoryName", label: "Category", value: String(p.categoryName ?? ""), inputType: "text" },
-        { field: "month", label: "Month", value: String(p.month ?? new Date().toISOString().slice(0, 7)), inputType: "month" },
+        { field: "month", label: "Month", value: String(p.month ?? manilaMonth()), inputType: "month" },
         { field: "amountLimit", label: "New Amount (₱)", value: String(p.amountLimit ?? 0), inputType: "number" },
       ];
     case "create_category":
