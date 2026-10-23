@@ -21,6 +21,7 @@ import Alerts from "./pages/Alerts";
 import Faq from "./pages/Faq";
 import Feedback from "./pages/Feedback";
 import Goals from "./pages/Goals";
+import Landing from "./pages/Landing";
 import LoginPage from "./pages/LoginPage";
 import NotFound from "./pages/NotFound";
 import VerifyMagicLink from "./pages/VerifyMagicLink";
@@ -56,6 +57,8 @@ function AppShell({ darkMode, onToggleDark, onResetDark }: { darkMode: boolean; 
         <Route path="/faq" element={<PublicLayout><Faq /></PublicLayout>} />
         <Route path="/privacy" element={<PublicLayout><Privacy /></PublicLayout>} />
         <Route path="/terms" element={<PublicLayout><Terms /></PublicLayout>} />
+        {/* Logged out, `/` is the public landing page; logged in, it falls through to the dashboard. */}
+        {!user && <Route path="/" element={<Landing />} />}
         <Route
           path="/*"
           element={
