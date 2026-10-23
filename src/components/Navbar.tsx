@@ -1,6 +1,6 @@
 import { createElement, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { LogOut, Moon, Plus, Sun, Zap } from "lucide-react";
+import { ChevronDown, LogOut, Moon, Plus, Shield, Sun, Zap } from "lucide-react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { getBudgetSummary } from "../api/budgets";
@@ -50,6 +50,59 @@ function isTextEntry(target: EventTarget | null): boolean {
  */
 function isOverlayOpen(): boolean {
   return document.querySelector("[aria-modal='true'], [role='dialog'], .fixed.inset-0") !== null;
+}
+
+const ADMIN_LINKS = [
+  { to: "/admin/submissions", label: "Messages" },
+  { to: "/admin/chat-audit", label: "Chat Audit" },
+  { to: "/admin/observability", label: "Observability" },
+];
+
+/** The admin pages behind one nav button, so an admin's bar holds the same row as everyone else's. */
+function AdminMenu() {
+  const [open, setOpen] = useState(false);
+  const active = useLocation().pathname.startsWith("/admin");
+  return (
+    <div className="relative" onKeyDown={(e) => e.key === "Escape" && setOpen(false)}>
+      <button
+        type="button"
+        aria-label="Admin"
+        title="Admin pages"
+        aria-expanded={open}
+        aria-controls="admin-menu"
+        onClick={() => setOpen((o) => !o)}
+        className={`flex cursor-pointer items-center gap-1 whitespace-nowrap rounded-full px-3 py-2 text-[15px] font-medium transition-colors xl:px-4 ${
+          active ? "bg-cta text-cta-fg" : "text-ink-2 hover:bg-surface-2 hover:text-ink-hi"
+        }`}
+      >
+        <Shield className="h-4 w-4 xl:hidden" aria-hidden="true" />
+        <span className="hidden xl:inline">Admin</span>
+        <ChevronDown className={`hidden h-4 w-4 transition-transform xl:block ${open ? "rotate-180" : ""}`} aria-hidden="true" />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <ul id="admin-menu" className="absolute left-0 z-50 mt-2 w-48 rounded-xl border border-edge bg-surface p-1.5 shadow-xl">
+            {ADMIN_LINKS.map((l) => (
+              <li key={l.to}>
+                <NavLink
+                  to={l.to}
+                  onClick={() => setOpen(false)}
+                  className={({ isActive }) =>
+                    `block rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                      isActive ? "bg-surface-2 text-ink-hi" : "text-ink-2 hover:bg-surface-2 hover:text-ink-hi"
+                    }`
+                  }
+                >
+                  {l.label}
+                </NavLink>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </div>
+  );
 }
 
 export default function Navbar({ isDark, onToggleDark }: Props) {
@@ -115,7 +168,7 @@ export default function Navbar({ isDark, onToggleDark }: Props) {
   // Tighter below xl, where the six links share the bar with Log expense; at lg the 1024px nav
   // otherwise overflows by the width of the logout button.
   const linkClass = ({ isActive }: { isActive: boolean }) =>
-    `rounded-full px-3 py-2 text-[15px] font-medium xl:px-4 transition-colors ${
+    `whitespace-nowrap rounded-full px-3 py-2 text-[15px] font-medium xl:px-4 transition-colors ${
       isActive
         ? "bg-cta text-cta-fg"
         : "text-ink-2 hover:text-ink-hi hover:bg-surface-2"
@@ -147,21 +200,7 @@ export default function Navbar({ isDark, onToggleDark }: Props) {
             {item.label}
           </NavLink>
         ))}
-        {isAdmin && (
-          <NavLink to="/admin/submissions" className={linkClass}>
-            Messages
-          </NavLink>
-        )}
-        {isAdmin && (
-          <NavLink to="/admin/chat-audit" className={linkClass}>
-            Chat Audit
-          </NavLink>
-        )}
-        {isAdmin && (
-          <NavLink to="/admin/observability" className={linkClass}>
-            Observability
-          </NavLink>
-        )}
+        {isAdmin && <AdminMenu />}
         {BILLING_ENABLED && !isAdmin && entitlements?.plan !== "PREMIUM" && (
           <NavLink to="/pricing" className={linkClass}>
             <Zap className="h-3.5 w-3.5" />
@@ -181,12 +220,13 @@ export default function Navbar({ isDark, onToggleDark }: Props) {
           className="shrink-0 whitespace-nowrap px-2.5 xl:px-4"
         >
           <Plus className="h-4 w-4" aria-hidden="true" />
-          {/* The full nav only has room for the label from xl; below that the button is icon-only. */}
-          <span className="hidden xl:inline">Log expense</span>
+          {/* The full nav only has room for the label from xl, or from 1400px beside an admin's extra controls. */}
+          <span className={isAdmin ? "hidden min-[1400px]:inline" : "hidden xl:inline"}>Log expense</span>
         </Button>
         {isAdmin && <AdminViewAsToggle />}
-        {/* Below sm the bar cannot also hold Log expense; tips are the one control a phone can spare. */}
-        <span className="hidden sm:flex">
+        {/* Below sm the bar cannot also hold Log expense; tips are the one control a phone can spare.
+            An admin's extra controls need that room up to xl too. */}
+        <span className={isAdmin ? "hidden xl:flex" : "hidden sm:flex"}>
           <TipsPopover />
         </span>
         <NotificationBell />
