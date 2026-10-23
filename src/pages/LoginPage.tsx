@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { CirclePlay } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import { Button } from "../components/ui";
+import { Button, Modal } from "../components/ui";
 import AuthModeTabs from "../components/AuthModeTabs";
 import Footer from "../components/Footer";
 
@@ -12,6 +13,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [tourOpen, setTourOpen] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,8 +88,31 @@ export default function LoginPage() {
             </Link>
           </p>
         </div>
+
+        <button
+          type="button"
+          onClick={() => setTourOpen(true)}
+          className="mx-auto mt-5 flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink-hi"
+        >
+          <CirclePlay className="h-4 w-4" aria-hidden="true" />
+          Watch the 60-second tour
+        </button>
         </div>
       </div>
+      {/* Mounted only while open, so the video is never fetched before the click and closing stops it. */}
+      <Modal open={tourOpen} onClose={() => setTourOpen(false)} title="GastosAI in 60 seconds" maxWidthClass="max-w-4xl">
+        <video
+          src="/tour/gastosai-tour.mp4"
+          poster="/tour/gastosai-tour.jpg"
+          controls
+          autoPlay
+          playsInline
+          preload="none"
+          className="aspect-video w-full rounded-xl bg-black"
+        >
+          <track kind="captions" src="/tour/gastosai-tour.en.vtt" srcLang="en" label="English" />
+        </video>
+      </Modal>
       <Footer />
     </div>
   );
