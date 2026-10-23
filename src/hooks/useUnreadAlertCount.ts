@@ -2,13 +2,11 @@ import { useCallback, useEffect, useState } from "react";
 import { getAlerts } from "../api/alerts";
 import { manilaMonth } from "../lib/formatters";
 
-const currentMonth = manilaMonth();
-
 export function useUnreadAlertCount(): number {
   const [count, setCount] = useState(0);
 
   const refresh = useCallback(() => {
-    getAlerts(currentMonth)
+    getAlerts(manilaMonth())
       .then((alerts) => {
         setCount(alerts.filter((a) => !a.read && !a.dismissed).length);
       })

@@ -27,8 +27,6 @@ import { categoryIcon } from "../lib/categoryIcon";
 import CategoryChip from "../components/CategoryChip";
 import Piso from "../brand/Piso";
 
-const currentMonth = manilaMonth();
-
 function formatMonthLabel(yyyyMM: string): string {
   const [y, m] = yyyyMM.split("-").map(Number);
   return new Date(y, m - 1, 1).toLocaleString("default", { month: "short", year: "numeric" });
@@ -83,16 +81,21 @@ export default function Dashboard() {
   const [budgetSummary, setBudgetSummary] = useState<BudgetSummaryResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // The Manila month the last load was for. Read at fetch time so a tab left open past midnight on
+  // the 1st asks for the new month; it is set with the data, so the label never disagrees with it.
+  const [currentMonth, setCurrentMonth] = useState(manilaMonth);
 
   const fetchData = useCallback(() => {
+    const month = manilaMonth();
     void Promise.all([
       getCategoryReport(),
       getExpensesPage({ page: 0, size: 15 }),
       getMonthlyReport(),
-      getMonthlyComparison(currentMonth),
-      getBudgetSummary(currentMonth).catch(() => null),
+      getMonthlyComparison(month),
+      getBudgetSummary(month).catch(() => null),
     ])
       .then(([cats, expenses, monthly, mom, budget]) => {
+        setCurrentMonth(month);
         setCategoryData(cats);
         setRecentExpenses(expenses.content);
         setMonthlyData(monthly);

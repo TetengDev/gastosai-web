@@ -1,6 +1,6 @@
-import { act, render, screen, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Dashboard, { abbrevCentavos, dailyAverageCentavos } from "./Dashboard";
 import { getBudgetSummary, type BudgetSummaryItem, type BudgetSummaryResponse } from "../api/budgets";
 import {
@@ -14,7 +14,7 @@ import {
   type MonthlyComparison,
   type MonthlyReport,
 } from "../api/expenses";
-import { formatCentavos, formatDate } from "../lib/formatters";
+import { formatCentavos, formatDate, manilaMonth } from "../lib/formatters";
 
 vi.mock("../api/budgets", () => ({ getBudgetSummary: vi.fn() }));
 
@@ -51,7 +51,7 @@ const mockGetMonthlyReport = vi.mocked(getMonthlyReport);
 
 // --- The same calendar arithmetic the page does, so the expectations move with the clock ----
 
-const currentMonth = new Date().toISOString().slice(0, 7);
+const currentMonth = manilaMonth();
 const [cy, cm] = currentMonth.split("-").map(Number);
 const daysInMonth = new Date(cy, cm, 0).getDate();
 const today = Math.min(new Date().getDate(), daysInMonth);
@@ -225,6 +225,8 @@ describe("Dashboard render", () => {
     mockGetMonthlyComparison.mockResolvedValue(MOM);
     mockGetBudgetSummary.mockResolvedValue(BUDGET);
   });
+
+  afterEach(() => vi.useRealTimers());
 
   // The over-budget notice links to /budget, so the page needs a router context.
   const mount = () =>
@@ -401,6 +403,22 @@ describe("Dashboard render", () => {
   });
 
   // --- Over budget --------------------------------------------------------
+
+  it("asks for the new Manila month on a refetch after midnight on the 1st", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-09-30T15:30:00Z")); // 23:30 Manila, 30 Sep
+    mount();
+    await waitFor(() => expect(mockGetMonthlyComparison).toHaveBeenLastCalledWith("2026-09"));
+    await waitFor(() => expect(mockGetBudgetSummary).toHaveBeenLastCalledWith("2026-09"));
+
+    vi.setSystemTime(new Date("2026-09-30T16:30:00Z")); // 00:30 Manila, 1 Oct
+    await act(async () => {
+      window.dispatchEvent(new Event("gastosai:expense-changed"));
+    });
+
+    expect(mockGetMonthlyComparison).toHaveBeenLastCalledWith("2026-10");
+    expect(mockGetBudgetSummary).toHaveBeenLastCalledWith("2026-10");
+  });
 
   it("raises an over-budget notice, in words, when a budget is blown", async () => {
     mockGetBudgetSummary.mockResolvedValue({
