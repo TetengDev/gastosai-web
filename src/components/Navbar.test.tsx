@@ -11,10 +11,12 @@ const api = vi.hoisted(() => ({
   createExpense: vi.fn(),
 }));
 
+const auth = vi.hoisted(() => ({ isAdmin: false }));
+
 vi.mock("../context/AuthContext", () => ({
   useAuth: () => ({
     user: { name: "Demo User", nickname: "Demo", avatar: null, avatarColor: null },
-    isAdmin: false,
+    isAdmin: auth.isAdmin,
     logout: vi.fn(),
   }),
 }));
@@ -76,6 +78,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.useRealTimers();
   vi.clearAllMocks();
+  auth.isAdmin = false;
 });
 
 describe("Navbar", () => {
@@ -308,5 +311,40 @@ describe("Navbar — mood mark", () => {
       vi.advanceTimersByTime(1200);
     });
     expect(moodMark(container)).toHaveAttribute("data-piso-state", "resting");
+  });
+});
+
+describe("Navbar — admin menu (TEN-494)", () => {
+  it("shows regular users no Admin button and no admin links", () => {
+    renderNavbar();
+    expect(screen.queryByRole("button", { name: "Admin" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Chat Audit" })).toBeNull();
+  });
+
+  it("groups the three admin pages behind one Admin button", () => {
+    auth.isAdmin = true;
+    renderNavbar();
+    const button = screen.getByRole("button", { name: "Admin" });
+    expect(screen.queryByRole("link", { name: "Messages" })).toBeNull();
+    expect(button).toHaveAttribute("aria-expanded", "false");
+
+    fireEvent.click(button);
+    expect(button).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("link", { name: "Messages" })).toHaveAttribute("href", "/admin/submissions");
+    expect(screen.getByRole("link", { name: "Chat Audit" })).toHaveAttribute("href", "/admin/chat-audit");
+    expect(screen.getByRole("link", { name: "Observability" })).toHaveAttribute("href", "/admin/observability");
+  });
+
+  it("closes on Escape and after following a link", () => {
+    auth.isAdmin = true;
+    renderNavbar();
+    const button = screen.getByRole("button", { name: "Admin" });
+    fireEvent.click(button);
+    fireEvent.keyDown(button, { key: "Escape" });
+    expect(screen.queryByRole("link", { name: "Messages" })).toBeNull();
+
+    fireEvent.click(button);
+    fireEvent.click(screen.getByRole("link", { name: "Observability" }));
+    expect(screen.queryByRole("link", { name: "Messages" })).toBeNull();
   });
 });

@@ -39,12 +39,13 @@ export default function AdminViewAsToggle() {
         onClick={() => setOpen((o) => !o)}
         title="View as (admin)"
         aria-label="View as (admin)"
-        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium transition-colors ${
+        className={`flex items-center gap-1.5 whitespace-nowrap px-2.5 py-1.5 rounded-full text-xs font-medium transition-colors ${
           active ? "bg-amber-400/90 text-amber-950" : "text-ink-2 hover:text-ink-hi hover:bg-surface-2"
         }`}
       >
         <Eye className="w-3.5 h-3.5" />
-        <span className="hidden sm:inline">{active ? "Viewing as…" : "View as"}</span>
+        {/* Icon-only until 1400px, where the admin bar has room; the amber fill still marks an active override. */}
+        <span className="hidden min-[1400px]:inline">{active ? "Viewing as…" : "View as"}</span>
       </button>
 
       {open && (
