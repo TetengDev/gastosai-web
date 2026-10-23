@@ -38,18 +38,28 @@ describe("landing page at / (TEN-485)", () => {
     expect(screen.getAllByRole("listitem").length).toBe(6);
   });
 
-  it("embeds the tour inline without fetching it up front", () => {
+  it("plays the tour muted and looping in the hero, with controls and captions", () => {
     renderAt("/");
-    const video = document.querySelector("video");
-    expect(video).not.toBeNull();
-    expect(video!.getAttribute("src")).toBe("/tour/gastosai-tour.mp4");
-    expect(video!.getAttribute("poster")).toBe("/tour/gastosai-tour.jpg");
-    expect(video!.getAttribute("preload")).toBe("none");
-    expect(video!.hasAttribute("controls")).toBe(true);
-    expect(video!.hasAttribute("autoplay")).toBe(false);
-    const track = video!.querySelector("track");
+    const video = document.querySelector("video")!;
+    expect(video.getAttribute("src")).toBe("/tour/gastosai-tour.mp4");
+    expect(video.getAttribute("poster")).toBe("/tour/gastosai-tour.jpg");
+    expect(video.hasAttribute("autoplay")).toBe(true);
+    expect(video.muted).toBe(true);
+    expect(video.hasAttribute("loop")).toBe(true);
+    expect(video.hasAttribute("controls")).toBe(true);
+    expect(video.hasAttribute("playsinline")).toBe(true);
+    expect(video.getAttribute("preload")).toBe("auto");
+    const track = video.querySelector("track");
     expect(track?.getAttribute("kind")).toBe("captions");
     expect(track?.getAttribute("src")).toBe("/tour/gastosai-tour.en.vtt");
+  });
+
+  it("leaves the tour paused and unfetched for reduced-motion visitors", () => {
+    window.matchMedia = vi.fn().mockReturnValue({ matches: true }) as unknown as typeof window.matchMedia;
+    renderAt("/");
+    const video = document.querySelector("video")!;
+    expect(video.hasAttribute("autoplay")).toBe(false);
+    expect(video.getAttribute("preload")).toBe("none");
   });
 
   it("still sends logged-out visitors of app pages to /login", () => {

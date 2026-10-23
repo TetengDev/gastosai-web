@@ -29,24 +29,20 @@ test.describe("Landing page", () => {
     await expect(page).toHaveURL(/\/register$/);
   });
 
-  test("the tour loads nothing up front, then plays with captions", async ({ page }) => {
-    const videoRequests: string[] = [];
-    page.on("request", (r) => r.url().includes("/tour/gastosai-tour.mp4") && videoRequests.push(r.url()));
+  test("the tour plays by itself, muted, in the hero", async ({ page }) => {
     await page.goto("/");
-    await page.waitForLoadState("networkidle");
-    expect(videoRequests).toHaveLength(0);
-
     const video = page.locator("video");
-    await video.scrollIntoViewIfNeeded();
-    await video.evaluate((v: HTMLVideoElement) => v.play());
     await expect.poll(() => video.evaluate((v: HTMLVideoElement) => v.currentTime), { timeout: 15000 }).toBeGreaterThan(2);
     const state = await video.evaluate((v: HTMLVideoElement) => ({
+      muted: v.muted,
+      paused: v.paused,
       duration: Math.round(v.duration),
       width: v.videoWidth,
       tracks: v.textTracks.length,
+      aboveFold: v.getBoundingClientRect().top < window.innerHeight,
     }));
-    expect(state).toEqual({ duration: 60, width: 1920, tracks: 1 });
-    await video.screenshot({ path: path.join(ARTIFACTS, "landing-02-tour-playing.png") });
+    expect(state).toEqual({ muted: true, paused: false, duration: 60, width: 1920, tracks: 1, aboveFold: true });
+    await shot(page, "landing-02-hero-playing");
   });
 
   test("fits a phone with no sideways scroll", async ({ page }) => {

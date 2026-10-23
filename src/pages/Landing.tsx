@@ -1,5 +1,5 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import Piso from "../brand/Piso";
 import PublicLayout from "../components/PublicLayout";
 
 const FEATURES = [
@@ -16,13 +16,20 @@ const primary =
 const secondary =
   "inline-flex items-center justify-center rounded-full border border-edge-input bg-surface px-6 py-3 text-sm font-medium text-ink-hi transition-colors hover:bg-surface-2";
 
-/** Public home for logged-out visitors at `/`: what GastosAI is, the 60-second tour, and the way in. */
+/** Public home for logged-out visitors at `/`: what GastosAI is, the 60-second tour playing in the hero, and the way in. */
+// Reduced-motion and data-saver visitors get the poster and press play themselves.
+function wantsAutoplay() {
+  const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData;
+  return !saveData && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
 export default function Landing() {
+  const [autoplay] = useState(wantsAutoplay);
   return (
     <PublicLayout wide>
-      <section className="grid items-center gap-10 md:grid-cols-[1fr_auto]">
+      <section className="grid items-center gap-10 lg:grid-cols-[2fr_3fr]">
         <div>
-          <h1 className="font-display text-4xl font-bold tracking-tight text-ink-hi md:text-6xl">
+          <h1 className="font-display text-4xl font-bold tracking-tight text-ink-hi md:text-5xl">
             Saan napunta ang sweldo ko?
           </h1>
           <p className="mt-4 max-w-xl text-lg text-ink-2">
@@ -34,20 +41,18 @@ export default function Landing() {
             <Link to="/login" className={secondary}>Sign in</Link>
           </div>
         </div>
-        <Piso state="saved" size={160} className="mx-auto hidden md:block" />
-      </section>
-
-      <section className="mt-16" aria-labelledby="tour-heading">
-        <h2 id="tour-heading" className="mb-4 font-display text-2xl font-medium text-ink-hi">
-          GastosAI in 60 seconds
-        </h2>
+        {/* Muted so browsers allow autoplay; the native controls fade out while it plays and carry sound, captions and pause. */}
         <video
+          aria-label="GastosAI in 60 seconds"
           src="/tour/gastosai-tour.mp4"
           poster="/tour/gastosai-tour.jpg"
+          autoPlay={autoplay}
+          muted
+          loop
           controls
           playsInline
-          preload="none"
-          className="aspect-video w-full rounded-2xl border border-edge bg-black"
+          preload={autoplay ? "auto" : "none"}
+          className="aspect-video w-full rounded-2xl bg-hero shadow-xl"
         >
           <track kind="captions" src="/tour/gastosai-tour.en.vtt" srcLang="en" label="English" />
         </video>
