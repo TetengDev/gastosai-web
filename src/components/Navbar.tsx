@@ -1,6 +1,6 @@
-import { createElement, useEffect, useState } from "react";
+import { createElement, useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { ChevronDown, LogOut, Moon, Plus, Shield, Sun, Zap } from "lucide-react";
+import { ChevronDown, LogOut, Menu, Moon, Plus, Sun, Zap } from "lucide-react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { getBudgetSummary } from "../api/budgets";
@@ -71,13 +71,12 @@ function AdminMenu() {
         aria-expanded={open}
         aria-controls="admin-menu"
         onClick={() => setOpen((o) => !o)}
-        className={`flex cursor-pointer items-center gap-1 whitespace-nowrap rounded-full px-3 py-2 text-[15px] font-medium transition-colors xl:px-4 ${
+        className={`flex cursor-pointer items-center gap-1 whitespace-nowrap rounded-full px-4 py-2 text-[15px] font-medium transition-colors ${
           active ? "bg-cta text-cta-fg" : "text-ink-2 hover:bg-surface-2 hover:text-ink-hi"
         }`}
       >
-        <Shield className="h-4 w-4 xl:hidden" aria-hidden="true" />
-        <span className="hidden xl:inline">Admin</span>
-        <ChevronDown className={`hidden h-4 w-4 transition-transform xl:block ${open ? "rotate-180" : ""}`} aria-hidden="true" />
+        Admin
+        <ChevronDown className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} aria-hidden="true" />
       </button>
       {open && (
         <>
@@ -99,6 +98,61 @@ function AdminMenu() {
               </li>
             ))}
           </ul>
+        </>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Below lg (xl for an admin, whose bar carries more) the page links do not fit beside the controls,
+ * so they collapse into this menu. Below sm it also carries the controls the bar drops there —
+ * theme, View as, Tips and Sign out — so a phone reaches everything the desktop bar shows.
+ */
+function OverflowMenu({ isAdmin, showUpgrade, controls }: { isAdmin: boolean; showUpgrade: boolean; controls: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const links = [
+    ...NAV_ITEMS,
+    ...(showUpgrade ? [{ to: "/pricing", label: "Upgrade", end: false }] : []),
+    ...(isAdmin ? ADMIN_LINKS.map((l) => ({ ...l, end: false })) : []),
+  ];
+  return (
+    <div className={`relative ${isAdmin ? "xl:hidden" : "lg:hidden"}`} onKeyDown={(e) => e.key === "Escape" && setOpen(false)}>
+      <button
+        type="button"
+        aria-label="Menu"
+        title="Menu"
+        aria-expanded={open}
+        aria-controls="nav-overflow-menu"
+        onClick={() => setOpen((o) => !o)}
+        className="flex cursor-pointer rounded-full p-2 text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink-hi"
+      >
+        <Menu className="h-[18px] w-[18px]" aria-hidden="true" />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div id="nav-overflow-menu" className="absolute right-0 z-50 mt-2 w-56 rounded-xl border border-edge bg-surface p-1.5 shadow-xl">
+            <ul>
+              {links.map((l) => (
+                <li key={l.to}>
+                  <NavLink
+                    to={l.to}
+                    end={l.end}
+                    onClick={() => setOpen(false)}
+                    className={({ isActive }) =>
+                      `block rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                        isActive ? "bg-surface-2 text-ink-hi" : "text-ink-2 hover:bg-surface-2 hover:text-ink-hi"
+                      }`
+                    }
+                  >
+                    {l.label}
+                  </NavLink>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-1.5 flex justify-end gap-1 border-t border-edge pt-1.5 sm:hidden">{controls}</div>
+          </div>
         </>
       )}
     </div>
@@ -165,6 +219,30 @@ export default function Navbar({ isDark, onToggleDark }: Props) {
     window.dispatchEvent(new CustomEvent(EXPENSE_CHANGED));
   };
 
+  const showUpgrade = BILLING_ENABLED && !isAdmin && entitlements?.plan !== "PREMIUM";
+
+  const themeToggle = (
+    <button
+      onClick={onToggleDark}
+      aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+      title={isDark ? "Light mode" : "Dark mode"}
+      className="flex rounded-full p-2 text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink-hi"
+    >
+      {isDark ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
+    </button>
+  );
+
+  const signOut = (
+    <button
+      onClick={logout}
+      aria-label="Sign out"
+      title="Sign out"
+      className="flex cursor-pointer rounded-full p-2 text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink-hi"
+    >
+      <LogOut className="h-[18px] w-[18px]" />
+    </button>
+  );
+
   // Tighter below xl, where the six links share the bar with Log expense; at lg the 1024px nav
   // otherwise overflows by the width of the logout button.
   const linkClass = ({ isActive }: { isActive: boolean }) =>
@@ -188,7 +266,9 @@ export default function Navbar({ isDark, onToggleDark }: Props) {
         </Link>
       </div>
 
-      <div className="hidden items-center gap-1 md:flex">
+      {/* The links fit beside the controls from lg, or xl beside an admin's; below that they live in
+          the overflow menu, but stay in the DOM so every tour anchor still resolves. */}
+      <div className={`hidden items-center gap-1 ${isAdmin ? "xl:flex" : "lg:flex"}`}>
         {NAV_ITEMS.map((item) => (
           <NavLink
             key={item.to}
@@ -201,7 +281,7 @@ export default function Navbar({ isDark, onToggleDark }: Props) {
           </NavLink>
         ))}
         {isAdmin && <AdminMenu />}
-        {BILLING_ENABLED && !isAdmin && entitlements?.plan !== "PREMIUM" && (
+        {showUpgrade && (
           <NavLink to="/pricing" className={linkClass}>
             <Zap className="h-3.5 w-3.5" />
             Upgrade
@@ -223,21 +303,17 @@ export default function Navbar({ isDark, onToggleDark }: Props) {
           {/* The full nav only has room for the label from xl, or from 1400px beside an admin's extra controls. */}
           <span className={isAdmin ? "hidden min-[1400px]:inline" : "hidden xl:inline"}>Log expense</span>
         </Button>
-        {isAdmin && <AdminViewAsToggle />}
-        {/* Below sm the bar cannot also hold Log expense; tips are the one control a phone can spare.
-            An admin's extra controls need that room up to xl too. */}
-        <span className={isAdmin ? "hidden xl:flex" : "hidden sm:flex"}>
+        {/* Below sm these move into the overflow menu, leaving a phone's bar room for Log expense. */}
+        {isAdmin && (
+          <span className="hidden sm:flex">
+            <AdminViewAsToggle />
+          </span>
+        )}
+        <span className="hidden sm:flex">
           <TipsPopover />
         </span>
         <NotificationBell />
-        <button
-          onClick={onToggleDark}
-          aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
-          title={isDark ? "Light mode" : "Dark mode"}
-          className="flex rounded-full p-2 text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink-hi"
-        >
-          {isDark ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
-        </button>
+        <span className="hidden sm:flex">{themeToggle}</span>
         {user && (
           <>
             <NavLink
@@ -262,16 +338,21 @@ export default function Navbar({ isDark, onToggleDark }: Props) {
                 {user.nickname || user.name}
               </span>
             </NavLink>
-            <button
-              onClick={logout}
-              aria-label="Sign out"
-              title="Sign out"
-              className="flex cursor-pointer rounded-full p-2 text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink-hi"
-            >
-              <LogOut className="h-[18px] w-[18px]" />
-            </button>
+            <span className="hidden sm:flex">{signOut}</span>
           </>
         )}
+        <OverflowMenu
+          isAdmin={isAdmin}
+          showUpgrade={showUpgrade}
+          controls={
+            <>
+              {themeToggle}
+              {isAdmin && <AdminViewAsToggle />}
+              <TipsPopover />
+              {user && signOut}
+            </>
+          }
+        />
       </div>
 
       {/* Portalled out of the nav: its backdrop-blur makes it the containing block for the

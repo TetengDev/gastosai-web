@@ -314,6 +314,50 @@ describe("Navbar — mood mark", () => {
   });
 });
 
+describe("Navbar — overflow menu (TEN-459)", () => {
+  function menuLinks() {
+    return [...document.querySelectorAll("#nav-overflow-menu a")].map((a) => a.textContent);
+  }
+
+  it("holds every page link, so a phone without the inline links can reach them", () => {
+    renderNavbar();
+    const button = screen.getByRole("button", { name: "Menu" });
+    expect(button).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(button);
+    expect(button).toHaveAttribute("aria-expanded", "true");
+    // A non-Premium user also gets Upgrade, as in the inline bar.
+    expect(menuLinks()).toEqual(["Dashboard", "Expenses", "Categories", "Budget", "Recurring", "Goals", "Upgrade"]);
+  });
+
+  it("adds the admin pages for an admin", () => {
+    auth.isAdmin = true;
+    renderNavbar();
+    fireEvent.click(screen.getByRole("button", { name: "Menu" }));
+    expect(menuLinks()).toEqual([
+      "Dashboard", "Expenses", "Categories", "Budget", "Recurring", "Goals", "Messages", "Chat Audit", "Observability",
+    ]);
+  });
+
+  it("carries the theme toggle, which the phone bar drops", () => {
+    renderNavbar();
+    fireEvent.click(screen.getByRole("button", { name: "Menu" }));
+    const menu = document.getElementById("nav-overflow-menu")!;
+    expect(menu.querySelector("[aria-label='Switch to dark mode']")).not.toBeNull();
+  });
+
+  it("closes on Escape and after following a link", () => {
+    renderNavbar();
+    const button = screen.getByRole("button", { name: "Menu" });
+    fireEvent.click(button);
+    fireEvent.keyDown(button, { key: "Escape" });
+    expect(document.getElementById("nav-overflow-menu")).toBeNull();
+
+    fireEvent.click(button);
+    fireEvent.click(screen.getAllByRole("link", { name: "Goals" }).at(-1)!);
+    expect(document.getElementById("nav-overflow-menu")).toBeNull();
+  });
+});
+
 describe("Navbar — admin menu (TEN-494)", () => {
   it("shows regular users no Admin button and no admin links", () => {
     renderNavbar();
