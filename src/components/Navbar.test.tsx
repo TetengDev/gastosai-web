@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { BudgetSummaryResponse } from "../api/budgets";
@@ -311,6 +311,51 @@ describe("Navbar — mood mark", () => {
       vi.advanceTimersByTime(1200);
     });
     expect(moodMark(container)).toHaveAttribute("data-piso-state", "resting");
+  });
+});
+
+describe("Navbar — overflow menu (TEN-459)", () => {
+  function menuLinks() {
+    return [...document.querySelectorAll("#nav-overflow-menu a")].map((a) => a.textContent);
+  }
+
+  it("holds every page link, so a phone without the inline links can reach them", () => {
+    renderNavbar();
+    const button = screen.getByRole("button", { name: "Menu" });
+    expect(button).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(button);
+    expect(button).toHaveAttribute("aria-expanded", "true");
+    // A non-Premium user also gets Upgrade, as in the inline bar.
+    expect(menuLinks()).toEqual(["Dashboard", "Expenses", "Categories", "Budget", "Recurring", "Goals", "Upgrade"]);
+  });
+
+  it("adds the admin pages for an admin", () => {
+    auth.isAdmin = true;
+    renderNavbar();
+    fireEvent.click(screen.getByRole("button", { name: "Menu" }));
+    expect(menuLinks()).toEqual([
+      "Dashboard", "Expenses", "Categories", "Budget", "Recurring", "Goals", "Messages", "Chat Audit", "Observability",
+    ]);
+  });
+
+  it("carries the theme toggle, which the phone bar drops", () => {
+    renderNavbar();
+    fireEvent.click(screen.getByRole("button", { name: "Menu" }));
+    const menu = document.getElementById("nav-overflow-menu")!;
+    expect(menu.querySelector("[aria-label='Switch to dark mode']")).not.toBeNull();
+  });
+
+  it("closes on Escape, returning focus to its button, and after following a link", () => {
+    renderNavbar();
+    const button = screen.getByRole("button", { name: "Menu" });
+    fireEvent.click(button);
+    fireEvent.keyDown(button, { key: "Escape" });
+    expect(document.getElementById("nav-overflow-menu")).toBeNull();
+    expect(button).toHaveFocus();
+
+    fireEvent.click(button);
+    fireEvent.click(within(document.getElementById("nav-overflow-menu")!).getByRole("link", { name: "Goals" }));
+    expect(document.getElementById("nav-overflow-menu")).toBeNull();
   });
 });
 
