@@ -21,20 +21,8 @@ const MIN_SEVERITY = ["high", "critical"];
  * Each entry needs: why it does not apply to this codebase, and when that reasoning must be
  * revisited. "There is no fix yet" alone is not a reason — that is just deferral.
  */
-const EXCEPTIONS = [
-  {
-    id: "GHSA-qwww-vcr4-c8h2",
-    package: "react-router",
-    expires: "2026-10-31",
-    reason:
-      "RSC-mode CSRF. This app is a pure client-side SPA: BrowserRouter + Routes only, no " +
-      "loaders/actions, no server entry, no SSR, and vercel.json serves it as static files. " +
-      "The vulnerable code path (server-side action execution) does not exist here. No fixed " +
-      "version is published — 7.18.1 is latest and still in range — and the suggested remedy " +
-      "is a downgrade to 7.11.0, which is a routing regression for no security benefit. " +
-      "Revisit when a patched release lands, or immediately if this app ever adopts RSC/SSR.",
-  },
-];
+// react-router 7.18.2 fixed GHSA-qwww-vcr4-c8h2, so its waiver is gone; none are needed now.
+const EXCEPTIONS = [];
 
 const raw = (() => {
   try {
