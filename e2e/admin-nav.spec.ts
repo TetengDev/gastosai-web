@@ -21,6 +21,8 @@ async function asRole(page: Page, role: "USER" | "ADMIN") {
   }, role);
   await page.reload();
   await expect(page.getByTestId("nav-log-expense")).toBeVisible();
+  // Measure the bar a user sees: a fallback font is wider, and its width is not the one that ships.
+  await page.evaluate(() => document.fonts.ready);
 }
 
 const TOUR_ANCHORS = ["dashboard", "expenses", "categories", "budget", "recurring", "goals", "settings"];
