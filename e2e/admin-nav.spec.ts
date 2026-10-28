@@ -75,7 +75,8 @@ for (const role of ["USER", "ADMIN"] as const) {
     }
     await page.screenshot({ path: path.join(ARTIFACTS, `nav-${role}-375-menu-open.png`), clip: { x: 0, y: 0, width: 375, height: 520 } });
     await menu.getByRole("button", { name: "Tips" }).click();
-    await expect(nav.getByText(/Next tip|Got it|all caught up/).first()).toBeVisible();
+    // The panel's own heading, which only renders once the popover is open.
+    await expect(menu.getByText("Tips", { exact: true })).toBeVisible();
   });
 }
 

@@ -1,4 +1,4 @@
-import { createElement, useEffect, useState, type ReactNode } from "react";
+import { createElement, useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { ChevronDown, LogOut, Menu, Moon, Plus, Sun, Zap } from "lucide-react";
 import { Link, NavLink, useLocation } from "react-router-dom";
@@ -111,14 +111,21 @@ function AdminMenu() {
  */
 function OverflowMenu({ isAdmin, showUpgrade, controls }: { isAdmin: boolean; showUpgrade: boolean; controls: ReactNode }) {
   const [open, setOpen] = useState(false);
+  const trigger = useRef<HTMLButtonElement>(null);
+  // Back to the trigger, so a keyboard user is not dropped at the top of the page.
+  const close = () => {
+    setOpen(false);
+    trigger.current?.focus();
+  };
   const links = [
     ...NAV_ITEMS,
     ...(showUpgrade ? [{ to: "/pricing", label: "Upgrade", end: false }] : []),
     ...(isAdmin ? ADMIN_LINKS.map((l) => ({ ...l, end: false })) : []),
   ];
   return (
-    <div className={`relative ${isAdmin ? "xl:hidden" : "lg:hidden"}`} onKeyDown={(e) => e.key === "Escape" && setOpen(false)}>
+    <div className={`relative ${isAdmin ? "xl:hidden" : "lg:hidden"}`} onKeyDown={(e) => e.key === "Escape" && close()}>
       <button
+        ref={trigger}
         type="button"
         aria-label="Menu"
         title="Menu"
@@ -131,7 +138,7 @@ function OverflowMenu({ isAdmin, showUpgrade, controls }: { isAdmin: boolean; sh
       </button>
       {open && (
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="fixed inset-0 z-40" onClick={close} />
           <div id="nav-overflow-menu" className="absolute right-0 z-50 mt-2 w-56 rounded-xl border border-edge bg-surface p-1.5 shadow-xl">
             <ul>
               {links.map((l) => (
@@ -267,7 +274,8 @@ export default function Navbar({ isDark, onToggleDark }: Props) {
       </div>
 
       {/* The links fit beside the controls from lg, or xl beside an admin's; below that they live in
-          the overflow menu, but stay in the DOM so every tour anchor still resolves. */}
+          the overflow menu. The hidden copies keep the tour anchors in the DOM, but with no box the
+          tour's nav steps have nothing to highlight below that width. */}
       <div className={`hidden items-center gap-1 ${isAdmin ? "xl:flex" : "lg:flex"}`}>
         {NAV_ITEMS.map((item) => (
           <NavLink

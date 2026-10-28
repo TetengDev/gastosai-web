@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { BudgetSummaryResponse } from "../api/budgets";
@@ -345,15 +345,16 @@ describe("Navbar — overflow menu (TEN-459)", () => {
     expect(menu.querySelector("[aria-label='Switch to dark mode']")).not.toBeNull();
   });
 
-  it("closes on Escape and after following a link", () => {
+  it("closes on Escape, returning focus to its button, and after following a link", () => {
     renderNavbar();
     const button = screen.getByRole("button", { name: "Menu" });
     fireEvent.click(button);
     fireEvent.keyDown(button, { key: "Escape" });
     expect(document.getElementById("nav-overflow-menu")).toBeNull();
+    expect(button).toHaveFocus();
 
     fireEvent.click(button);
-    fireEvent.click(screen.getAllByRole("link", { name: "Goals" }).at(-1)!);
+    fireEvent.click(within(document.getElementById("nav-overflow-menu")!).getByRole("link", { name: "Goals" }));
     expect(document.getElementById("nav-overflow-menu")).toBeNull();
   });
 });
