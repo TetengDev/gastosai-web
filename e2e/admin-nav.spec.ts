@@ -25,6 +25,8 @@ async function asRole(page: Page, role: "USER" | "ADMIN") {
   await page.evaluate(() => document.fonts.ready);
 }
 
+// A presence check only: below lg (xl for admins) the anchors are display:none, so the tour's nav
+// steps have nothing to highlight there. That gap is FirstRunTour's to fix, outside TEN-459.
 const TOUR_ANCHORS = ["dashboard", "expenses", "categories", "budget", "recurring", "goals", "settings"];
 
 function measure(page: Page) {
