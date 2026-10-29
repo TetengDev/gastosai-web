@@ -254,9 +254,12 @@ describe("Dashboard render", () => {
     const meter = within(hero()).getByRole("progressbar", { name: "Month budget" });
     // 812,345 of 1,500,000 centavos is 54%.
     expect(meter).toHaveAttribute("aria-valuenow", "54");
+    // The hero figure is all of this month's spend; the meter counts budgeted categories only
+    // (BudgetService sums `totalSpent` over budget lines), so the caption has to say so.
     expect(text(hero())).toContain(
-      `${formatCentavos(BUDGET.totalSpent)} of ${formatCentavos(BUDGET.totalBudgeted)} · 54%`,
+      `${formatCentavos(BUDGET.totalSpent)} of ${formatCentavos(BUDGET.totalBudgeted)} budgeted · 54%`,
     );
+    expect(text(hero())).toContain("₱8,123.45 of ₱15,000.00 budgeted · 54%");
   });
 
   it.each([

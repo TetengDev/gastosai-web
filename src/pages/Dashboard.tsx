@@ -286,7 +286,7 @@ export default function Dashboard() {
             height={10}
           />
           <p className="m-0 mt-2 font-mono text-xs tabular-nums text-ink">
-            {formatCentavos(budgetSummary.totalSpent)} of {formatCentavos(budgetSummary.totalBudgeted)} ·{" "}
+            {formatCentavos(budgetSummary.totalSpent)} of {formatCentavos(budgetSummary.totalBudgeted)} budgeted ·{" "}
             {usedPercent}%
           </p>
         </div>
