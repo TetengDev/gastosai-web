@@ -49,7 +49,7 @@ export default function GoalProgressCard() {
           Goals
         </h2>
         {shown.length > 0 && (
-          <Link to="/goals" className="text-sm font-medium text-link hover:underline">
+          <Link to="/goals" className="text-sm font-medium text-ink-hi underline-offset-4 hover:underline">
             See all
           </Link>
         )}
@@ -66,7 +66,7 @@ export default function GoalProgressCard() {
       ) : shown.length === 0 ? (
         <p className="mt-3 text-sm text-ink-2">
           Nothing saved toward yet.{" "}
-          <Link to="/goals" className="font-medium text-link hover:underline">
+          <Link to="/goals" className="font-medium text-ink-hi underline underline-offset-4">
             Set a goal
           </Link>
         </p>
@@ -94,7 +94,7 @@ export default function GoalProgressCard() {
                   label={goal.name}
                   height={6}
                 />
-                <p className="m-0 font-mono text-xs tabular-nums text-ink-2">
+                <p className="m-0 text-xs tabular-nums text-ink-2">
                   {formatCurrencyAmount(goal.savedAmount, currency)} of{" "}
                   {formatCurrencyAmount(goal.targetAmount, currency)} · {Math.round(goal.progressPercent)}%
                 </p>

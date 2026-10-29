@@ -261,7 +261,7 @@ export default function Dashboard() {
     <div data-kpi="Total Spend" className="dark rounded-2xl bg-hero p-5 text-ink-hi sm:p-8">
       <div className="flex items-center justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="m-0 text-sm font-medium text-ink-2">Total Spend · {monthLabel}</h1>
+          <h1 className="m-0 text-sm font-medium text-ink">Total Spend · {monthLabel}</h1>
           <Amount
             centavos={total}
             size="hero"
@@ -285,7 +285,7 @@ export default function Dashboard() {
             label="Month budget"
             height={10}
           />
-          <p className="m-0 mt-2 font-mono text-xs tabular-nums text-ink-2">
+          <p className="m-0 mt-2 font-mono text-xs tabular-nums text-ink">
             {formatCentavos(budgetSummary.totalSpent)} of {formatCentavos(budgetSummary.totalBudgeted)} ·{" "}
             {usedPercent}%
           </p>
@@ -374,7 +374,7 @@ export default function Dashboard() {
           Recent
         </h2>
         {recentExpenses.length > 0 && (
-          <Link to="/expenses" className="text-sm font-medium text-link hover:underline">
+          <Link to="/expenses" className="text-sm font-medium text-ink-hi underline-offset-4 hover:underline">
             See all
           </Link>
         )}
