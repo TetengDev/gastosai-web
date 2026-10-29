@@ -105,14 +105,11 @@ function statusLine(
       </>
     );
   }
-  if (budget.safeToSpend < 0) return `Over by ${formatCentavos(-budget.safeToSpend)} this month.`;
+  if (budget.safeToSpend < 0) return `Over by ${formatCentavos(-budget.safeToSpend)}`;
   const left = leftFor(budget.safeToSpend, daysLeft);
-  if (mood === "overBudget") {
-    const over = budget.items.filter((i) => toBand(i.status) === "OVER_BUDGET");
-    const who = over.length === 1 ? `${over[0].categoryName} is` : `${over.length} budgets are`;
-    return `${who} over budget · ${left}`;
-  }
-  if (mood === "worried") return `Heads up: ${left}`;
+  // Word for word with mobile Home (TEN-444).
+  if (mood === "overBudget") return `A budget ran over · ${left}`;
+  if (mood === "worried") return `Close to the limit · ${left}`;
   return left;
 }
 

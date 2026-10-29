@@ -263,7 +263,7 @@ describe("Dashboard render", () => {
 
   it.each([
     ["ON_TRACK", "resting", (): string => leftFor(BUDGET.safeToSpend)],
-    ["WARNING", "worried", (): string => `Heads up: ${leftFor(BUDGET.safeToSpend)}`],
+    ["WARNING", "worried", (): string => `Close to the limit · ${leftFor(BUDGET.safeToSpend)}`],
   ] as const)("ties the status line to the mood when the worst budget is %s", async (status, mood, line) => {
     budgets({ ...BUDGET, items: [item(), item({ categoryId: 2, categoryName: "Food", status })] });
     await setup();
@@ -281,16 +281,16 @@ describe("Dashboard render", () => {
     await setup();
 
     expect(hero().querySelector("[data-piso-state]")).toHaveAttribute("data-piso-state", "overBudget");
-    expect(within(hero()).getByTestId("hero-status")).toHaveTextContent(`Over by ${formatCentavos(120_000)}`);
+    expect(within(hero()).getByTestId("hero-status").textContent).toBe(`Over by ${formatCentavos(120_000)}`);
   });
 
-  it("names an over-budget line even while the month as a whole is still under", async () => {
+  it("says a budget ran over even while the month as a whole is still under", async () => {
     budgets({ ...BUDGET, items: [item(), item({ categoryId: 2, categoryName: "Food", status: "OVER_BUDGET" })] });
     await setup();
 
     expect(hero().querySelector("[data-piso-state]")).toHaveAttribute("data-piso-state", "overBudget");
     expect(within(hero()).getByTestId("hero-status")).toHaveTextContent(
-      `Food is over budget · ${leftFor(BUDGET.safeToSpend)}`,
+      `A budget ran over · ${leftFor(BUDGET.safeToSpend)}`,
     );
   });
 
