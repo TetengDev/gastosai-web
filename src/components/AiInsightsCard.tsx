@@ -70,7 +70,7 @@ export default function AiInsightsCard({ month }: Props) {
       </p>
 
       {allFailed ? (
-        <p className="mt-4 text-sm text-[#b30000]">Unable to load AI insights.</p>
+        <p className="mt-4 text-sm text-danger">Unable to load AI insights.</p>
       ) : (
         <div className="mt-4 space-y-4">
           <div>
