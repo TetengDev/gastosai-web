@@ -168,8 +168,10 @@ export default function Dashboard() {
         // "This month" is the current-month total, not the all-time category report.
         setTotal(mom.currentTotal);
         setBudgetSummary(budget);
+        // The two months' responses can overlap, so one occurrence is kept per bill and due date.
+        const unique = [...new Map(upcoming.map((b) => [`${b.id}-${b.dueDate}`, b])).values()];
         setBills(
-          upcoming
+          unique
             .map((bill) => ({ bill, inDays: daysBetween(day, bill.dueDate) }))
             .filter(({ inDays }) => inDays >= 0 && inDays <= BILL_WINDOW_DAYS)
             .sort((a, b) => a.inDays - b.inDays),

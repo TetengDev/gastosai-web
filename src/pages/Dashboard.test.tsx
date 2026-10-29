@@ -423,6 +423,17 @@ describe("Dashboard render", () => {
     expect(mockGetUpcomingBills).toHaveBeenCalledWith("2026-10");
   });
 
+  it("lists a bill once when both months' responses carry the same occurrence", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-28T04:00:00Z")); // noon, 28 Oct, Manila
+    mockGetUpcomingBills.mockResolvedValue([bill({ id: 7, name: "Netflix", dueDate: "2026-10-30" })]);
+    mount();
+
+    await screen.findByRole("heading", { name: "Needs attention" });
+    expect(mockGetUpcomingBills).toHaveBeenCalledTimes(2);
+    expect(within(section("attention")!).getAllByRole("listitem")).toHaveLength(1);
+  });
+
   it("asks for this month's bills only when the window stays inside it", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-10-10T04:00:00Z"));
