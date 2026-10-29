@@ -79,7 +79,6 @@ function buildChartData(categoryData: CategoryReport[]) {
 
 function leftFor(centavos: number, daysLeft: number): string {
   const left = formatCentavos(centavos);
-  if (daysLeft === 0) return `${left} left today`;
   return `${left} left for ${daysLeft} ${daysLeft === 1 ? "day" : "days"}`;
 }
 
@@ -237,7 +236,8 @@ export default function Dashboard() {
   const currentMonth = today.slice(0, 7);
   const monthLabel = formatMonthLabel(currentMonth);
   const [cy, cm] = currentMonth.split("-").map(Number);
-  const daysLeft = new Date(cy, cm, 0).getDate() - Number(today.slice(8, 10));
+  // Today counts, as on mobile: the last day of the month still has 1 day left.
+  const daysLeft = new Date(cy, cm, 0).getDate() - Number(today.slice(8, 10)) + 1;
 
   const items = budgetSummary?.items ?? [];
   const bands = items.map((i) => toBand(i.status));

@@ -63,11 +63,10 @@ const currentMonth = manilaMonth();
 const [cy, cm] = currentMonth.split("-").map(Number);
 const prevMonth = new Date(Date.UTC(cy, cm - 2, 1)).toISOString().slice(0, 7);
 const daysInMonth = new Date(cy, cm, 0).getDate();
-const daysLeft = daysInMonth - Number(manilaToday().slice(8, 10));
+// Today counts, as on mobile: the last day of the month is "1 day" left, never 0.
+const daysLeft = daysInMonth - Number(manilaToday().slice(8, 10)) + 1;
 const leftFor = (centavos: number) =>
-  daysLeft === 0
-    ? `${formatCentavos(centavos)} left today`
-    : `${formatCentavos(centavos)} left for ${daysLeft} ${daysLeft === 1 ? "day" : "days"}`;
+  `${formatCentavos(centavos)} left for ${daysLeft} ${daysLeft === 1 ? "day" : "days"}`;
 const monthLabel = new Date(cy, cm - 1, 1).toLocaleString("default", {
   month: "short",
   year: "numeric",
@@ -292,6 +291,16 @@ describe("Dashboard render", () => {
     expect(hero().querySelector("[data-piso-state]")).toHaveAttribute("data-piso-state", "overBudget");
     expect(within(hero()).getByTestId("hero-status")).toHaveTextContent(
       `Food is over budget · ${leftFor(BUDGET.safeToSpend)}`,
+    );
+  });
+
+  it("counts today in the days left, so the last day of the month reads 1 day", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-31T04:00:00Z")); // noon, 31 Oct, Manila
+    mount();
+
+    expect(await screen.findByTestId("hero-status")).toHaveTextContent(
+      `${formatCentavos(BUDGET.safeToSpend)} left for 1 day`,
     );
   });
 
