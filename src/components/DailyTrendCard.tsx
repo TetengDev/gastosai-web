@@ -77,7 +77,7 @@ export default function DailyTrendCard({ month }: Props) {
                 boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
               }}
             />
-            <Bar dataKey="total" fill="#1f8a5b" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="total" fill="var(--color-brand)" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       )}

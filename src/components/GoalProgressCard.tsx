@@ -1,24 +1,24 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getGoals, type Goal } from "../api/goals";
-import { Card, InfoTip, ProgressMeter } from "./ui";
+import { Celebrate, ProgressMeter } from "./ui";
 import { formatCurrencyAmount } from "../lib/formatters";
 import { goalTone } from "../lib/pisoMood";
 
-const STATUS_LABEL: Record<Goal["status"], string> = {
-  ON_TRACK: "On Track",
-  BEHIND: "Behind",
-  COMPLETED: "Completed",
-  PAUSED: "Paused",
-};
+/** Active goals soonest-deadline first, then completed ones; a paused goal is not news. */
+function stripOrder(goals: Goal[]): Goal[] {
+  const byDeadline = (a: Goal, b: Goal) => {
+    if (!a.targetDate && !b.targetDate) return 0;
+    if (!a.targetDate) return 1;
+    if (!b.targetDate) return -1;
+    return a.targetDate.localeCompare(b.targetDate);
+  };
+  const active = goals.filter((g) => g.status === "ON_TRACK" || g.status === "BEHIND").sort(byDeadline);
+  const done = goals.filter((g) => g.status === "COMPLETED");
+  return [...active, ...done];
+}
 
-const STATUS_BADGE: Record<Goal["status"], string> = {
-  ON_TRACK: "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400",
-  BEHIND: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400",
-  COMPLETED: "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400",
-  PAUSED: "bg-surface-2 text-ink-3",
-};
-
+/** The dashboard's goals strip: one horizontally scrolling row of meters. */
 export default function GoalProgressCard() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,7 +30,7 @@ export default function GoalProgressCard() {
         setGoals(data);
         setError(null);
       })
-      .catch(() => setError("Failed to load goals."))
+      .catch(() => setError("Couldn't load your goals."))
       .finally(() => setLoading(false));
   }, []);
 
@@ -40,75 +40,69 @@ export default function GoalProgressCard() {
     return () => window.removeEventListener("gastosai:goal-changed", fetchData);
   }, [fetchData]);
 
-  const active = goals
-    .filter((g) => g.status !== "COMPLETED" && g.status !== "PAUSED")
-    .sort((a, b) => {
-      if (!a.targetDate && !b.targetDate) return 0;
-      if (!a.targetDate) return 1;
-      if (!b.targetDate) return -1;
-      return a.targetDate.localeCompare(b.targetDate);
-    })
-    .slice(0, 4);
+  const shown = stripOrder(goals);
 
   return (
-    <Card>
-      <p className="flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
-        Savings Goals
-        <InfoTip text="Progress toward your active savings goals — amount saved vs. target and status." />
-      </p>
+    <section data-section="goals" aria-labelledby="goals-heading">
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 id="goals-heading" className="m-0 font-display text-lg font-medium text-ink-hi">
+          Goals
+        </h2>
+        {shown.length > 0 && (
+          <Link to="/goals" className="text-sm font-medium text-ink-hi underline-offset-4 hover:underline">
+            See all
+          </Link>
+        )}
+      </div>
 
-      {loading && (
-        <div className="mt-4 animate-pulse space-y-3">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="space-y-1.5">
-              <div className="h-4 w-3/4 rounded bg-surface-2" />
-              <div className="h-2 rounded-full bg-surface-2" />
-            </div>
+      {loading ? (
+        <div className="mt-3 flex gap-3">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="h-24 w-56 shrink-0 animate-pulse rounded-xl bg-surface-2" />
           ))}
         </div>
-      )}
-
-      {!loading && error && <p className="mt-4 text-sm text-[#b30000]">{error}</p>}
-
-      {!loading && !error && active.length === 0 && (
-        <div className="py-4 text-center">
-          <p className="mb-2 text-sm text-ink-2">No active goals</p>
-          <Link to="/goals" className="text-sm font-medium text-link hover:underline">
-            Set a goal →
+      ) : error ? (
+        <p className="mt-3 text-sm text-ink-3">{error}</p>
+      ) : shown.length === 0 ? (
+        <p className="mt-3 text-sm text-ink-2">
+          Nothing saved toward yet.{" "}
+          <Link to="/goals" className="font-medium text-ink-hi underline underline-offset-4">
+            Set a goal
           </Link>
-        </div>
+        </p>
+      ) : (
+        <ul className="-mx-1 mt-3 flex snap-x list-none gap-3 overflow-x-auto px-1 pb-2">
+          {shown.map((goal) => {
+            const currency = goal.currency ?? "PHP";
+            const completed = goal.status === "COMPLETED";
+            return (
+              <li
+                key={goal.id}
+                className="flex w-60 shrink-0 snap-start flex-col gap-2 rounded-xl border border-edge bg-surface p-4"
+              >
+                <div className="flex min-h-10 items-center justify-between gap-2">
+                  <span className="truncate text-sm font-medium text-ink">{goal.name}</span>
+                  {completed ? (
+                    <Celebrate event={`goal-${goal.id}`} size={40} />
+                  ) : (
+                    goal.status === "BEHIND" && <span className="shrink-0 text-xs text-warn-ink">Behind</span>
+                  )}
+                </div>
+                <ProgressMeter
+                  percent={goal.progressPercent}
+                  tone={goalTone(goal.status)}
+                  label={goal.name}
+                  height={6}
+                />
+                <p className="m-0 text-xs tabular-nums text-ink-2">
+                  {formatCurrencyAmount(goal.savedAmount, currency)} of{" "}
+                  {formatCurrencyAmount(goal.targetAmount, currency)} · {Math.round(goal.progressPercent)}%
+                </p>
+              </li>
+            );
+          })}
+        </ul>
       )}
-
-      {!loading && !error && active.length > 0 && (
-        <div className="mt-4 space-y-4">
-          {active.map((goal) => (
-            <div key={goal.id}>
-              <div className="mb-1.5 flex items-center justify-between">
-                <span className="mr-2 flex-1 truncate text-sm font-medium text-ink">
-                  {goal.name}
-                </span>
-                <span className={`flex-shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_BADGE[goal.status]}`}>
-                  {STATUS_LABEL[goal.status]}
-                </span>
-              </div>
-              <ProgressMeter
-                percent={goal.progressPercent}
-                tone={goalTone(goal.status)}
-                label={goal.name}
-                height={6}
-                className="mb-1"
-              />
-              <div className="flex justify-between text-xs text-ink-3">
-                <span>{goal.progressPercent}% of {formatCurrencyAmount(goal.targetAmount, goal.currency ?? "PHP")}</span>
-                <span>{formatCurrencyAmount(goal.savedAmount, goal.currency ?? "PHP")} saved</span>
-              </div>
-            </div>
-          ))}
-          <Link to="/goals" className="block pt-1 text-sm font-medium text-link hover:underline">
-            View all goals →
-          </Link>
-        </div>
-      )}
-    </Card>
+    </section>
   );
 }
