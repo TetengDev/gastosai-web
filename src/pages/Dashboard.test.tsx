@@ -478,6 +478,8 @@ describe("Dashboard render", () => {
 
     const toggle = screen.getByRole("button", { name: /Insights/ });
     expect(toggle).toHaveAttribute("aria-expanded", "false");
+    // It points at the panel only while the panel exists.
+    expect(toggle).not.toHaveAttribute("aria-controls");
     for (const hidden of ["AiInsightsCard", "DailyTrendCard", "TopExpensesCard", "Monthly Trend"]) {
       expect(screen.queryByText(hidden)).not.toBeInTheDocument();
     }
@@ -485,6 +487,8 @@ describe("Dashboard render", () => {
     fireEvent.click(toggle);
 
     expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(toggle).toHaveAttribute("aria-controls", "insights-panel");
+    expect(document.getElementById("insights-panel")).not.toBeNull();
     for (const shown of ["AiInsightsCard", "DailyTrendCard", "TopExpensesCard", "Monthly Trend", "Spending by Category"]) {
       expect(screen.getByText(shown)).toBeInTheDocument();
     }

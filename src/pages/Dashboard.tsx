@@ -497,7 +497,7 @@ export default function Dashboard() {
       <button
         type="button"
         aria-expanded={insightsOpen}
-        aria-controls="insights-panel"
+        aria-controls={insightsOpen ? "insights-panel" : undefined}
         onClick={() => setInsightsOpen((o) => !o)}
         className="flex w-full items-center justify-between gap-3 rounded-lg py-1 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
       >
