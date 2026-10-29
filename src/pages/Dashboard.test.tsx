@@ -331,6 +331,43 @@ describe("Dashboard render", () => {
     expect(within(hero()).getByTestId("hero-status")).toHaveTextContent("Nothing logged yet");
   });
 
+  // Spec §5: the status line per mood, exact, so web and mobile cannot drift apart again.
+  it.each([
+    ["resting", { ...BUDGET }, true, (): string => leftFor(BUDGET.safeToSpend)],
+    [
+      "worried",
+      { ...BUDGET, items: [item({ status: "WARNING" })] },
+      true,
+      (): string => `Close to the limit · ${leftFor(BUDGET.safeToSpend)}`,
+    ],
+    [
+      "overBudget",
+      { ...BUDGET, items: [item({ status: "OVER_BUDGET" })] },
+      true,
+      (): string => `A budget ran over · ${leftFor(BUDGET.safeToSpend)}`,
+    ],
+    [
+      "overBudget",
+      { ...BUDGET, safeToSpend: -120_000, items: [item({ status: "OVER_BUDGET" })] },
+      true,
+      (): string => `Over by ${formatCentavos(120_000)}`,
+    ],
+    ["resting", { ...BUDGET, items: [] }, true, (): string => "No budget yet. Set one to see what's left."],
+    [
+      "empty",
+      { ...BUDGET, items: [] },
+      false,
+      (): string => "Nothing logged yet. Your first expense goes straight into Piso's slot.",
+    ],
+  ] as const)("pins the %s status line exactly", async (mood, current, hasExpenses, line) => {
+    budgets(current as BudgetSummaryResponse);
+    if (!hasExpenses) mockGetExpensesPage.mockResolvedValue(page([]));
+    await setup();
+
+    expect(hero().querySelector("[data-piso-state]")).toHaveAttribute("data-piso-state", mood);
+    expect(within(hero()).getByTestId("hero-status").textContent).toBe(line());
+  });
+
   // --- Needs attention ----------------------------------------------------
 
   it("hides Needs attention when no budget is warning and no bill is due within 7 days", async () => {
@@ -454,6 +491,10 @@ describe("Dashboard render", () => {
 
     expect(pisoStates()).toEqual(["cheer"]);
     expect(hero().querySelector('[data-testid="coin"]')).not.toBeNull();
+    const closed = new Date(cy, cm - 2, 1).toLocaleString("default", { month: "long" });
+    expect(within(hero()).getByTestId("hero-status").textContent).toBe(
+      `${closed} closed under budget. Nice one.`,
+    );
     expect(localStorage.getItem(`ga.celebrate.anon.month-${prevMonth}`)).toBe("1");
     first.unmount();
 
