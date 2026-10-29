@@ -338,12 +338,16 @@ describe("Dashboard render", () => {
         item({ categoryId: 3, categoryName: "Fun", status: "OVER_BUDGET", percentUsed: 104 }),
       ],
     });
-    mockGetUpcomingBills.mockResolvedValue([
+    const due = [
       bill({ id: 7, name: "Netflix", dueDate: daysFromToday(0) }),
       bill({ id: 8, name: "Rent", dueDate: daysFromToday(7) }),
       bill({ id: 9, name: "Gym", dueDate: daysFromToday(8) }),
       bill({ id: 10, name: "Paid already", dueDate: daysFromToday(-1) }),
-    ]);
+    ];
+    // The endpoint is per month, so near a month end the window spans two calls.
+    mockGetUpcomingBills.mockImplementation((m: string) =>
+      Promise.resolve(due.filter((b) => b.dueDate.startsWith(m))),
+    );
     await setup();
 
     expect(screen.getByRole("heading", { name: "Needs attention" })).toBeInTheDocument();
