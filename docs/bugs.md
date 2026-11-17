@@ -36,3 +36,4 @@ fixing commit or PR in place of an issue.
 | Found | Found via | Symptom | Cause | Issue | Status |
 |---|---|---|---|---|---|
 | 2026-10-13 | CI on [#80](https://github.com/TetengDev/gastosai-web/pull/80) | The audit step failed | `source-map-js` 1.2.1 (GHSA-68fv-2mgg-jv7q), already on `main` | — | fixed in [#79](https://github.com/TetengDev/gastosai-web/pull/79) |
+| 2026-11-17 | CI on `main` and every open PR | Two `Dashboard.test.tsx` tests failed from 2026-11-01: the days-left hero read "September closed under budget", and "Needs attention" listed 2 rows instead of 1 | The two tests fake the clock to fixed October dates, while the fixtures key `BUDGET`/`PREV_BUDGET` to the real month; outside October the faked current month is served the over-budget previous-month summary. Test-only, the app is right | [TEN-531](https://linear.app/tengdev/issue/TEN-531) | fixed in [#101](https://github.com/TetengDev/gastosai-web/pull/101) |

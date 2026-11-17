@@ -21,8 +21,18 @@ const MIN_SEVERITY = ["high", "critical"];
  * Each entry needs: why it does not apply to this codebase, and when that reasoning must be
  * revisited. "There is no fix yet" alone is not a reason — that is just deferral.
  */
-// react-router 7.18.2 fixed GHSA-qwww-vcr4-c8h2, so its waiver is gone; none are needed now.
-const EXCEPTIONS = [];
+const EXCEPTIONS = [
+  {
+    id: "GHSA-fc5q-39xc-vjpf",
+    package: "picomatch",
+    expires: "2026-12-31",
+    reason:
+      "ReDoS from attacker-supplied extglob patterns. picomatch is reached only through dev " +
+      "tooling (vite, vitest, tinyglobby, typescript-eslint) matching globs this repo writes in " +
+      "its own config; it is not in the shipped bundle, and no user input ever becomes a glob. " +
+      "Every version through 4.0.7, the latest, is affected, so there is nothing to upgrade to yet.",
+  },
+];
 
 const raw = (() => {
   try {
@@ -49,6 +59,23 @@ for (const e of EXCEPTIONS) {
 
 const allowed = new Set(EXCEPTIONS.map((e) => e.id));
 const unexpected = [];
+const vulns = report.vulnerabilities ?? {};
+
+/**
+ * True when every advisory reaching `name`, at gate severity, is waived. A direct advisory must be
+ * listed in EXCEPTIONS; a package it is vulnerable through must itself pass this check. A package
+ * or advisory below MIN_SEVERITY is already outside the gate, so it does not block inheritance.
+ */
+function inheritsWaiver(name, seen = new Set()) {
+  const v = vulns[name];
+  if (!v || !MIN_SEVERITY.includes(v.severity) || seen.has(name)) return true;
+  seen.add(name);
+  return (Array.isArray(v.via) ? v.via : []).every((x) =>
+    typeof x === "string"
+      ? inheritsWaiver(x, seen)
+      : !MIN_SEVERITY.includes(x.severity) || allowed.has(String(x.url).split("/").pop()),
+  );
+}
 
 for (const [name, v] of Object.entries(report.vulnerabilities ?? {})) {
   if (!MIN_SEVERITY.includes(v.severity)) continue;
@@ -61,14 +88,11 @@ for (const [name, v] of Object.entries(report.vulnerabilities ?? {})) {
   if (ids.length > 0 && ids.every((id) => allowed.has(id))) continue;
 
   // Packages vulnerable purely *because* a waived package is (e.g. react-router-dom via
-  // react-router) inherit the waiver rather than needing their own entry.
-  const viaNames = (Array.isArray(v.via) ? v.via : []).map((x) => (typeof x === "string" ? x : x.name));
-  const inheritsWaiver =
-    ids.length === 0 &&
-    viaNames.length > 0 &&
-    viaNames.every((n) => EXCEPTIONS.some((e) => e.package === n));
-  if (inheritsWaiver) continue;
+  // react-router) inherit the waiver rather than needing their own entry. The chain is followed
+  // all the way down: vite is flagged via tinyglobby, which is flagged only via picomatch.
+  if (ids.length === 0 && inheritsWaiver(name)) continue;
 
+  const viaNames = (Array.isArray(v.via) ? v.via : []).map((x) => (typeof x === "string" ? x : x.name));
   unexpected.push({ name, severity: v.severity, ids: ids.join(", ") || viaNames.join(", ") });
 }
 

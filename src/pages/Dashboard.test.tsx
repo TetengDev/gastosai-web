@@ -63,6 +63,9 @@ const currentMonth = manilaMonth();
 const [cy, cm] = currentMonth.split("-").map(Number);
 const prevMonth = new Date(Date.UTC(cy, cm - 2, 1)).toISOString().slice(0, 7);
 const daysInMonth = new Date(cy, cm, 0).getDate();
+/** Noon in Manila on `day` of the fixtures' month, for tests that fake the clock. The fixtures
+ *  are keyed to the real month, so a hard-coded date only agrees with them in that month. */
+const noonManilaOn = (day: number) => new Date(Date.UTC(cy, cm - 1, day, 4));
 // Today counts, as on mobile: the last day of the month is "1 day" left, never 0.
 const daysLeft = daysInMonth - Number(manilaToday().slice(8, 10)) + 1;
 const leftFor = (centavos: number) =>
@@ -296,7 +299,7 @@ describe("Dashboard render", () => {
 
   it("counts today in the days left, so the last day of the month reads 1 day", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date("2026-10-31T04:00:00Z")); // noon, 31 Oct, Manila
+    vi.setSystemTime(noonManilaOn(daysInMonth)); // the last day of the month
     mount();
 
     expect(await screen.findByTestId("hero-status")).toHaveTextContent(
@@ -425,8 +428,10 @@ describe("Dashboard render", () => {
 
   it("lists a bill once when both months' responses carry the same occurrence", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date("2026-10-28T04:00:00Z")); // noon, 28 Oct, Manila
-    mockGetUpcomingBills.mockResolvedValue([bill({ id: 7, name: "Netflix", dueDate: "2026-10-30" })]);
+    vi.setSystemTime(noonManilaOn(daysInMonth - 3)); // the 7-day window crosses the month end
+    mockGetUpcomingBills.mockResolvedValue([
+      bill({ id: 7, name: "Netflix", dueDate: `${currentMonth}-${String(daysInMonth - 1).padStart(2, "0")}` }),
+    ]);
     mount();
 
     await screen.findByRole("heading", { name: "Needs attention" });
