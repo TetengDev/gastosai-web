@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { BudgetSummaryResponse } from "../api/budgets";
 import type { ExpenseRequest } from "../api/expenses";
@@ -11,13 +11,13 @@ const api = vi.hoisted(() => ({
   createExpense: vi.fn(),
 }));
 
-const auth = vi.hoisted(() => ({ isAdmin: false }));
+const auth = vi.hoisted(() => ({ isAdmin: false, logout: vi.fn() }));
 
 vi.mock("../context/AuthContext", () => ({
   useAuth: () => ({
     user: { name: "Demo User", nickname: "Demo", avatar: null, avatarColor: null },
     isAdmin: auth.isAdmin,
-    logout: vi.fn(),
+    logout: auth.logout,
   }),
 }));
 vi.mock("../hooks/useEntitlements", () => ({
@@ -391,5 +391,23 @@ describe("Navbar — admin menu (TEN-494)", () => {
     fireEvent.click(button);
     fireEvent.click(screen.getByRole("link", { name: "Observability" }));
     expect(screen.queryByRole("link", { name: "Messages" })).toBeNull();
+  });
+});
+
+describe("Navbar — sign out (TEN-507)", () => {
+  // Logged out, `/` is the public landing page, so clearing the session alone would leave a
+  // dashboard user on `/` looking at the landing page instead of the sign-in form.
+  it("clears the session and lands on /login, even from the dashboard at /", () => {
+    render(
+      <MemoryRouter initialEntries={["/"]}>
+        <Routes>
+          <Route path="/" element={<Navbar isDark={false} onToggleDark={vi.fn()} />} />
+          <Route path="/login" element={<p>login page</p>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    fireEvent.click(screen.getAllByRole("button", { name: "Sign out" })[0]);
+    expect(auth.logout).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("login page")).toBeTruthy();
   });
 });

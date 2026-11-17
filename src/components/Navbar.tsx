@@ -1,7 +1,7 @@
 import { createElement, useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { ChevronDown, LogOut, Menu, Moon, Plus, Sun, Zap } from "lucide-react";
-import { Link, NavLink, useLocation } from "react-router-dom";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { getBudgetSummary } from "../api/budgets";
 import { createExpense, getExpensesPage } from "../api/expenses";
@@ -168,6 +168,7 @@ function OverflowMenu({ isAdmin, showUpgrade, controls }: { isAdmin: boolean; sh
 
 export default function Navbar({ isDark, onToggleDark }: Props) {
   const { user, isAdmin, logout } = useAuth();
+  const navigate = useNavigate();
   const { entitlements } = useEntitlements();
   const [logging, setLogging] = useState(false);
   const [bands, setBands] = useState<BudgetBand[]>([]);
@@ -241,7 +242,12 @@ export default function Navbar({ isDark, onToggleDark }: Props) {
 
   const signOut = (
     <button
-      onClick={logout}
+      // Logged out, `/` is the landing page rather than a protected route, so signing out from the
+      // dashboard would leave the visitor there instead of at the sign-in form (TEN-507).
+      onClick={() => {
+        logout();
+        navigate("/login", { replace: true });
+      }}
       aria-label="Sign out"
       title="Sign out"
       className="flex cursor-pointer rounded-full p-2 text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink-hi"
