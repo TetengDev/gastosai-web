@@ -99,3 +99,56 @@ describe("BudgetRuleCard monthly income", () => {
     expect(mockPutBudgetRule).not.toHaveBeenCalled();
   });
 });
+
+/**
+ * A bucket has no server `status` (`BucketSummaryV2` carries none), so its meter's tone comes from
+ * the sign of the server's `remaining` (ruling R16) — never from comparing `percentUsed` to a
+ * threshold in the browser.
+ */
+describe("BudgetRuleCard bucket meters", () => {
+  const withBuckets = (buckets: BudgetRuleSummary["buckets"]): BudgetRuleSummary => ({ ...summary, buckets });
+  const bucket = (over: Partial<BudgetRuleSummary["buckets"][number]>): BudgetRuleSummary["buckets"][number] => ({
+    bucket: "NEEDS",
+    percent: 50,
+    target: 50_000,
+    spent: 0,
+    remaining: 50_000,
+    percentUsed: 0,
+    ...over,
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockGetBudgetRule.mockResolvedValue(rule(100_000));
+  });
+
+  const fillOf = (name: string) =>
+    screen.getByRole("progressbar", { name }).querySelector<HTMLElement>('[data-testid="meter-fill"]')!;
+
+  it("draws an overspent bucket with the over fill and says how much over", async () => {
+    mockGetBudgetRuleSummary.mockResolvedValue(
+      withBuckets([bucket({ bucket: "WANTS", spent: 55_000, remaining: -5_000, percentUsed: 110 })]),
+    );
+    render(<BudgetRuleCard month="2026-09" categories={[]} onCategoriesChanged={vi.fn()} />);
+
+    const meter = await screen.findByRole("progressbar", { name: "Wants bucket" });
+    expect(meter).toHaveAttribute("aria-valuenow", "110");
+    expect(fillOf("Wants bucket")).toHaveClass("bg-warn-ink");
+    expect(fillOf("Wants bucket").style.backgroundColor).toBe("");
+    expect(screen.getByText("Over by ₱50.00")).toBeTruthy();
+  });
+
+  // 85% would have been amber under the old client-side threshold; the server says nothing about
+  // a band here, so the bucket reads as on track while money is left.
+  it("draws a bucket with money left with the on-track fill", async () => {
+    mockGetBudgetRuleSummary.mockResolvedValue(
+      withBuckets([bucket({ bucket: "NEEDS", spent: 45_000, remaining: 5_000, percentUsed: 85 })]),
+    );
+    render(<BudgetRuleCard month="2026-09" categories={[]} onCategoriesChanged={vi.fn()} />);
+
+    await screen.findByRole("progressbar", { name: "Needs bucket" });
+    expect(fillOf("Needs bucket")).toHaveClass("bg-brand");
+    expect(fillOf("Needs bucket").style.backgroundColor).toBe("");
+    expect(screen.getByText("₱50.00 left")).toBeTruthy();
+  });
+});
