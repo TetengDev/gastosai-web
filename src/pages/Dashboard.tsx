@@ -486,7 +486,8 @@ export default function Dashboard() {
                   variant="secondary"
                   size="sm"
                   className="mx-4 mb-3 min-h-11 shrink-0 sm:mb-0 sm:ml-0"
-                  aria-label={`Mark ${row.bill.name} paid`}
+                  // "Mark paid" leads the name, so speaking the visible label hits it (WCAG 2.5.3).
+                  aria-label={`Mark paid: ${row.bill.name}`}
                   disabled={marking}
                   onClick={() => void markPaid(row.bill.id)}
                 >

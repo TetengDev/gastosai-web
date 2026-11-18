@@ -602,7 +602,7 @@ describe("Dashboard render", () => {
 
       // Budget rows may share the list (the fixtures' last month can land on October), so count bills.
       expect(attentionRows().filter((r) => r.includes("Meralco"))).toHaveLength(1);
-      expect(screen.queryByRole("button", { name: "Mark Meralco paid" })).toBeNull();
+      expect(screen.queryByRole("button", { name: "Mark paid: Meralco" })).toBeNull();
     });
 
     it("does not flag a never-marked bill for last month, on the 1st (R1)", async () => {
@@ -667,7 +667,7 @@ describe("Dashboard render", () => {
       await loaded("2026-11-18T04:00:00Z");
 
       for (const name of ["Meralco", "Netflix"]) {
-        const button = screen.getByRole("button", { name: `Mark ${name} paid` });
+        const button = screen.getByRole("button", { name: `Mark paid: ${name}` });
         expect(button).toHaveTextContent("Mark paid");
         // A button inside a link would navigate; it sits beside it instead.
         expect(button.closest("a")).toBeNull();
@@ -679,7 +679,7 @@ describe("Dashboard render", () => {
       serverMarks();
       await loaded("2026-11-18T04:00:00Z");
 
-      fireEvent.click(screen.getByRole("button", { name: "Mark Meralco paid" }));
+      fireEvent.click(screen.getByRole("button", { name: "Mark paid: Meralco" }));
 
       await waitFor(() => expect(screen.queryByRole("heading", { name: "Needs attention" })).toBeNull());
       expect(mockMarkRecurringPaid).toHaveBeenCalledTimes(1);
@@ -693,7 +693,7 @@ describe("Dashboard render", () => {
       mockMarkRecurringPaid.mockReturnValue(new Promise(() => {}));
       await loaded("2026-11-18T04:00:00Z");
 
-      const button = screen.getByRole("button", { name: "Mark Meralco paid" });
+      const button = screen.getByRole("button", { name: "Mark paid: Meralco" });
       fireEvent.click(button);
       fireEvent.click(button);
 
@@ -705,14 +705,14 @@ describe("Dashboard render", () => {
       serverMarks(true);
       await loaded("2026-11-18T04:00:00Z");
 
-      fireEvent.click(screen.getByRole("button", { name: "Mark Meralco paid" }));
+      fireEvent.click(screen.getByRole("button", { name: "Mark paid: Meralco" }));
 
       const alert = await within(section("attention")!).findByRole("alert");
       expect(alert).toHaveTextContent("Could not mark that bill paid. Try again.");
       expect(attentionRows().some((r) => r.includes("Meralco"))).toBe(true);
       // The next attempt clears it.
       mockMarkRecurringPaid.mockReturnValue(new Promise(() => {}));
-      fireEvent.click(screen.getByRole("button", { name: "Mark Meralco paid" }));
+      fireEvent.click(screen.getByRole("button", { name: "Mark paid: Meralco" }));
       expect(screen.queryByRole("alert")).toBeNull();
     });
 
@@ -727,8 +727,8 @@ describe("Dashboard render", () => {
       await loaded("2026-10-28T04:00:00Z");
 
       expect(attentionRows().some((r) => r.includes("Meralco"))).toBe(true);
-      expect(screen.queryByRole("button", { name: "Mark Meralco paid" })).toBeNull();
-      expect(screen.getByRole("button", { name: "Mark Netflix paid" })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Mark paid: Meralco" })).toBeNull();
+      expect(screen.getByRole("button", { name: "Mark paid: Netflix" })).toBeInTheDocument();
     });
   });
 
