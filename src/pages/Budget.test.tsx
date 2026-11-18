@@ -325,8 +325,28 @@ describe("Budget month stepper", () => {
     render(<Budget />);
 
     expect(await screen.findByText("January 2027")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Next month" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Next month" })).toHaveAttribute("aria-disabled", "true");
     expect(mockGetBudgetSummary).toHaveBeenCalledWith("2027-01");
+  });
+
+  // `disabled` would drop focus the moment a keyboard user steps onto the current month;
+  // `aria-disabled` keeps focus on the button and the click handler refuses instead.
+  it("keeps focus on next when it reaches the current month, and ignores further clicks", async () => {
+    render(<Budget />);
+    await screen.findByText("January 2027");
+
+    fireEvent.click(screen.getByRole("button", { name: "Previous month" }));
+    await screen.findByText("December 2026");
+    const next = screen.getByRole("button", { name: "Next month" });
+    next.focus();
+    fireEvent.click(next);
+    await screen.findByText("January 2027");
+
+    expect(next).not.toBeDisabled();
+    expect(next).toHaveFocus();
+    fireEvent.click(next);
+    expect(screen.getByText("January 2027")).toBeTruthy();
+    expect(mockGetBudgets).not.toHaveBeenCalledWith("2027-02");
   });
 
   it("asks both queries for the month before, across the year turn", async () => {
@@ -338,7 +358,7 @@ describe("Budget month stepper", () => {
     expect(await screen.findByText("December 2026")).toBeTruthy();
     await waitFor(() => expect(mockGetBudgetSummary).toHaveBeenLastCalledWith("2026-12"));
     expect(mockGetBudgets).toHaveBeenLastCalledWith("2026-12");
-    expect(screen.getByRole("button", { name: "Next month" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Next month" })).toHaveAttribute("aria-disabled", "false");
   });
 
   it("steps forward again to the current month", async () => {
