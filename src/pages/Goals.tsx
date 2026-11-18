@@ -387,7 +387,7 @@ export default function Goals() {
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 flex-1 items-center gap-2.5">
             <input type="checkbox" aria-label={`Select ${goal.name}`} checked={selected} onChange={() => sel.toggle(goal.id)} className="rounded accent-brand" />
-            <h3 className="flex-1 truncate font-display text-xl font-medium tracking-tight text-ink-hi sm:text-[23px]">
+            <h3 className="line-clamp-2 flex-1 break-words font-display text-xl font-medium tracking-tight text-ink-hi sm:text-[23px]">
               {goal.name}
             </h3>
           </div>
