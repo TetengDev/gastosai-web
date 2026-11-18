@@ -12,6 +12,7 @@ import {
   Search,
   Trash2,
   Upload,
+  X,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import ExpenseModal from "../components/ExpenseModal";
@@ -450,14 +451,15 @@ export default function Expenses() {
           </p>
         )}
       </div>
-      <button
+      <IconButton
         type="button"
         aria-label="Dismiss"
+        title="Dismiss"
         onClick={() => setImportResult(null)}
-        className="cursor-pointer text-base leading-none opacity-70 transition-opacity hover:opacity-100"
+        className="-m-1 text-current hover:bg-transparent hover:text-current"
       >
-        ×
-      </button>
+        <X className="h-4 w-4" aria-hidden="true" />
+      </IconButton>
     </div>
   );
 
