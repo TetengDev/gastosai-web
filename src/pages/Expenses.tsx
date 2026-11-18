@@ -605,10 +605,10 @@ export default function Expenses() {
             </div>
           ) : (
             <div className="overflow-x-auto rounded-2xl border border-edge">
-              <table className="w-full min-w-[36rem] text-sm">
+              <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-edge-2 bg-surface-2 font-mono text-[11px] uppercase tracking-[0.1em] text-ink-2">
-                    <th className="w-10 px-5 py-3">
+                    <th className="w-10 px-3 py-3 sm:px-5">
                       <input
                         type="checkbox"
                         aria-label="Select all"
@@ -617,10 +617,11 @@ export default function Expenses() {
                         className="rounded accent-brand"
                       />
                     </th>
-                    <th className="px-3 py-3 text-left font-normal">Time</th>
-                    <th className="px-3 py-3 text-left font-normal">Category</th>
+                    {/* Time and Category give way below 1024px so Amount and the day totals fit a phone. */}
+                    <th className="hidden px-3 py-3 text-left font-normal lg:table-cell">Time</th>
+                    <th className="hidden px-3 py-3 text-left font-normal lg:table-cell">Category</th>
                     <th className="px-3 py-3 text-left font-normal">Description</th>
-                    <th className="px-5 py-3 text-right font-normal">Amount</th>
+                    <th className="px-3 py-3 text-right font-normal sm:px-5">Amount</th>
                     <th className="w-20 px-3 py-3"><span className="sr-only">Actions</span></th>
                   </tr>
                 </thead>
@@ -630,10 +631,13 @@ export default function Expenses() {
                   return (
                     <tbody key={day} className="border-t border-edge-2 first-of-type:border-t-0">
                       <tr className="bg-surface-2">
-                        <th scope="rowgroup" colSpan={4} className="px-5 py-2.5 text-left font-medium text-ink-hi">
+                        {/* Spans select + time at 1024px and up, select + description below, where the
+                            time and category cells are not displayed; the next cell fills the rest. */}
+                        <th scope="rowgroup" colSpan={2} className="whitespace-nowrap px-3 py-2.5 text-left font-medium text-ink-hi sm:px-5">
                           {formatDayMonth(day)}
                         </th>
-                        <td className="whitespace-nowrap px-5 py-2.5 text-right">
+                        <td colSpan={2} className="hidden lg:table-cell" />
+                        <td className="whitespace-nowrap px-3 py-2.5 text-right sm:px-5">
                           {dayTotal != null && (
                             <>
                               <span className="sr-only">Day total </span>
@@ -647,7 +651,7 @@ export default function Expenses() {
                         const tags = [e.expenseType === "BUSINESS" && "Business", e.reimbursable && "Reimb."].filter(Boolean);
                         return (
                           <tr key={e.id} className="group border-t border-edge-3 transition-colors hover:bg-surface-2">
-                            <td className="px-5 py-3">
+                            <td className="px-3 py-3 sm:px-5">
                               <input
                                 type="checkbox"
                                 aria-label={`Select ${e.description || "expense"}`}
@@ -656,21 +660,25 @@ export default function Expenses() {
                                 className="rounded accent-brand"
                               />
                             </td>
-                            <td className="whitespace-nowrap px-3 py-3 font-mono text-xs tabular-nums text-ink-2">
+                            <td className="hidden whitespace-nowrap px-3 py-3 font-mono text-xs tabular-nums text-ink-2 lg:table-cell">
                               <time dateTime={e.date}>{e.date.slice(11, 16)}</time>
                             </td>
-                            <td className="px-3 py-3">
+                            <td className="hidden px-3 py-3 lg:table-cell">
                               <CategoryChip name={e.category ?? "Uncategorized"} />
                             </td>
-                            <td className="max-w-xs truncate px-3 py-3 text-ink">
-                              {e.description || <span className="text-ink-2">No description</span>}
-                              {tags.length > 0 && (
-                                <span className="ml-2 font-mono text-[11px] uppercase tracking-[0.06em] text-ink-2">
-                                  {tags.join(" · ")}
-                                </span>
-                              )}
+                            {/* w-full + max-w-0: takes the width left over and truncates inside it. */}
+                            <td className="w-full max-w-0 px-3 py-3 text-ink">
+                              <div className="truncate">
+                                {e.description || <span className="text-ink-2">No description</span>}
+                                {tags.length > 0 && (
+                                  <span className="ml-2 font-mono text-[11px] uppercase tracking-[0.06em] text-ink-2">
+                                    {tags.join(" · ")}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="truncate text-xs text-ink-2 lg:hidden">{e.category ?? "Uncategorized"}</div>
                             </td>
-                            <td className="whitespace-nowrap px-5 py-3 text-right">
+                            <td className="whitespace-nowrap px-3 py-3 text-right sm:px-5">
                               {e.currency !== "PHP" && (
                                 <span className="mr-2 font-mono text-[11px] text-ink-2">
                                   {formatCurrencyAmount(e.amount, e.currency, "code")}
@@ -678,7 +686,7 @@ export default function Expenses() {
                               )}
                               <Amount centavos={e.amountInBaseCurrency} />
                             </td>
-                            <td className="px-3 py-3">
+                            <td className="px-2 py-3">
                               <div className="flex items-center justify-end gap-1 transition-opacity md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100">
                                 <IconButton onClick={() => setEditing(e)} aria-label="Edit" title="Edit">
                                   <Pencil className="h-4 w-4" />
