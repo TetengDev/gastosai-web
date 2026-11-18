@@ -605,6 +605,26 @@ describe("Dashboard render", () => {
       expect(screen.queryByRole("button", { name: "Mark paid: Meralco" })).toBeNull();
     });
 
+    it("still flags a never-marked bill once this month's due date has passed (R1)", async () => {
+      upcomingByMonth({ "2026-11": [meralco("2026-11-10")] });
+      mockGetRecurring.mockResolvedValue([recurring({ lastPaidMonth: null })]);
+      await loaded("2026-11-18T04:00:00Z");
+
+      const rows = attentionRows();
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toContain(`Overdue · was due ${formatDayMonth("2026-11-10T00:00:00+08:00")}`);
+    });
+
+    it("shows one dated row for a bill overdue both this month and last", async () => {
+      upcomingByMonth({ "2026-11": [meralco("2026-11-10")], "2026-10": [meralco("2026-10-10")] });
+      mockGetRecurring.mockResolvedValue([recurring({ lastPaidMonth: "2026-09" })]);
+      await loaded("2026-11-18T04:00:00Z");
+
+      const rows = attentionRows();
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toContain(`Overdue · was due ${formatDayMonth("2026-11-10T00:00:00+08:00")}`);
+    });
+
     it("does not flag a never-marked bill for last month, on the 1st (R1)", async () => {
       upcomingByMonth({ "2026-11": [meralco("2026-11-20")], "2026-10": [meralco("2026-10-20")] });
       mockGetRecurring.mockResolvedValue([recurring({ lastPaidMonth: null })]);
