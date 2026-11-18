@@ -440,7 +440,7 @@ export default function Budget() {
               <thead>
                 <tr className="border-b border-edge-2 bg-surface-2 font-mono text-[11px] uppercase tracking-[0.1em] text-ink-3">
                   <th className="w-10 px-3 py-4 sm:px-6">
-                    <input type="checkbox" aria-label="Select all" checked={sel.allSelected} onChange={sel.toggleAll} className="rounded accent-[#1f8a5b]" />
+                    <input type="checkbox" aria-label="Select all" checked={sel.allSelected} onChange={sel.toggleAll} className="rounded accent-brand" />
                   </th>
                   <th className="px-3 py-4 text-left font-normal sm:px-6">Category</th>
                   <th className="hidden px-3 py-4 text-right font-normal sm:table-cell sm:px-6">Budget limit</th>
@@ -501,7 +501,7 @@ export default function Budget() {
                         <IconButton onClick={() => openEdit(b)} title="Edit">
                           <Pencil className="h-4 w-4" />
                         </IconButton>
-                        <IconButton onClick={() => setConfirmDelete(b)} title="Delete" className="hover:text-[#b30000]">
+                        <IconButton onClick={() => setConfirmDelete(b)} title="Delete" className="hover:text-danger">
                           <Trash2 className="h-4 w-4" />
                         </IconButton>
                       </div>

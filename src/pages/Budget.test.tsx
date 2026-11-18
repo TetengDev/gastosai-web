@@ -534,6 +534,12 @@ describe("Budget load failures after the first load", () => {
     expect(screen.getByRole("button", { name: "Add Budget" })).toBeDisabled();
   });
 
+  it("styles the budget table from tokens, with no raw hex", async () => {
+    render(<Budget />);
+    await screen.findByRole("progressbar", { name: "Food budget" });
+    expect(screen.getByRole("table").outerHTML).not.toMatch(/#[0-9a-fA-F]{6}/);
+  });
+
   it("retries the month on screen from the inline alert", async () => {
     render(<Budget />);
     await screen.findByRole("progressbar", { name: "Food budget" });
