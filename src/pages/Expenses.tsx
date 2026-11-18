@@ -108,6 +108,7 @@ export default function Expenses() {
   const [deletingAll, setDeletingAll] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [deletingSelected, setDeletingSelected] = useState(false);
+  const [bulkError, setBulkError] = useState<string | null>(null);
 
   const [menuOpen, setMenuOpen] = useState(false);
   const toggleRef = useRef<HTMLButtonElement>(null);
@@ -199,19 +200,23 @@ export default function Expenses() {
       return next;
     });
 
+  // Each row stands alone: the ones that went are pruned, the ones that failed stay selected.
   const deleteSelected = async () => {
-    if (selectedIds.size === 0) return;
+    const ids = [...selectedIds];
+    if (ids.length === 0) return;
     setDeletingSelected(true);
-    try {
-      await Promise.all([...selectedIds].map((id) => deleteExpense(id)));
-      setSelectedIds(new Set());
+    setBulkError(null);
+    const results = await Promise.allSettled(ids.map((id) => deleteExpense(id)));
+    const okIds = new Set(ids.filter((_, i) => results[i].status === "fulfilled"));
+    setRows((prev) => prev && prev.filter((e) => !okIds.has(e.id)));
+    setSelectedIds(new Set(ids.filter((id) => !okIds.has(id))));
+    const failed = ids.length - okIds.size;
+    if (failed > 0) setBulkError(`Could not delete ${failed} ${failed === 1 ? "expense" : "expenses"}. Try again.`);
+    if (okIds.size > 0) {
       await refresh();
       window.dispatchEvent(new CustomEvent(EXPENSE_CHANGED));
-    } catch {
-      // leave selection; user can retry
-    } finally {
-      setDeletingSelected(false);
     }
+    setDeletingSelected(false);
   };
 
   const handleCsvChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -590,6 +595,11 @@ export default function Expenses() {
             onDelete={() => void deleteSelected()}
             onClear={() => setSelectedIds(new Set())}
           />
+          {bulkError && (
+            <p role="alert" className="text-sm text-danger">
+              {bulkError}
+            </p>
+          )}
           {rows.length === 0 ? (
             <p className="rounded-2xl border border-edge bg-surface px-6 py-10 text-center text-sm text-ink-2">
               Nothing logged in {formatMonth(dataMonth ?? month)}.

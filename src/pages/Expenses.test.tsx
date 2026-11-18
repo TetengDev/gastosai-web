@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Expenses from "./Expenses";
 import {
+  deleteExpense,
   exportExpenses,
   exportExpensesPdf,
   getDailyReport,
@@ -518,6 +519,23 @@ describe("Expenses resilience", () => {
     fireEvent.click(within(dialog).getByRole("button", { name: "Delete" }));
 
     expect(await screen.findByText("Could not delete that expense. Try again.")).toBeTruthy();
+  });
+
+  it("deletes what it can of a selection, says what failed, and keeps the failures selected", async () => {
+    const { refresh } = hook();
+    vi.mocked(deleteExpense).mockImplementation((id) => (id === 2 ? Promise.reject(new Error("boom")) : Promise.resolve()));
+    await loaded();
+    mockGetExpenses.mockResolvedValue(NOVEMBER.filter((e) => e.id !== 1));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Select Lunch" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Select Jeepney" }));
+    fireEvent.click(screen.getByRole("button", { name: "Delete selected (2)" }));
+
+    expect(await screen.findByText("Could not delete 1 expense. Try again.")).toBeTruthy();
+    await waitFor(() => expect(screen.queryByText("Lunch")).toBeNull());
+    expect(screen.getByText("Jeepney")).toBeTruthy();
+    expect(screen.getByText("1 expense selected")).toBeTruthy();
+    expect(screen.getByRole("checkbox", { name: "Select Jeepney" })).toBeChecked();
+    expect(refresh).toHaveBeenCalled();
   });
 
   it("says so when deleting everything fails, instead of hanging", async () => {
