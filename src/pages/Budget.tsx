@@ -421,7 +421,6 @@ export default function Budget() {
       <div aria-busy={stale && !error} inert={stale} className={stale ? "opacity-60 transition-opacity" : "transition-opacity"}>
         {budgets.length === 0 ? (
           <div className="rounded-2xl border border-edge bg-surface p-16 text-center">
-            <p className="mb-3 text-4xl">💰</p>
             <p className="text-lg font-semibold text-ink-hi">No budgets for this month</p>
             <p className="mb-5 mt-1 text-sm text-ink-3">Set spending limits per category to track your budget</p>
             <Button onClick={openAdd}>
