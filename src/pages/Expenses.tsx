@@ -83,8 +83,10 @@ export default function Expenses() {
   // All-time: `total` is the server's count, which decides the first-run state (R23). The list
   // itself is the month's, fetched below.
   const { loading, error, total, add, update, remove, removeAll, refresh } = useExpenses();
-  const [hookSettled, setHookSettled] = useState(!loading);
-  if (!loading && !hookSettled) setHookSettled(true);
+  // `total` is also 0 before the first load and after a failed one, so only a load that succeeded
+  // may decide "no expenses yet". Later refetch failures keep the last good count.
+  const [hookLoaded, setHookLoaded] = useState(false);
+  if (!loading && !error && !hookLoaded) setHookLoaded(true);
 
   const [month, setMonth] = useState(manilaMonth);
   const [rows, setRows] = useState<Expense[] | null>(null);
@@ -100,6 +102,7 @@ export default function Expenses() {
   const [saved, setSaved] = useState<{ first: boolean } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
   const [deletingAll, setDeletingAll] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
@@ -247,9 +250,15 @@ export default function Expenses() {
   };
 
   const openAdd = () => setShowAdd(true);
-  const closeMenuThen = (fn: () => void) => () => { setMenuOpen(false); fn(); };
+  // The dialog records whatever has focus as the place to return to; the menu item is about to
+  // unmount, so hand focus to the toggle first.
+  const closeMenuThen = (fn: () => void) => () => {
+    toggleRef.current?.focus();
+    setMenuOpen(false);
+    fn();
+  };
 
-  if (!hookSettled || (rows === null && !monthError && !(error && total === 0)))
+  if ((!hookLoaded && !error) || (hookLoaded && rows === null && !monthError))
     return (
       <div className="animate-pulse space-y-6">
         <div className="flex items-center justify-between">
@@ -260,7 +269,7 @@ export default function Expenses() {
       </div>
     );
 
-  if (error && total === 0)
+  if (!hookLoaded)
     return (
       <div className="py-8 text-center">
         <p role="alert" className="text-danger">{error}</p>
@@ -279,7 +288,7 @@ export default function Expenses() {
           await update(editing.id, data);
         } else {
           // Read before the save: afterwards the account always holds one expense (R23).
-          const first = total === 0;
+          const first = hookLoaded && total === 0;
           const created = await add(data);
           setSaved({ first });
           // A back-dated expense lands in its own month; show that month rather than nothing.
@@ -329,6 +338,11 @@ export default function Expenses() {
               />
             </label>
             <div ref={menuRef} className="relative">
+              {/* Inside the dismiss root, so choosing a file does not close the menu, and outside the
+                  panel, so it stays mounted when the menu does close. */}
+              {features?.csvImport && (
+                <input ref={csvInputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={handleCsvChange} />
+              )}
               <button
                 ref={toggleRef}
                 type="button"
@@ -487,10 +501,6 @@ export default function Expenses() {
         </div>
       </div>
 
-      {features?.csvImport && (
-        <input ref={csvInputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={handleCsvChange} />
-      )}
-
       {exportError && (
         <p role="alert" className="text-sm text-danger">
           {exportError}
@@ -588,7 +598,7 @@ export default function Expenses() {
                   return (
                     <tbody key={day} className="border-t border-edge-2 first-of-type:border-t-0">
                       <tr className="bg-surface-2">
-                        <th scope="colgroup" colSpan={4} className="px-5 py-2.5 text-left font-medium text-ink-hi">
+                        <th scope="rowgroup" colSpan={4} className="px-5 py-2.5 text-left font-medium text-ink-hi">
                           {formatDayMonth(day)}
                         </th>
                         <td className="whitespace-nowrap px-5 py-2.5 text-right">
@@ -680,13 +690,20 @@ export default function Expenses() {
         title="Delete expense?"
         message="This action cannot be undone."
         loading={deleting}
-        onCancel={() => setConfirmDelete(null)}
+        error={deleteError}
+        onCancel={() => { setConfirmDelete(null); setDeleteError(null); }}
         onConfirm={async () => {
           if (confirmDelete === null) return;
           setDeleting(true);
-          await remove(confirmDelete);
-          setConfirmDelete(null);
-          setDeleting(false);
+          setDeleteError(null);
+          try {
+            await remove(confirmDelete);
+            setConfirmDelete(null);
+          } catch {
+            setDeleteError("Could not delete that expense. Try again.");
+          } finally {
+            setDeleting(false);
+          }
         }}
       />
 
@@ -697,12 +714,19 @@ export default function Expenses() {
         message={`This will permanently remove all ${total} expenses, in every month. This action cannot be undone.`}
         confirmLabel="Delete all"
         loading={deletingAll}
-        onCancel={() => setConfirmDeleteAll(false)}
+        error={deleteError}
+        onCancel={() => { setConfirmDeleteAll(false); setDeleteError(null); }}
         onConfirm={async () => {
           setDeletingAll(true);
-          await removeAll();
-          setConfirmDeleteAll(false);
-          setDeletingAll(false);
+          setDeleteError(null);
+          try {
+            await removeAll();
+            setConfirmDeleteAll(false);
+          } catch {
+            setDeleteError("Could not delete your expenses. Try again.");
+          } finally {
+            setDeletingAll(false);
+          }
         }}
       />
 
