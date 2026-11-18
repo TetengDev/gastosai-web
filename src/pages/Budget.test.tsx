@@ -288,6 +288,8 @@ describe("Budget header", () => {
 
     expect(await screen.findByText("No budgets for this month")).toBeTruthy();
     expect(screen.queryByText("💰")).toBeNull();
+    // No "yet": the same name covers a past empty month and a failed summary.
+    expect(screen.getByRole("img", { name: "No budget figures" })).toBeTruthy();
     expect(container.querySelectorAll("svg[data-piso-state]")).toHaveLength(1);
   });
 
