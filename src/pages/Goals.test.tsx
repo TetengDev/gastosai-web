@@ -353,6 +353,26 @@ describe("Goals celebration", () => {
     expect(within(screen.getByText("Achieved (1)").closest("details")!).getByText("Emergency Fund")).toBeTruthy();
   });
 
+  // The card that opened the dialog has moved into the closed group, so focus goes to its summary.
+  it.each([
+    ["Add savings", async () => {
+      fireEvent.change(await openAddSavings(), { target: { value: "500" } });
+      fireEvent.click(screen.getByRole("button", { name: "Add" }));
+    }],
+    ["Edit", async () => {
+      fireEvent.click(await screen.findByTitle("Edit"));
+      fireEvent.click(screen.getByRole("button", { name: "Save Changes" }));
+    }],
+  ])("moves focus to the Achieved summary when %s completes the goal", async (_, save) => {
+    mockGetGoals.mockResolvedValue([goal({ savedAmount: 9_950_000, progressPercent: 99.5 })]);
+    mockUpdateGoal.mockResolvedValue(goal({ savedAmount: 10_000_000, progressPercent: 100, status: "COMPLETED" }));
+    renderGoals();
+    await save();
+
+    const summary = (await screen.findByText("Achieved (1)")).closest("summary");
+    await waitFor(() => expect(document.activeElement).toBe(summary));
+  });
+
   it("does not celebrate a 100% goal the server has not marked COMPLETED", async () => {
     mockGetGoals.mockResolvedValue([goal({ savedAmount: 9_950_000, progressPercent: 99.5 })]);
     mockUpdateGoal.mockResolvedValue(goal({ savedAmount: 10_000_000, progressPercent: 100, status: "ON_TRACK" }));
