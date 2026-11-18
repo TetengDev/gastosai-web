@@ -47,6 +47,20 @@ describe("Modal", () => {
     expect(screen.getByRole("dialog")).toHaveClass("animate-pop");
   });
 
+  // A dropdown inside (CurrencySelect, CategoryCombobox) is absolutely positioned; any clipping
+  // box between it and the overlay hides its list and the focus halo. The overlay is what
+  // scrolls. jsdom loads no Tailwind, so this reads the utility classes rather than computed style.
+  it("puts no clipping box between the content and the scrolling overlay", () => {
+    openHost();
+    const overlay = screen.getByRole("dialog").parentElement!;
+    expect(overlay).toHaveClass("overflow-y-auto");
+
+    const clipping = /(^|\s)(overflow(-[xy])?-(auto|hidden|scroll|clip)|max-h-\S+)(\s|$)/;
+    for (let el = screen.getByRole("textbox", { name: "Amount" }).parentElement; el && el !== overlay; el = el.parentElement) {
+      expect(el.className).not.toMatch(clipping);
+    }
+  });
+
   it("moves focus into the dialog when it opens", () => {
     openHost();
     expect(screen.getByRole("dialog").contains(document.activeElement)).toBe(true);
