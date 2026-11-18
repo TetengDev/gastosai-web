@@ -1,15 +1,33 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import ExpenseModal from "./ExpenseModal";
 import { getCategories } from "../api/categories";
+import { getExpensesPage, type Expense, type ExpensePage } from "../api/expenses";
+import { getBudgetSummary, type BudgetSummaryResponse } from "../api/budgets";
 import { useAuth } from "../context/AuthContext";
 
 vi.mock("../api/categories", () => ({ getCategories: vi.fn() }));
+vi.mock("../api/expenses", () => ({ getExpensesPage: vi.fn() }));
+vi.mock("../api/budgets", () => ({ getBudgetSummary: vi.fn() }));
 vi.mock("../context/AuthContext", () => ({ useAuth: vi.fn() }));
 
 const mockGetCategories = vi.mocked(getCategories);
+const mockGetExpensesPage = vi.mocked(getExpensesPage);
+const mockGetBudgetSummary = vi.mocked(getBudgetSummary);
 const mockUseAuth = vi.mocked(useAuth);
+
+// Every describe below renders the real modal, which now reads the recent history and, after a
+// new expense saves, the budget summary. Defaults keep both off the network; tests override them.
+beforeEach(() => {
+  mockGetExpensesPage.mockResolvedValue({ content: [], totalElements: 0, last: true } as unknown as ExpensePage);
+  mockGetBudgetSummary.mockResolvedValue({ items: [] } as unknown as BudgetSummaryResponse);
+});
+
+// The confirmation is appended to <body> on purpose (R17), so RTL's cleanup does not see it.
+afterEach(() => {
+  document.querySelectorAll("[data-expense-toast]").forEach((n) => n.remove());
+});
 
 /**
  * The acceptance criterion this file exists for: what leaves the modal is integer centavos.
@@ -207,5 +225,212 @@ describe("ExpenseModal currency prefix", () => {
 
     expect(await screen.findByText("$")).toBeTruthy();
     expect(screen.queryByText("₱")).toBeNull();
+  });
+});
+
+const expenseIn = (category: string, id: number): Expense => ({
+  id,
+  amount: 100,
+  currency: "PHP",
+  exchangeRate: 1,
+  amountInBaseCurrency: 100,
+  category,
+  date: "2026-11-01T12:00:00+08:00",
+  description: `e${id}`,
+  expenseType: "PERSONAL",
+  reimbursable: false,
+  source: "MANUAL",
+});
+
+const history = (...categories: string[]) =>
+  ({
+    content: categories.map((c, i) => expenseIn(c, i + 1)),
+    totalElements: categories.length,
+    last: true,
+  }) as unknown as ExpensePage;
+
+const category = (id: number, name: string) => ({ id, name }) as Awaited<ReturnType<typeof getCategories>>[number];
+
+/**
+ * TEN-440: the add flow starts with the amount. It is the largest field and has focus on open,
+ * the six most recent categories sit under it as chips (R20, topped up from the category list),
+ * and the date starts at Manila's now.
+ */
+describe("ExpenseModal amount-first", () => {
+  beforeEach(() => {
+    mockGetCategories.mockResolvedValue([]);
+    mockUseAuth.mockReturnValue({ user: null } as unknown as ReturnType<typeof useAuth>);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("focuses the amount, named for screen readers, on a new expense", () => {
+    render(<ExpenseModal onSave={vi.fn()} onClose={vi.fn()} />);
+    expect(screen.getByRole("spinbutton", { name: "Amount in pesos" })).toHaveFocus();
+  });
+
+  it("offers the six most recently used categories, newest first", async () => {
+    mockGetExpensesPage.mockResolvedValue(
+      history("Food", "Transport", "Food", "Bills", "Fun", "Health", "Pets", "Gifts"),
+    );
+    render(<ExpenseModal onSave={vi.fn()} onClose={vi.fn()} />);
+
+    const group = await screen.findByRole("group", { name: "Recent categories" });
+    await waitFor(() =>
+      expect([...group.querySelectorAll("button")].map((b) => b.textContent)).toEqual([
+        "Food",
+        "Transport",
+        "Bills",
+        "Fun",
+        "Health",
+        "Pets",
+      ]),
+    );
+    expect(mockGetExpensesPage).toHaveBeenCalledWith({ page: 0, size: 50 });
+  });
+
+  it("tops the chips up from the category list when history has fewer than six", async () => {
+    mockGetExpensesPage.mockResolvedValue(history("Food"));
+    mockGetCategories.mockResolvedValue([category(1, "Bills"), category(2, "Food"), category(3, "Fun")]);
+    render(<ExpenseModal onSave={vi.fn()} onClose={vi.fn()} />);
+
+    const group = await screen.findByRole("group", { name: "Recent categories" });
+    await waitFor(() =>
+      expect([...group.querySelectorAll("button")].map((b) => b.textContent)).toEqual(["Food", "Bills", "Fun"]),
+    );
+  });
+
+  it("sets the category from a chip", async () => {
+    const user = userEvent.setup();
+    mockGetExpensesPage.mockResolvedValue(history("Food", "Bills"));
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<ExpenseModal onSave={onSave} onClose={vi.fn()} />);
+
+    const bills = await screen.findByRole("button", { name: "Bills" });
+    await user.click(bills);
+    expect(bills).toHaveAttribute("aria-pressed", "true");
+
+    await user.type(screen.getByPlaceholderText("0.00"), "10");
+    await user.type(screen.getByPlaceholderText("What was this expense for?"), "Power");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    expect(onSave.mock.calls[0][0].category).toBe("Bills");
+  });
+
+  // 17:00 UTC on the 17th is 01:00 on the 18th in Manila. `toISOString()` gave the 17th.
+  it("dates a new expense at Manila's now, not UTC's", () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-17T17:00:00Z"));
+    render(<ExpenseModal onSave={vi.fn()} onClose={vi.fn()} />);
+    expect(screen.getByLabelText("Date & Time")).toHaveValue("2026-11-18T01:00");
+  });
+});
+
+/**
+ * R19's confirmation: the server's `remaining` for the saved category's line in the expense's own
+ * month, read after the save. The fixture's `remaining` is deliberately not budgeted - spent, so a
+ * client-side subtraction would show the wrong figure.
+ */
+describe("ExpenseModal logged toast", () => {
+  beforeEach(() => {
+    mockGetCategories.mockResolvedValue([category(1, "Food"), category(2, "Bills")]);
+    mockUseAuth.mockReturnValue({ user: null } as unknown as ReturnType<typeof useAuth>);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const summaryWith = (remaining: number) =>
+    ({
+      items: [{ categoryName: "Food", budgeted: 300_000, spent: 50_000, remaining, percentUsed: 41, status: "ON_TRACK" }],
+    }) as unknown as BudgetSummaryResponse;
+
+  const logFood = async (onSave = vi.fn().mockResolvedValue(undefined)) => {
+    const user = userEvent.setup();
+    render(<ExpenseModal onSave={onSave} onClose={vi.fn()} />);
+    await user.click(await screen.findByRole("button", { name: "Food" }));
+    await user.type(screen.getByPlaceholderText("0.00"), "250");
+    fireEvent.change(screen.getByLabelText("Date & Time"), { target: { value: "2026-10-05T09:00" } });
+    await user.type(screen.getByPlaceholderText("What was this expense for?"), "Groceries");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    return onSave;
+  };
+
+  beforeEach(() => {
+    mockGetExpensesPage.mockResolvedValue(history("Food"));
+  });
+
+  it("says what is left in the category's budget for the expense's month", async () => {
+    mockGetBudgetSummary.mockResolvedValue(summaryWith(175_000));
+    await logFood();
+
+    const toast = await screen.findByRole("status");
+    expect(toast).toHaveTextContent("Logged ₱250.00 · ₱1,750.00 left in Food");
+    expect(mockGetBudgetSummary).toHaveBeenCalledWith("2026-10");
+  });
+
+  it("says by how much the category is over", async () => {
+    mockGetBudgetSummary.mockResolvedValue(summaryWith(-5_000));
+    await logFood();
+
+    expect(await screen.findByRole("status")).toHaveTextContent("Logged ₱250.00 · Over by ₱50.00 in Food");
+  });
+
+  it("states the amount alone when the category has no budget", async () => {
+    mockGetBudgetSummary.mockResolvedValue({ items: [] } as unknown as BudgetSummaryResponse);
+    await logFood();
+
+    const toast = await screen.findByRole("status");
+    await waitFor(() => expect(toast.textContent).toBe("Logged ₱250.00"));
+  });
+
+  it("states the amount alone when the summary fails", async () => {
+    mockGetBudgetSummary.mockRejectedValue(new Error("offline"));
+    await logFood();
+
+    const toast = await screen.findByRole("status");
+    await waitFor(() => expect(toast.textContent).toBe("Logged ₱250.00"));
+  });
+
+  it("waits at most 1.5 s for the summary, then goes away after 4 s", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    mockGetBudgetSummary.mockReturnValue(new Promise(() => {}));
+    await logFood();
+    await act(async () => {});
+    expect(screen.queryByRole("status")).toBeNull();
+
+    await act(async () => {
+      vi.advanceTimersByTime(1500);
+    });
+    const toast = await screen.findByRole("status");
+    await waitFor(() => expect(toast.textContent).toBe("Logged ₱250.00"));
+
+    act(() => {
+      vi.advanceTimersByTime(4000);
+    });
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+
+  it("shows nothing when the save fails", async () => {
+    await logFood(vi.fn().mockRejectedValue(new Error("boom")));
+
+    await screen.findByText(/Failed to save/);
+    expect(screen.queryByRole("status")).toBeNull();
+    expect(mockGetBudgetSummary).not.toHaveBeenCalled();
+  });
+
+  it("shows nothing for an edit", async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<ExpenseModal expense={expenseIn("Food", 9)} onSave={onSave} onClose={vi.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    await act(async () => {});
+    expect(screen.queryByRole("status")).toBeNull();
+    expect(mockGetBudgetSummary).not.toHaveBeenCalled();
   });
 });
