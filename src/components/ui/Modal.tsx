@@ -9,6 +9,8 @@ interface Props {
   children: ReactNode;
   /** Max width of the panel. Defaults to a standard form width. */
   maxWidthClass?: string;
+  /** Id of a heading inside that names the dialog, for a caller that draws its own instead of `title`. */
+  labelledBy?: string;
 }
 
 const FOCUSABLE =
@@ -27,6 +29,7 @@ export default function Modal({
   title,
   children,
   maxWidthClass = "max-w-md",
+  labelledBy,
 }: Props) {
   const titleId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
@@ -88,7 +91,7 @@ export default function Modal({
         ref={panelRef}
         role="dialog"
         aria-modal="true"
-        aria-labelledby={title ? titleId : undefined}
+        aria-labelledby={title ? titleId : labelledBy}
         tabIndex={-1}
         onKeyDown={onKeyDown}
         className={cn(
