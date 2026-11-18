@@ -587,6 +587,24 @@ describe("Dashboard render", () => {
       expect(rows[0]).toContain("Overdue · not paid last month");
     });
 
+    it("flags nothing when the bill is marked paid for a later month", async () => {
+      upcomingByMonth({ "2026-11": [meralco("2026-11-10")] });
+      mockGetRecurring.mockResolvedValue([recurring({ paidThisMonth: false, lastPaidMonth: "2026-12" })]);
+      await loaded("2026-11-18T04:00:00Z");
+
+      expect(screen.queryByRole("heading", { name: "Needs attention" })).toBeNull();
+    });
+
+    it("still lists next month's row for a bill paid this month, with no action (R5, R6)", async () => {
+      upcomingByMonth({ "2026-11": [meralco("2026-11-01")] });
+      mockGetRecurring.mockResolvedValue([recurring({ paidThisMonth: true, lastPaidMonth: "2026-10" })]);
+      await loaded("2026-10-28T04:00:00Z");
+
+      // Budget rows may share the list (the fixtures' last month can land on October), so count bills.
+      expect(attentionRows().filter((r) => r.includes("Meralco"))).toHaveLength(1);
+      expect(screen.queryByRole("button", { name: "Mark Meralco paid" })).toBeNull();
+    });
+
     it("does not flag a never-marked bill for last month, on the 1st (R1)", async () => {
       upcomingByMonth({ "2026-11": [meralco("2026-11-20")], "2026-10": [meralco("2026-10-20")] });
       mockGetRecurring.mockResolvedValue([recurring({ lastPaidMonth: null })]);
