@@ -548,4 +548,13 @@ describe("Expenses fix round 1", () => {
     expect(screen.queryByRole("button", { name: /Delete all/ })).toBeNull();
   });
 
+  it.each([
+    [1, "1 total entry"],
+    [3, "3 total entries"],
+  ])("counts %i expense(s) as %s", async (total, text) => {
+    hook({ total });
+    await loaded();
+    expect(screen.getByText(text)).toBeTruthy();
+  });
+
 });
