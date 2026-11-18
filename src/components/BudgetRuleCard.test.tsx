@@ -152,3 +152,38 @@ describe("BudgetRuleCard bucket meters", () => {
     expect(screen.getByText("₱50.00 left")).toBeTruthy();
   });
 });
+
+/**
+ * The budgets page keeps this card mounted while its month stepper moves, so two quick steps can
+ * leave two summary requests in flight. Only the newest month may write.
+ */
+describe("BudgetRuleCard month changes", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockGetBudgetRule.mockResolvedValue(rule(100_000));
+  });
+
+  it("keeps the later month's buckets when the earlier response lands last", async () => {
+    const forMonth = (month: string, spent: number): BudgetRuleSummary => ({
+      ...summary,
+      month,
+      buckets: [{ bucket: "NEEDS", percent: 50, target: 50_000, spent, remaining: 50_000 - spent, percentUsed: spent / 500 }],
+    });
+    let resolveOld!: (s: BudgetRuleSummary) => void;
+    let resolveNew!: (s: BudgetRuleSummary) => void;
+    mockGetBudgetRuleSummary
+      .mockReturnValueOnce(new Promise((r) => { resolveOld = r; }))
+      .mockReturnValueOnce(new Promise((r) => { resolveNew = r; }));
+
+    const { rerender } = render(<BudgetRuleCard month="2026-09" categories={[]} onCategoriesChanged={vi.fn()} />);
+    rerender(<BudgetRuleCard month="2026-08" categories={[]} onCategoriesChanged={vi.fn()} />);
+
+    resolveNew(forMonth("2026-08", 10_000));
+    expect(await screen.findByText("₱400.00 left")).toBeTruthy();
+    resolveOld(forMonth("2026-09", 30_000));
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(screen.queryByText("₱200.00 left")).toBeNull();
+    expect(screen.getByText("₱400.00 left")).toBeTruthy();
+  });
+});
