@@ -1,5 +1,5 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Goals from "./Goals";
 import { createGoal, getGoals, updateGoal, type Goal } from "../api/goals";
 import { AuthProvider } from "../context/AuthContext";
@@ -366,6 +366,17 @@ describe("Goals celebration", () => {
     expect(seen("goal-1")).toBe(false);
   });
 
+  it("celebrates a goal an edit completes", async () => {
+    mockGetGoals.mockResolvedValue([goal()]);
+    mockUpdateGoal.mockResolvedValue(goal({ savedAmount: 10_000_000, progressPercent: 100, status: "COMPLETED" }));
+    renderGoals();
+    fireEvent.click(await screen.findByTitle("Edit"));
+    fireEvent.click(screen.getByRole("button", { name: "Save Changes" }));
+
+    await waitFor(() => expect(coin()).not.toBeNull());
+    expect(seen("goal-1")).toBe(true);
+  });
+
   it("celebrates a goal already COMPLETED on load, once", async () => {
     mockGetGoals.mockResolvedValue([goal({ status: "COMPLETED", progressPercent: 100 })]);
     renderGoals();
@@ -390,7 +401,8 @@ describe("Goals header and loading", () => {
     mockGetGoals.mockResolvedValue([goal()]);
     renderGoals();
     const face = await screen.findByRole("img", { name: "Resting" });
-    expect(face.querySelector("[data-piso-state]")?.closest('[aria-hidden="true"]')).not.toBeNull();
+    // The wrapper's own child hides the art, so the face is announced once, by the wrapper's name.
+    expect(face.firstElementChild).toHaveAttribute("aria-hidden", "true");
     expect(pisos()).toHaveLength(1);
   });
 
@@ -438,5 +450,61 @@ describe("Goals header and loading", () => {
     expect(await screen.findByText("No savings goals yet")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Add your first goal" })).toBeTruthy();
     expect([...pisos()].map((p) => p.getAttribute("data-piso-state"))).toEqual(["empty"]);
+  });
+});
+
+describe("Goals celebration queue", () => {
+  const HOLD_MS = 1500;
+  const advance = (ms: number) => act(() => vi.advanceTimersByTimeAsync(ms));
+
+  // Only the hold timer is faked, so time moves when a test says so and not before.
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  });
+  afterEach(() => vi.useRealTimers());
+
+  it("plays one COMPLETED goal at a time, then hands the header back to the resting face", async () => {
+    mockGetGoals.mockResolvedValue([
+      goal({ id: 1, status: "COMPLETED", progressPercent: 100 }),
+      goal({ id: 2, name: "Laptop", status: "COMPLETED", progressPercent: 100 }),
+    ]);
+    renderGoals();
+    for (let i = 0; i < 5; i++) await advance(0);
+
+    expect([seen("goal-1"), seen("goal-2")]).toEqual([true, false]);
+    expect(screen.getByRole("img", { name: "Celebrating" })).toBeTruthy();
+
+    await advance(HOLD_MS);
+    expect(seen("goal-2")).toBe(true);
+    expect(coin()).not.toBeNull();
+
+    await advance(HOLD_MS);
+    expect(coin()).toBeNull();
+    expect(screen.getByRole("img", { name: "Resting" })).toBeTruthy();
+    expect(pisos()).toHaveLength(1);
+  });
+});
+
+describe("Goals while a reload is in flight", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("withdraws the Piso's name and freezes the cards until the list answers", async () => {
+    let answer!: (goals: Goal[]) => void;
+    mockGetGoals.mockResolvedValueOnce([goal()]);
+    mockGetGoals.mockReturnValueOnce(new Promise<Goal[]>((resolve) => { answer = resolve; }));
+    renderGoals();
+    await screen.findByRole("img", { name: "Resting" });
+
+    fireEvent.click(screen.getByTitle("Reload"));
+    await waitFor(() => expect(screen.queryByRole("img", { name: "Resting" })).toBeNull());
+    const cards = screen.getByRole("heading", { name: "Emergency Fund" }).closest("[aria-busy]")!;
+    expect(cards).toHaveAttribute("aria-busy", "true");
+    expect(cards).toHaveAttribute("inert");
+
+    await act(async () => answer([goal()]));
+    expect(await screen.findByRole("img", { name: "Resting" })).toBeTruthy();
+    expect(cards).toHaveAttribute("aria-busy", "false");
+    expect(cards).not.toHaveAttribute("inert");
   });
 });
