@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Pencil, Plus, RotateCcw, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Pencil, Plus, RotateCcw, Trash2 } from "lucide-react";
 import {
   createBudget,
   deleteAllBudgets,
@@ -19,10 +19,20 @@ import { useMultiSelect } from "../hooks/useMultiSelect";
 import { RATE_TTL_MS, rateCache } from "../lib/cache";
 import { categoryIcon } from "../lib/categoryIcon";
 import { EXPENSE_CHANGED } from "../lib/events";
-import { budgetTone, toBand } from "../lib/pisoMood";
+import { budgetTone, pisoMoodFor, toBand } from "../lib/pisoMood";
+import Piso from "../brand/Piso";
 import { centavosToAmount, currencySymbol, formatCentavos, formatCurrencyAmount, formatMonth, manilaMonth, parseAmountToCentavos } from "../lib/formatters";
 
 const currentMonth = () => manilaMonth();
+
+/** `yyyy-mm` moved by whole months. Calendar arithmetic on the key, not on any amount. */
+function shiftMonth(yyyyMM: string, delta: number): string {
+  const [y, m] = yyyyMM.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1 + delta, 1)).toISOString().slice(0, 7);
+}
+
+const STEP_CLASS =
+  "grid h-10 w-10 cursor-pointer place-items-center rounded-full text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink-hi focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent";
 
 export default function Budget() {
   const [month, setMonth] = useState(currentMonth);
@@ -296,6 +306,21 @@ export default function Budget() {
     .map((b) => ({ b, item: itemFor.get(b.categoryId) }))
     .sort((x, y) => (y.item?.percentUsed ?? -1) - (x.item?.percentUsed ?? -1));
 
+  // One Piso for the screen, in the worst row's server band; the line beside it says the same in
+  // words, so the face is never the only signal.
+  const bands = rows.flatMap((r) => (r.item ? [toBand(r.item.status)] : []));
+  const mood = pisoMoodFor({ bands, hasExpenses: true });
+  const overCount = bands.filter((b) => b === "OVER_BUDGET").length;
+  const warnCount = bands.filter((b) => b === "WARNING").length;
+  const moodLine =
+    bands.length === 0
+      ? null
+      : overCount + warnCount === 0
+        ? "All on track"
+        : [overCount && `${overCount} over budget`, warnCount && `${warnCount} close to the limit`]
+            .filter(Boolean)
+            .join(" · ");
+
   const inputClass = "w-full rounded-xl border border-edge-input bg-input px-4 py-2.5 text-sm text-ink";
   const labelClass = "mb-1.5 block text-sm font-medium text-ink";
 
@@ -322,32 +347,59 @@ export default function Budget() {
 
   return (
     <div className="space-y-8">
-      <PageHeader
-        title="Budgets"
-        subtitle={
-          <span>
-            {budgets.length} {budgets.length === 1 ? "budget" : "budgets"} for {formatMonth(month)}
-          </span>
-        }
-        onDeleteAll={budgets.length > 0 ? () => setConfirmDeleteAll(true) : undefined}
-        actions={
-          <>
-            <input
-              type="month"
-              value={month}
-              onChange={(e) => setMonth(e.target.value)}
-              className="rounded-lg border border-edge-input bg-surface px-3 py-2 text-sm text-ink"
-            />
-            <IconButton onClick={() => { void load(); }} title="Reload">
-              <RotateCcw className="h-4 w-4" />
-            </IconButton>
-            <Button onClick={openAdd}>
-              <Plus className="h-[15px] w-[15px]" />
-              Add Budget
-            </Button>
-          </>
-        }
-      />
+      <div className="flex items-start gap-4 sm:items-center sm:gap-5">
+        <Piso state={mood} size={64} className="shrink-0" />
+        <div className="min-w-0 flex-1">
+          <PageHeader
+            title="Budgets"
+            subtitle={
+              <span>
+                {budgets.length} {budgets.length === 1 ? "budget" : "budgets"}
+                {moodLine && (
+                  <>
+                    {" · "}
+                    <span className={overCount + warnCount > 0 ? "font-medium text-warn-ink" : undefined}>{moodLine}</span>
+                  </>
+                )}
+              </span>
+            }
+            onDeleteAll={budgets.length > 0 ? () => setConfirmDeleteAll(true) : undefined}
+            actions={
+              <>
+                <div className="flex items-center rounded-full border border-edge-input bg-surface p-0.5">
+                  <button
+                    type="button"
+                    aria-label="Previous month"
+                    onClick={() => setMonth((m) => shiftMonth(m, -1))}
+                    className={STEP_CLASS}
+                  >
+                    <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+                  </button>
+                  <span aria-live="polite" className="min-w-[9rem] text-center text-sm font-medium text-ink-hi">
+                    {formatMonth(month)}
+                  </span>
+                  <button
+                    type="button"
+                    aria-label="Next month"
+                    onClick={() => setMonth((m) => shiftMonth(m, 1))}
+                    disabled={month >= currentMonth()}
+                    className={STEP_CLASS}
+                  >
+                    <ChevronRight className="h-4 w-4" aria-hidden="true" />
+                  </button>
+                </div>
+                <IconButton onClick={() => { void load(); }} title="Reload">
+                  <RotateCcw className="h-4 w-4" />
+                </IconButton>
+                <Button onClick={openAdd}>
+                  <Plus className="h-[15px] w-[15px]" />
+                  Add Budget
+                </Button>
+              </>
+            }
+          />
+        </div>
+      </div>
 
       <BudgetRuleCard month={month} categories={categories} onCategoriesChanged={() => { void load(); }} />
 
