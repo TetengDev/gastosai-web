@@ -346,7 +346,8 @@ export default function Budget() {
       </div>
     );
 
-  if (error)
+  // Before anything has loaded there is no page to keep; after that a failure shows inline.
+  if (error && dataMonth === null)
     return (
       <div className="py-8 text-center">
         <p className="mb-3 text-[#b30000]">{error}</p>
@@ -414,7 +415,16 @@ export default function Budget() {
 
       <BudgetRuleCard month={month} categories={categories} onCategoriesChanged={() => { void load(); }} />
 
-      <div aria-busy={stale} inert={stale} className={stale ? "opacity-60 transition-opacity" : "transition-opacity"}>
+      {error && (
+        <p role="alert" className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-danger">
+          {error}
+          <button type="button" onClick={() => { void load(); }} className="text-link underline">
+            Retry
+          </button>
+        </p>
+      )}
+
+      <div aria-busy={stale && !error} inert={stale} className={stale ? "opacity-60 transition-opacity" : "transition-opacity"}>
         {budgets.length === 0 ? (
           <div className="rounded-2xl border border-edge bg-surface p-16 text-center">
             <p className="mb-3 text-4xl">💰</p>
