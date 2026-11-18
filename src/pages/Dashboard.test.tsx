@@ -17,11 +17,16 @@ import {
   type MonthlyComparison,
   type MonthlyReport,
 } from "../api/expenses";
-import { getUpcomingBills, type UpcomingBillResponse } from "../api/recurring";
-import { formatCentavos, formatDate, manilaMonth } from "../lib/formatters";
+import {
+  getRecurring,
+  getUpcomingBills,
+  type RecurringExpenseResponse,
+  type UpcomingBillResponse,
+} from "../api/recurring";
+import { formatCentavos, formatDate, formatDayMonth, manilaMonth } from "../lib/formatters";
 
 vi.mock("../api/budgets", () => ({ getBudgetSummary: vi.fn() }));
-vi.mock("../api/recurring", () => ({ getUpcomingBills: vi.fn() }));
+vi.mock("../api/recurring", () => ({ getRecurring: vi.fn(), getUpcomingBills: vi.fn() }));
 
 vi.mock("../api/expenses", () => ({
   getCategoryReport: vi.fn(),
@@ -55,6 +60,7 @@ vi.mock("../components/CategoryChip", () => ({
 
 const mockGetBudgetSummary = vi.mocked(getBudgetSummary);
 const mockGetUpcomingBills = vi.mocked(getUpcomingBills);
+const mockGetRecurring = vi.mocked(getRecurring);
 const mockGetCategoryReport = vi.mocked(getCategoryReport);
 const mockGetExpensesPage = vi.mocked(getExpensesPage);
 const mockGetMonthlyComparison = vi.mocked(getMonthlyComparison);
@@ -176,6 +182,31 @@ const bill = (over: Partial<UpcomingBillResponse> = {}): UpcomingBillResponse =>
   ...over,
 });
 
+/** The paid state lives on `/recurring` only (R2), joined to the upcoming bills by id. */
+const recurring = (over: Partial<RecurringExpenseResponse> = {}): RecurringExpenseResponse => ({
+  id: 7,
+  name: "Meralco",
+  amount: 254_900,
+  amountInBaseCurrency: 254_900,
+  categoryName: "Utilities",
+  currency: "PHP",
+  exchangeRate: 1,
+  frequency: "MONTHLY",
+  dayOfMonth: 10,
+  dayOfWeek: null,
+  monthOfYear: null,
+  active: true,
+  paidThisMonth: false,
+  lastPaidMonth: "2026-10",
+  ...over,
+});
+
+const meralco = (dueDate: string) => bill({ id: 7, name: "Meralco", amount: 254_900, dueDate });
+
+/** The upcoming endpoint is per month; each month answers with its own occurrences. */
+const upcomingByMonth = (byMonth: Record<string, UpcomingBillResponse[]>) =>
+  mockGetUpcomingBills.mockImplementation((m: string) => Promise.resolve(byMonth[m] ?? []));
+
 const budgets = (current: BudgetSummaryResponse, previous: BudgetSummaryResponse = PREV_BUDGET) =>
   mockGetBudgetSummary.mockImplementation((m: string) =>
     Promise.resolve(m === prevMonth ? previous : { ...current, month: m }),
@@ -244,6 +275,7 @@ describe("Dashboard render", () => {
     mockGetMonthlyReport.mockResolvedValue(MONTHLY);
     mockGetMonthlyComparison.mockResolvedValue(MOM);
     mockGetUpcomingBills.mockResolvedValue([]);
+    mockGetRecurring.mockResolvedValue([]);
     budgets(BUDGET);
   });
 
@@ -472,6 +504,8 @@ describe("Dashboard render", () => {
 
     await waitFor(() => expect(mockGetUpcomingBills).toHaveBeenCalledWith("2026-11"));
     expect(mockGetUpcomingBills).toHaveBeenCalledWith("2026-10");
+    // ...and last month, for the unpaid-last-month check (R3).
+    expect(mockGetUpcomingBills).toHaveBeenCalledWith("2026-09");
   });
 
   it("lists a bill once when both months' responses carry the same occurrence", async () => {
@@ -483,7 +517,8 @@ describe("Dashboard render", () => {
     mount();
 
     await screen.findByRole("heading", { name: "Needs attention" });
-    expect(mockGetUpcomingBills).toHaveBeenCalledTimes(2);
+    // This month, next month, and last month for the unpaid-last-month check.
+    expect(mockGetUpcomingBills).toHaveBeenCalledTimes(3);
     expect(within(section("attention")!).getAllByRole("listitem")).toHaveLength(1);
   });
 
@@ -493,7 +528,97 @@ describe("Dashboard render", () => {
     mount();
 
     await waitFor(() => expect(mockGetUpcomingBills).toHaveBeenCalledWith("2026-10"));
-    expect(mockGetUpcomingBills).toHaveBeenCalledTimes(1);
+    expect(mockGetUpcomingBills).toHaveBeenCalledWith("2026-09"); // last month, for R3
+    expect(mockGetUpcomingBills).toHaveBeenCalledTimes(2);
+  });
+
+  // --- Overdue bills (contract 3.5.0) ---------------------------------------
+  // The clock is faked in Manila; `mount()` rather than `setup()`, which waits on the real month.
+
+  describe("overdue bills", () => {
+    const attentionRows = () =>
+      section("attention") ? within(section("attention")!).getAllByRole("listitem").map(text) : [];
+    /** Waits for the page, so an absent row means absent, not still loading. */
+    const loaded = async (at: string) => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(new Date(at));
+      mount();
+      await screen.findByTestId("hero-status");
+    };
+
+    it("keeps an unpaid bill whose due date this month has passed, marked overdue, above the upcoming ones", async () => {
+      upcomingByMonth({
+        "2026-11": [meralco("2026-11-10"), bill({ id: 8, name: "Netflix", dueDate: "2026-11-18" })],
+      });
+      mockGetRecurring.mockResolvedValue([recurring(), recurring({ id: 8, name: "Netflix" })]);
+      await loaded("2026-11-18T04:00:00Z"); // noon, 18 Nov, Manila
+
+      const rows = attentionRows();
+      expect(rows).toHaveLength(2);
+      expect(rows[0]).toContain("Meralco");
+      expect(rows[0]).toContain(`Overdue · was due ${formatDayMonth("2026-11-10T00:00:00+08:00")}`);
+      // Due today is not overdue yet.
+      expect(rows[1]).toContain("Netflix");
+      expect(rows[1]).toContain("Due today");
+    });
+
+    it("shows no row for a bill marked paid this month, past or upcoming (R5)", async () => {
+      upcomingByMonth({ "2026-11": [meralco("2026-11-10"), meralco("2026-11-20")] });
+      mockGetRecurring.mockResolvedValue([recurring({ paidThisMonth: true, lastPaidMonth: "2026-11" })]);
+      await loaded("2026-11-18T04:00:00Z");
+
+      expect(screen.queryByRole("heading", { name: "Needs attention" })).toBeNull();
+    });
+
+    it("flags a bill left unpaid last month, once it had an occurrence there", async () => {
+      upcomingByMonth({ "2026-11": [meralco("2026-11-20")], "2026-10": [meralco("2026-10-20")] });
+      mockGetRecurring.mockResolvedValue([recurring({ lastPaidMonth: "2026-09" })]);
+      await loaded("2026-11-03T04:00:00Z");
+
+      const rows = attentionRows();
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toContain("Meralco");
+      expect(rows[0]).toContain("Overdue · not paid last month");
+    });
+
+    it("does not flag a never-marked bill for last month, on the 1st (R1)", async () => {
+      upcomingByMonth({ "2026-11": [meralco("2026-11-20")], "2026-10": [meralco("2026-10-20")] });
+      mockGetRecurring.mockResolvedValue([recurring({ lastPaidMonth: null })]);
+      await loaded("2026-11-01T04:00:00Z");
+
+      expect(screen.queryByRole("heading", { name: "Needs attention" })).toBeNull();
+    });
+
+    it("does not flag a yearly bill that had no occurrence last month (R3)", async () => {
+      upcomingByMonth({ "2026-11": [meralco("2026-11-20")] });
+      mockGetRecurring.mockResolvedValue([recurring({ frequency: "YEARLY", lastPaidMonth: "2026-01" })]);
+      await loaded("2026-11-03T04:00:00Z");
+
+      expect(screen.queryByRole("heading", { name: "Needs attention" })).toBeNull();
+    });
+
+    it("shows one row per overdue bill, at its most recent missed date, replacing its upcoming rows (R4)", async () => {
+      upcomingByMonth({ "2026-11": ["2026-11-04", "2026-11-11", "2026-11-18"].map(meralco) });
+      mockGetRecurring.mockResolvedValue([recurring({ frequency: "WEEKLY" })]);
+      await loaded("2026-11-18T04:00:00Z");
+
+      const rows = attentionRows();
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toContain(`Overdue · was due ${formatDayMonth("2026-11-11T00:00:00+08:00")}`);
+    });
+
+    it("falls back to upcoming rows only when the bill list fails to load (R2)", async () => {
+      upcomingByMonth({
+        "2026-11": [meralco("2026-11-10"), bill({ id: 8, name: "Netflix", dueDate: "2026-11-21" })],
+      });
+      mockGetRecurring.mockRejectedValue(new Error("down"));
+      await loaded("2026-11-18T04:00:00Z");
+
+      const rows = attentionRows();
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toContain("Netflix");
+      expect(rows[0]).toContain("Due in 3 days");
+    });
   });
 
   // --- Goals, recent, insights --------------------------------------------
