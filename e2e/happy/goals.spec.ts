@@ -29,7 +29,7 @@ test.describe("Happy · goals", { tag: "@happy" }, () => {
     // Add savings adds to what is saved: ₱1,000 on ₱0 of ₱10,000 is 10%.
     await card.getByRole("button", { name: "Add savings", exact: true }).click();
     const add = modalWithTitle(page, "Add savings");
-    await add.getByLabel(/Amount to add/).fill("1000");
+    await add.getByLabel("Amount in pesos", { exact: true }).fill("1000");
     await add.getByRole("button", { name: "Add", exact: true }).click();
     await add.waitFor({ state: "detached", timeout: 15000 });
 
