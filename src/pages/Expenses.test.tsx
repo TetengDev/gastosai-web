@@ -149,6 +149,7 @@ describe("Expenses by day", () => {
     const [first, second] = dayGroups();
     expect(dayGroups()).toHaveLength(2);
     const firstHeader = first.querySelector("tr")!;
+    expect(firstHeader.querySelector("th")).toHaveAttribute("scope", "rowgroup");
     expect(firstHeader).toHaveTextContent("Nov 18");
     expect(firstHeader).toHaveTextContent("₱999.99");
     expect(within(first).getByText("Lunch")).toBeTruthy();
@@ -453,5 +454,79 @@ describe("Expenses saved face", () => {
     fireEvent.click(screen.getByRole("button", { name: "Stub save" }));
 
     await waitFor(() => expect(mockGetDailyReport).toHaveBeenCalledWith("2026-10"));
+  });
+});
+
+/**
+ * The page's states key on the hook's `total`, which is also 0 before the first load and after a
+ * failed one. Only a load that succeeded may decide "no expenses yet" (and R23's first expense).
+ */
+describe("Expenses resilience", () => {
+  const emptyMonth = () => {
+    mockGetExpenses.mockResolvedValue([]);
+    mockGetDailyReport.mockResolvedValue([]);
+  };
+
+  it("keeps the empty state when a quiet refetch fails", async () => {
+    emptyMonth();
+    hook({ total: 0 });
+    const { rerender } = render(<Expenses />);
+    await screen.findByRole("button", { name: "Log your first expense" });
+
+    hook({ total: 0, error: "Failed to load expenses" });
+    rerender(<Expenses />);
+    expect(screen.getByRole("button", { name: "Log your first expense" })).toBeTruthy();
+  });
+
+  it("does not offer a first expense while a failed first load is retried", async () => {
+    emptyMonth();
+    hook({ total: 0, error: "Failed to load expenses" });
+    const { rerender } = render(<Expenses />);
+    expect(await screen.findByRole("button", { name: "Try again" })).toBeTruthy();
+
+    hook({ total: 0, loading: true });
+    rerender(<Expenses />);
+    expect(screen.queryByRole("button", { name: "Log your first expense" })).toBeNull();
+  });
+
+  it("gives focus back to More actions when a dialog opened from it closes", async () => {
+    await loaded();
+    openMenu();
+    const deleteAll = screen.getByRole("button", { name: /Delete all/ });
+    deleteAll.focus();
+    fireEvent.click(deleteAll);
+    fireEvent.click(await screen.findByRole("button", { name: "Cancel" }));
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "More actions" })).toHaveFocus());
+  });
+
+  it("keeps the menu open while a CSV is chosen and imported", async () => {
+    mockUseFeatures.mockReturnValue({ csvImport: true, chatAttachments: false } as unknown as ReturnType<typeof useFeatures>);
+    await loaded();
+    openMenu();
+    fireEvent.click(screen.getByRole("button", { name: /Import CSV/ }));
+    expect(screen.getByRole("button", { name: "More actions" })).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("says so when deleting an expense fails, instead of hanging", async () => {
+    hook({ remove: vi.fn().mockRejectedValue(new Error("boom")) });
+    await loaded();
+    const row = screen.getByText("Lunch").closest("tr")!;
+    fireEvent.click(within(row).getByRole("button", { name: "Delete" }));
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Delete" }));
+
+    expect(await screen.findByText("Could not delete that expense. Try again.")).toBeTruthy();
+  });
+
+  it("says so when deleting everything fails, instead of hanging", async () => {
+    hook({ removeAll: vi.fn().mockRejectedValue(new Error("boom")) });
+    await loaded();
+    openMenu();
+    fireEvent.click(screen.getByRole("button", { name: /Delete all/ }));
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Delete all" }));
+
+    expect(await screen.findByText("Could not delete your expenses. Try again.")).toBeTruthy();
   });
 });
