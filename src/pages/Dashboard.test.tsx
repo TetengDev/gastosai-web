@@ -721,7 +721,9 @@ describe("Dashboard render", () => {
         "2026-10": [bill({ id: 8, name: "Netflix", dueDate: "2026-10-30" })],
         "2026-11": [meralco("2026-11-01")],
       });
-      mockGetRecurring.mockResolvedValue([recurring(), recurring({ id: 8, name: "Netflix" })]);
+      // Unpaid in October, so `lastPaidMonth` sits before it.
+      const unpaid = { paidThisMonth: false, lastPaidMonth: "2026-09" };
+      mockGetRecurring.mockResolvedValue([recurring(unpaid), recurring({ id: 8, name: "Netflix", ...unpaid })]);
       await loaded("2026-10-28T04:00:00Z");
 
       expect(attentionRows().some((r) => r.includes("Meralco"))).toBe(true);
