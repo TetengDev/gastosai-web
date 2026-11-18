@@ -345,7 +345,7 @@ export default function Dashboard() {
             fetchData();
           }}
         >
-          Retry
+          Try again
         </Button>
       </Card>
     );

@@ -1017,7 +1017,7 @@ describe("Dashboard render", () => {
     const { container } = mount();
 
     expect(await screen.findByText("Failed to load dashboard data.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Retry" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
     expect(container.innerHTML).not.toMatch(/#[0-9a-fA-F]{6}/);
   });
 
