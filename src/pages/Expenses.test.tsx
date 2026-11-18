@@ -7,6 +7,7 @@ import {
   getDailyReport,
   getExpenses,
   getProjects,
+  importExpensesCsv,
   type DailyReport,
 } from "../api/expenses";
 import { useEntitlements, type UseEntitlements } from "../hooks/useEntitlements";
@@ -557,4 +558,20 @@ describe("Expenses fix round 1", () => {
     expect(screen.getByText(text)).toBeTruthy();
   });
 
+  it("dismisses an import result with a named icon button", async () => {
+    csvOn();
+    vi.mocked(importExpensesCsv).mockResolvedValue({ imported: 2, skipped: 0, errors: [] });
+    const { container } = render(<Expenses />);
+    await screen.findByText("Electric bill");
+
+    const file = new File(["amount\n1"], "e.csv", { type: "text/csv" });
+    fireEvent.change(container.querySelector('input[type="file"]')!, { target: { files: [file] } });
+    await screen.findByText(/2 expenses imported/);
+
+    const dismiss = screen.getByRole("button", { name: "Dismiss" });
+    expect(dismiss.querySelector("svg")).not.toBeNull();
+    expect(dismiss.textContent).toBe("");
+    fireEvent.click(dismiss);
+    expect(screen.queryByText(/2 expenses imported/)).toBeNull();
+  });
 });
