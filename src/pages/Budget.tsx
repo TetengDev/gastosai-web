@@ -38,6 +38,9 @@ export default function Budget() {
   const [month, setMonth] = useState(currentMonth);
   const [budgets, setBudgets] = useState<BudgetResponse[]>([]);
   const [summary, setSummary] = useState<BudgetSummaryResponse | null>(null);
+  // The month the rows on screen belong to. Set with the data, so after a step the previous
+  // month's rows are known to be stale until the new month answers.
+  const [dataMonth, setDataMonth] = useState<string | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -86,6 +89,7 @@ export default function Budget() {
       setBudgets(budgetList);
       setSummary(sum);
       setCategories(catList);
+      setDataMonth(month);
     } catch {
       if (request === latest.current) setError("Failed to load budgets.");
     } finally {
@@ -312,8 +316,9 @@ export default function Budget() {
   const mood = pisoMoodFor({ bands, hasExpenses: true });
   const overCount = bands.filter((b) => b === "OVER_BUDGET").length;
   const warnCount = bands.filter((b) => b === "WARNING").length;
+  const stale = dataMonth !== month;
   const moodLine =
-    bands.length === 0
+    stale || bands.length === 0
       ? null
       : overCount + warnCount === 0
         ? "All on track"
@@ -403,97 +408,99 @@ export default function Budget() {
 
       <BudgetRuleCard month={month} categories={categories} onCategoriesChanged={() => { void load(); }} />
 
-      {budgets.length === 0 ? (
-        <div className="rounded-2xl border border-edge bg-surface p-16 text-center">
-          <p className="mb-3 text-4xl">💰</p>
-          <p className="text-lg font-semibold text-ink-hi">No budgets for this month</p>
-          <p className="mb-5 mt-1 text-sm text-ink-3">Set spending limits per category to track your budget</p>
-          <Button onClick={openAdd}>
-            <Plus className="h-[15px] w-[15px]" />
-            Set your first budget
-          </Button>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          <SelectionBar count={sel.count} onDelete={() => void deleteSelected()} onClear={sel.clear} deleting={deletingSelected} noun="budget" />
-          <div className="overflow-hidden rounded-2xl border border-edge">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-edge-2 bg-surface-2 font-mono text-[11px] uppercase tracking-[0.1em] text-ink-3">
-                <th className="w-10 px-6 py-4">
-                  <input type="checkbox" aria-label="Select all" checked={sel.allSelected} onChange={sel.toggleAll} className="rounded accent-[#1f8a5b]" />
-                </th>
-                <th className="px-6 py-4 text-left font-normal">Category</th>
-                <th className="px-6 py-4 text-right font-normal">Budget limit</th>
-                <th className="px-6 py-4 text-right font-normal">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map(({ b, item }) => (
-                <tr key={b.id} className="border-b border-edge-3 transition-colors last:border-0 hover:bg-surface-2">
-                  <td className="px-6 py-5">
-                    <input type="checkbox" aria-label={`Select ${b.categoryName}`} checked={sel.selected.has(b.id)} onChange={() => sel.toggle(b.id)} className="rounded accent-brand" />
-                  </td>
-                  <td className="px-6 py-5">
-                    <span className="inline-flex items-center gap-2 font-medium text-ink-hi">
-                      {(() => { const Ic = categoryIcon(b.categoryName); return <Ic className="h-4 w-4 shrink-0 text-ink-3" />; })()}
-                      {b.categoryName}
-                      {b.recurring && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-brand/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] text-brand">
-                          ↻ Monthly
-                        </span>
-                      )}
-                    </span>
-                    {item && (
-                      <>
-                        <ProgressMeter
-                          percent={item.percentUsed}
-                          tone={budgetTone(toBand(item.status))}
-                          label={`${b.categoryName} budget`}
-                          className="mt-3"
-                        />
-                        <div className="mt-1.5 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 text-xs">
-                          <span className="font-mono tabular-nums text-ink-3">
-                            {formatCentavos(item.spent)} of {formatCentavos(item.budgeted)} · {Math.round(item.percentUsed)}%
-                          </span>
-                          {item.remaining < 0 ? (
-                            <span className="font-medium text-warn-ink">Over by {formatCentavos(-item.remaining)}</span>
-                          ) : (
-                            <span className="text-ink-2">{formatCentavos(item.remaining)} left</span>
-                          )}
-                        </div>
-                      </>
-                    )}
-                  </td>
-                  <td className="px-6 py-5 text-right">
-                    <span className="inline-flex items-center justify-end gap-2">
-                      {b.currency !== "PHP" && (
-                        <span className="rounded-md bg-link/10 px-1.5 py-0.5 font-mono text-[11px] text-link">
-                          {formatCurrencyAmount(b.amountLimit, b.currency, "code")}
-                        </span>
-                      )}
-                      <span className="font-display text-[17px] font-medium text-ink-hi">
-                        {formatCentavos(b.amountLimitInBaseCurrency ?? b.amountLimit)}
-                      </span>
-                    </span>
-                  </td>
-                  <td className="px-6 py-5">
-                    <div className="flex items-center justify-end gap-2">
-                      <IconButton onClick={() => openEdit(b)} title="Edit">
-                        <Pencil className="h-4 w-4" />
-                      </IconButton>
-                      <IconButton onClick={() => setConfirmDelete(b)} title="Delete" className="hover:text-[#b30000]">
-                        <Trash2 className="h-4 w-4" />
-                      </IconButton>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <div aria-busy={stale} inert={stale} className={stale ? "opacity-60 transition-opacity" : "transition-opacity"}>
+        {budgets.length === 0 ? (
+          <div className="rounded-2xl border border-edge bg-surface p-16 text-center">
+            <p className="mb-3 text-4xl">💰</p>
+            <p className="text-lg font-semibold text-ink-hi">No budgets for this month</p>
+            <p className="mb-5 mt-1 text-sm text-ink-3">Set spending limits per category to track your budget</p>
+            <Button onClick={openAdd}>
+              <Plus className="h-[15px] w-[15px]" />
+              Set your first budget
+            </Button>
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="space-y-3">
+            <SelectionBar count={sel.count} onDelete={() => void deleteSelected()} onClear={sel.clear} deleting={deletingSelected} noun="budget" />
+            <div className="overflow-hidden rounded-2xl border border-edge">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-edge-2 bg-surface-2 font-mono text-[11px] uppercase tracking-[0.1em] text-ink-3">
+                  <th className="w-10 px-6 py-4">
+                    <input type="checkbox" aria-label="Select all" checked={sel.allSelected} onChange={sel.toggleAll} className="rounded accent-[#1f8a5b]" />
+                  </th>
+                  <th className="px-6 py-4 text-left font-normal">Category</th>
+                  <th className="px-6 py-4 text-right font-normal">Budget limit</th>
+                  <th className="px-6 py-4 text-right font-normal">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map(({ b, item }) => (
+                  <tr key={b.id} className="border-b border-edge-3 transition-colors last:border-0 hover:bg-surface-2">
+                    <td className="px-6 py-5">
+                      <input type="checkbox" aria-label={`Select ${b.categoryName}`} checked={sel.selected.has(b.id)} onChange={() => sel.toggle(b.id)} className="rounded accent-brand" />
+                    </td>
+                    <td className="px-6 py-5">
+                      <span className="inline-flex items-center gap-2 font-medium text-ink-hi">
+                        {(() => { const Ic = categoryIcon(b.categoryName); return <Ic className="h-4 w-4 shrink-0 text-ink-3" />; })()}
+                        {b.categoryName}
+                        {b.recurring && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-brand/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] text-brand">
+                            ↻ Monthly
+                          </span>
+                        )}
+                      </span>
+                      {item && (
+                        <>
+                          <ProgressMeter
+                            percent={item.percentUsed}
+                            tone={budgetTone(toBand(item.status))}
+                            label={`${b.categoryName} budget`}
+                            className="mt-3"
+                          />
+                          <div className="mt-1.5 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 text-xs">
+                            <span className="font-mono tabular-nums text-ink-3">
+                              {formatCentavos(item.spent)} of {formatCentavos(item.budgeted)} · {Math.round(item.percentUsed)}%
+                            </span>
+                            {item.remaining < 0 ? (
+                              <span className="font-medium text-warn-ink">Over by {formatCentavos(-item.remaining)}</span>
+                            ) : (
+                              <span className="text-ink-2">{formatCentavos(item.remaining)} left</span>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </td>
+                    <td className="px-6 py-5 text-right">
+                      <span className="inline-flex items-center justify-end gap-2">
+                        {b.currency !== "PHP" && (
+                          <span className="rounded-md bg-link/10 px-1.5 py-0.5 font-mono text-[11px] text-link">
+                            {formatCurrencyAmount(b.amountLimit, b.currency, "code")}
+                          </span>
+                        )}
+                        <span className="font-display text-[17px] font-medium text-ink-hi">
+                          {formatCentavos(b.amountLimitInBaseCurrency ?? b.amountLimit)}
+                        </span>
+                      </span>
+                    </td>
+                    <td className="px-6 py-5">
+                      <div className="flex items-center justify-end gap-2">
+                        <IconButton onClick={() => openEdit(b)} title="Edit">
+                          <Pencil className="h-4 w-4" />
+                        </IconButton>
+                        <IconButton onClick={() => setConfirmDelete(b)} title="Delete" className="hover:text-[#b30000]">
+                          <Trash2 className="h-4 w-4" />
+                        </IconButton>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            </div>
+          </div>
+        )}
+      </div>
 
       <Modal open={modalOpen} onClose={closeModal} title={editing ? "Edit Budget" : "Add Budget"} maxWidthClass="max-w-sm">
         <form onSubmit={(e) => { void handleSave(e); }} className="space-y-4">
