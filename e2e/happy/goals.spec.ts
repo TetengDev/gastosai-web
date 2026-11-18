@@ -26,7 +26,17 @@ test.describe("Happy · goals", { tag: "@happy" }, () => {
     await expect(card).toContainText("Target: ₱10,000.00");
     await expect(card).toContainText("0%");
 
-    // Contributing is an edit of "Saved So Far" — the page has no separate contribute action.
+    // Add savings adds to what is saved: ₱1,000 on ₱0 of ₱10,000 is 10%.
+    await card.getByRole("button", { name: "Add savings", exact: true }).click();
+    const add = modalWithTitle(page, "Add savings");
+    await add.getByLabel(/Amount to add/).fill("1000");
+    await add.getByRole("button", { name: "Add", exact: true }).click();
+    await add.waitFor({ state: "detached", timeout: 15000 });
+
+    await expect(card).toContainText("₱1,000.00");
+    await expect(card).toContainText("10%");
+
+    // Editing "Saved So Far" still sets the total outright.
     await card.hover();
     await card.getByRole("button", { name: "Edit", exact: true }).click();
     const edit = modalWithTitle(page, "Edit Goal");
