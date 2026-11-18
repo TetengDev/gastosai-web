@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
+import ConfirmDialog from "./ConfirmDialog";
 import Modal from "./Modal";
 
 /** A page with an opener button, so focus has somewhere to come back to. */
@@ -92,5 +93,54 @@ describe("Modal", () => {
     fireEvent.keyDown(screen.getByLabelText("Amount"), { key: "Escape" });
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(document.activeElement).toBe(opener);
+  });
+
+  it("holds focus on the panel when it has nothing focusable", () => {
+    render(
+      <Modal open onClose={() => {}}>
+        <p>Nothing to press here.</p>
+      </Modal>,
+    );
+    const dialog = screen.getByRole("dialog");
+    expect(document.activeElement).toBe(dialog);
+
+    // fireEvent returns false when the default (moving focus out) was prevented.
+    expect(fireEvent.keyDown(dialog, { key: "Tab" })).toBe(false);
+    expect(fireEvent.keyDown(dialog, { key: "Tab", shiftKey: true })).toBe(false);
+    expect(document.activeElement).toBe(dialog);
+  });
+
+  // A confirm stacked over a form: Escape closes the confirm only, and focus goes back to the
+  // control inside the form that opened it.
+  it("closes only the top dialog on Escape and returns focus to its opener", () => {
+    const closeForm = vi.fn();
+    function Stack() {
+      const [confirming, setConfirming] = useState(false);
+      return (
+        <Modal open title="Edit Goal" onClose={closeForm}>
+          <button onClick={() => setConfirming(true)}>Remove</button>
+          <ConfirmDialog
+            open={confirming}
+            title="Delete goal?"
+            message="It will be removed."
+            onConfirm={() => {}}
+            onCancel={() => setConfirming(false)}
+          />
+        </Modal>
+      );
+    }
+    render(<Stack />);
+    const remove = screen.getByRole("button", { name: "Remove" });
+    remove.focus();
+    fireEvent.click(remove);
+
+    const confirm = screen.getByRole("dialog", { name: "Delete goal?" });
+    expect(confirm.contains(document.activeElement)).toBe(true);
+
+    fireEvent.keyDown(document.activeElement!, { key: "Escape" });
+    expect(screen.queryByRole("dialog", { name: "Delete goal?" })).toBeNull();
+    expect(screen.getByRole("dialog", { name: "Edit Goal" })).toBeTruthy();
+    expect(closeForm).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(remove);
   });
 });
