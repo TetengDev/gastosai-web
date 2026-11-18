@@ -356,7 +356,8 @@ export default function Budget() {
       {/* Below sm Piso sits above the header; the actions are one wrapping container because
           PageHeader's own actions row does not wrap. */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-5">
-        <div role="img" aria-label={moodName} className="w-fit shrink-0">
+        {/* While stale the face still shows the previous month's mood, so it is not announced. */}
+        <div {...(stale ? { "aria-hidden": true } : { role: "img", "aria-label": moodName })} className="w-fit shrink-0">
           <span aria-hidden="true">
             <Piso state={mood} size={64} />
           </span>
