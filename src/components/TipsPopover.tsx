@@ -1,9 +1,11 @@
 import { useState } from "react";
+import { useDismiss } from "../hooks/useDismiss";
 import { Lightbulb } from "lucide-react";
 import { TIPS, dismissTip, getDismissedTips, resetTips } from "../lib/tips";
 
 export default function TipsPopover() {
   const [open, setOpen] = useState(false);
+  const root = useDismiss<HTMLDivElement>(open, () => setOpen(false));
   const [dismissed, setDismissed] = useState<string[]>(() => getDismissedTips());
   const [idx, setIdx] = useState(0);
 
@@ -26,7 +28,7 @@ export default function TipsPopover() {
   };
 
   return (
-    <div className="relative">
+    <div ref={root} className="relative">
       <button
         onClick={() => setOpen((o) => !o)}
         aria-label="Tips"
@@ -41,8 +43,7 @@ export default function TipsPopover() {
 
       {open && (
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 z-50 mt-2 w-72 rounded-xl border border-edge bg-surface p-4 shadow-2xl">
+          <div data-nav-popover className="absolute right-0 z-50 mt-2 w-72 rounded-xl border border-edge bg-surface p-4 shadow-2xl">
             <div className="flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
               <Lightbulb className="h-3.5 w-3.5 text-brand" />
               Tips
