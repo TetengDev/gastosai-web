@@ -256,6 +256,11 @@ export default function Goals() {
     }
   };
 
+  // Ignored mid-save: the answer would land in whichever dialog was open by then.
+  const closeAddSavings = () => {
+    if (!adding) setAddingId(null);
+  };
+
   const openAddSavings = (goal: Goal) => {
     setAddingId(goal.id);
     setAddText("");
@@ -496,7 +501,7 @@ export default function Goals() {
         </div>
       )}
 
-      <Modal open={addingGoal !== null} onClose={() => setAddingId(null)} title="Add savings">
+      <Modal open={addingGoal !== null} onClose={closeAddSavings} title="Add savings">
         {addingGoal && (
           <form
             noValidate
@@ -532,7 +537,7 @@ export default function Goals() {
               </p>
             )}
             <div className="mt-6 flex gap-3">
-              <Button type="button" variant="secondary" className="flex-1" onClick={() => setAddingId(null)}>
+              <Button type="button" variant="secondary" className="flex-1" onClick={closeAddSavings}>
                 Cancel
               </Button>
               {/* aria-disabled, not disabled: a disabled button drops focus mid-save, and the guard
