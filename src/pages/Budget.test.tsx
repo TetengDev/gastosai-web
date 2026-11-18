@@ -416,6 +416,17 @@ describe("Budget while a month loads", () => {
 
     expect(screen.getByRole("table").closest("[aria-busy]")).toHaveAttribute("aria-busy", "true");
   });
+
+  // The mood describes the rows on screen, which are the previous month's until the step lands.
+  it("withdraws the Piso's mood name while the rows are stale", async () => {
+    render(<Budget />);
+    expect(await screen.findByRole("img", { name: "Over budget" })).toBeTruthy();
+
+    mockGetBudgets.mockReturnValue(new Promise(() => {}));
+    fireEvent.click(screen.getByRole("button", { name: "Previous month" }));
+
+    expect(screen.queryByRole("img", { name: "Over budget" })).toBeNull();
+  });
 });
 
 /**
