@@ -436,10 +436,12 @@ describe("Goals celebration", () => {
 describe("Goals header and loading", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("names the header Piso for its mood once the goals have loaded, art hidden inside", async () => {
+  // As on Budgets, a resting Piso is named for what the data says, never "Resting".
+  it("names the resting header Piso for the goals in progress, art hidden inside", async () => {
     mockGetGoals.mockResolvedValue([goal()]);
     renderGoals();
-    const face = await screen.findByRole("img", { name: "Resting" });
+    const face = await screen.findByRole("img", { name: "1 goal in progress" });
+    expect(screen.queryByRole("img", { name: "Resting" })).toBeNull();
     // The wrapper's own child hides the art, so the face is announced once, by the wrapper's name.
     expect(face.firstElementChild).toHaveAttribute("aria-hidden", "true");
     expect(pisos()).toHaveLength(1);
@@ -520,7 +522,7 @@ describe("Goals celebration queue", () => {
 
     await advance(HOLD_MS);
     expect(coin()).toBeNull();
-    expect(screen.getByRole("img", { name: "Resting" })).toBeTruthy();
+    expect(screen.getByRole("img", { name: "Every goal reached" })).toBeTruthy();
     expect(pisos()).toHaveLength(1);
   });
 });
@@ -533,16 +535,16 @@ describe("Goals while a reload is in flight", () => {
     mockGetGoals.mockResolvedValueOnce([goal()]);
     mockGetGoals.mockReturnValueOnce(new Promise<Goal[]>((resolve) => { answer = resolve; }));
     renderGoals();
-    await screen.findByRole("img", { name: "Resting" });
+    await screen.findByRole("img", { name: "1 goal in progress" });
 
     fireEvent.click(screen.getByTitle("Reload"));
-    await waitFor(() => expect(screen.queryByRole("img", { name: "Resting" })).toBeNull());
+    await waitFor(() => expect(screen.queryByRole("img", { name: "1 goal in progress" })).toBeNull());
     const cards = screen.getByRole("heading", { name: "Emergency Fund" }).closest("[aria-busy]")!;
     expect(cards).toHaveAttribute("aria-busy", "true");
     expect(cards).toHaveAttribute("inert");
 
     await act(async () => answer([goal()]));
-    expect(await screen.findByRole("img", { name: "Resting" })).toBeTruthy();
+    expect(await screen.findByRole("img", { name: "1 goal in progress" })).toBeTruthy();
     expect(cards).toHaveAttribute("aria-busy", "false");
     expect(cards).not.toHaveAttribute("inert");
   });
