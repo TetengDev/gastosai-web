@@ -72,6 +72,20 @@ describe("Modal", () => {
     expect(document.activeElement).toBe(save);
   });
 
+  // A click on the panel's padding focuses the panel itself (tabIndex -1); Tab must not leave from there.
+  it("keeps Tab and Shift+Tab inside when the panel itself has focus", () => {
+    openHost();
+    const dialog = screen.getByRole("dialog");
+
+    dialog.focus();
+    fireEvent.keyDown(dialog, { key: "Tab", shiftKey: true });
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Save" }));
+
+    dialog.focus();
+    fireEvent.keyDown(dialog, { key: "Tab" });
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Close" }));
+  });
+
   it("returns focus to the control that opened it", () => {
     const opener = openHost();
     expect(document.activeElement).not.toBe(opener);
