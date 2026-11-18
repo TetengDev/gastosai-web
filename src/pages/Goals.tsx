@@ -476,7 +476,7 @@ export default function Goals() {
       {error && (
         <p role="alert" className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-danger">
           {error}
-          <button type="button" onClick={() => void load()} className="cursor-pointer text-link underline">
+          <button type="button" onClick={() => void load()} className="cursor-pointer text-ink-hi underline">
             Try again
           </button>
         </p>
@@ -612,7 +612,7 @@ export default function Goals() {
           </div>
           <div>
             <label className={labelClass}>
-              Target Date <span className="font-normal text-ink-3">(optional)</span>
+              Target Date <span className="font-normal text-ink-2">(optional)</span>
             </label>
             <input
               type="date"
