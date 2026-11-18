@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Sparkles } from "lucide-react";
 import { assignBuckets, getBudgetRule, getBudgetRuleSummary, putBudgetRule, setBudgetRuleEnabled } from "../api/budgetRules";
 import type { Bucket, BudgetRuleSummary, BudgetRuleType } from "../api/budgetRules";
@@ -32,9 +32,15 @@ export default function BudgetRuleCard({ month, categories, onCategoriesChanged 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // The budgets page keeps this card mounted while its month stepper moves, so only the newest
+  // request may write.
+  const latest = useRef(0);
+
   const load = useCallback(async () => {
+    const request = ++latest.current;
     try {
       const [rule, sum] = await Promise.all([getBudgetRule(), getBudgetRuleSummary(month)]);
+      if (request !== latest.current) return;
       setEnabledState(rule.enabled);
       setRuleType(rule.ruleType);
       setIncome(centavosToAmount(rule.monthlyIncome));
@@ -43,6 +49,8 @@ export default function BudgetRuleCard({ month, categories, onCategoriesChanged 
       setSavings(rule.savingsPct);
       setSummary(sum);
     } catch {
+      if (request !== latest.current) return;
+      setSummary(null);
       setError("Failed to load budgeting rule.");
     }
   }, [month]);
