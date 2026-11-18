@@ -497,7 +497,7 @@ export default function Expenses() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Expenses" subtitle={<span>{total} total entries</span>} />
+      <PageHeader title="Expenses" subtitle={<span>{total} total {total === 1 ? "entry" : "entries"}</span>} />
 
       {/* Pinned under the 72px nav. Solid page colour, so rows scrolling beneath stay legible. */}
       <div className="sticky top-[72px] z-20 -mx-6 border-b border-edge-2 bg-page px-6 py-3 md:-mx-10 md:px-10">
