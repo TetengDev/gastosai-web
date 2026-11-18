@@ -369,7 +369,8 @@ export default function Budget() {
                 {budgets.length} {budgets.length === 1 ? "budget" : "budgets"}
               </span>
             }
-            onDeleteAll={budgets.length > 0 ? () => setConfirmDeleteAll(true) : undefined}
+            // While stale the rows are another month's; Delete all would wipe a month nobody has seen.
+            onDeleteAll={budgets.length > 0 && !stale ? () => setConfirmDeleteAll(true) : undefined}
             actions={
               <div className="flex flex-wrap items-center gap-3">
                 <div className="flex items-center rounded-full border border-edge-input bg-surface p-0.5">
@@ -399,7 +400,7 @@ export default function Budget() {
                 <IconButton onClick={() => { void load(); }} title="Reload">
                   <RotateCcw className="h-4 w-4" />
                 </IconButton>
-                <Button onClick={openAdd}>
+                <Button onClick={openAdd} disabled={stale}>
                   <Plus className="h-[15px] w-[15px]" />
                   Add Budget
                 </Button>
