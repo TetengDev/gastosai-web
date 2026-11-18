@@ -219,6 +219,16 @@ describe("ExpenseModal currency prefix", () => {
     expect(screen.getByText("CAD")).toBeTruthy();
   });
 
+  // Pesos by name; any other currency by its symbol, as Goals names its amount field.
+  it.each([
+    ["PHP", "Amount in pesos"],
+    ["USD", "Amount ($)"],
+    ["CAD", "Amount (CAD)"],
+  ])("names the amount field for %s as %s", (currency, name) => {
+    renderWith(currency);
+    expect(screen.getByRole("spinbutton", { name })).toBeTruthy();
+  });
+
   it("follows the currency picker", async () => {
     const user = userEvent.setup();
     renderWith("PHP");
