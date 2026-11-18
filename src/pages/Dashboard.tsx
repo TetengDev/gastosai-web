@@ -368,7 +368,7 @@ export default function Dashboard() {
                     percent={row.item.percentUsed}
                     tone={budgetTone(toBand(row.item.status))}
                     label={`${row.item.categoryName} budget`}
-                    height={4}
+                    height={6}
                     className="mt-2"
                   />
                 </div>

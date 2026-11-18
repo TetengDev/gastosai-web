@@ -63,4 +63,12 @@ describe("ProgressMeter", () => {
       screen.getByRole("progressbar"),
     );
   });
+
+  it("shows a bar inside the ring and gap at the smallest supported over height", () => {
+    render(<ProgressMeter percent={130} tone="over" label="Over" height={6} />);
+    expect(screen.getByRole("progressbar")).toHaveStyle({ height: "6px" });
+    expect(screen.getByTestId("meter-fill").parentElement).not.toBe(
+      screen.getByRole("progressbar"),
+    );
+  });
 });

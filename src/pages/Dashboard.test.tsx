@@ -447,6 +447,9 @@ describe("Dashboard render", () => {
     expect(rows.some((r) => r.includes("Rent"))).toBe(true);
     expect(rows.join()).not.toMatch(/Groceries|Gym|Paid already/);
     expect(rows).toHaveLength(4);
+    // An over meter is a ring and a gap around the bar, so it needs at least 6px to show one.
+    const over = within(section("attention")!).getByRole("progressbar", { name: "Fun budget" });
+    expect(parseFloat(over.style.height)).toBeGreaterThanOrEqual(6);
     // Over budget leads, then warnings, then bills by due date.
     expect(rows[0]).toContain("Fun");
     expect(rows[1]).toContain("Food");

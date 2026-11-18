@@ -43,6 +43,7 @@ export default function ProgressMeter({
       aria-valuetext={`${shown}%`}
       className={cn(
         "relative overflow-hidden rounded-full bg-track",
+        // Needs height >= 6 to show a bar (border + gap take 4px).
         // Over reads as an outlined capsule (ring, gap, bar) so it differs from warning without colour.
         tone === "over" && "border border-warn-ink p-px",
         className,
