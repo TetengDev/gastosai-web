@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import ExpenseModal from "./ExpenseModal";
@@ -227,6 +227,12 @@ describe("ExpenseModal currency prefix", () => {
   ])("names the amount field for %s as %s", (currency, name) => {
     renderWith(currency);
     expect(screen.getByRole("spinbutton", { name })).toBeTruthy();
+  });
+
+  it("ties the Currency label to its picker", () => {
+    renderWith("PHP");
+    const group = screen.getByRole("group", { name: "Currency" });
+    expect(within(group).getByRole("button", { name: /PHP/ })).toBeTruthy();
   });
 
   it("follows the currency picker", async () => {
