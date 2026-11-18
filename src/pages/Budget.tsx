@@ -21,6 +21,7 @@ import { categoryIcon } from "../lib/categoryIcon";
 import { EXPENSE_CHANGED } from "../lib/events";
 import { budgetTone, pisoMoodFor, toBand } from "../lib/pisoMood";
 import Piso from "../brand/Piso";
+import { PISO_LABELS } from "../brand/pisoTokens";
 import { centavosToAmount, currencySymbol, formatCentavos, formatCurrencyAmount, formatMonth, manilaMonth, parseAmountToCentavos } from "../lib/formatters";
 
 const currentMonth = () => manilaMonth();
@@ -316,21 +317,13 @@ export default function Budget() {
     .map((b) => ({ b, item: itemFor.get(b.categoryId) }))
     .sort((x, y) => (y.item?.percentUsed ?? -1) - (x.item?.percentUsed ?? -1));
 
-  // One Piso for the screen, in the worst row's server band; the line beside it says the same in
-  // words, so the face is never the only signal.
+  // One Piso for the screen, in the worst row's server band. There is no visible mood line (mobile
+  // has none), so the face carries the mood as its accessible name; `resting` has no label of its
+  // own because elsewhere it sits beside text that already says it.
   const bands = rows.flatMap((r) => (r.item ? [toBand(r.item.status)] : []));
   const mood = pisoMoodFor({ bands, hasExpenses: true });
-  const overCount = bands.filter((b) => b === "OVER_BUDGET").length;
-  const warnCount = bands.filter((b) => b === "WARNING").length;
+  const moodName = PISO_LABELS[mood] ?? (bands.length > 0 ? "All budgets on track" : "No budget figures yet");
   const stale = dataMonth !== month;
-  const moodLine =
-    stale || bands.length === 0
-      ? null
-      : overCount + warnCount === 0
-        ? "All on track"
-        : [overCount && `${overCount} over budget`, warnCount && `${warnCount} close to the limit`]
-            .filter(Boolean)
-            .join(" · ");
 
   const inputClass = "w-full rounded-xl border border-edge-input bg-input px-4 py-2.5 text-sm text-ink";
   const labelClass = "mb-1.5 block text-sm font-medium text-ink";
@@ -360,19 +353,17 @@ export default function Budget() {
   return (
     <div className="space-y-8">
       <div className="flex items-start gap-4 sm:items-center sm:gap-5">
-        <Piso state={mood} size={64} className="shrink-0" />
+        <div role="img" aria-label={moodName} className="shrink-0">
+          <span aria-hidden="true">
+            <Piso state={mood} size={64} />
+          </span>
+        </div>
         <div className="min-w-0 flex-1">
           <PageHeader
             title="Budgets"
             subtitle={
               <span>
                 {budgets.length} {budgets.length === 1 ? "budget" : "budgets"}
-                {moodLine && (
-                  <>
-                    {" · "}
-                    <span className={overCount + warnCount > 0 ? "font-medium text-warn-ink" : undefined}>{moodLine}</span>
-                  </>
-                )}
               </span>
             }
             onDeleteAll={budgets.length > 0 ? () => setConfirmDeleteAll(true) : undefined}
