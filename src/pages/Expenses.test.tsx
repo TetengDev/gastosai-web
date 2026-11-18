@@ -530,3 +530,22 @@ describe("Expenses resilience", () => {
     expect(await screen.findByText("Could not delete your expenses. Try again.")).toBeTruthy();
   });
 });
+
+describe("Expenses fix round 1", () => {
+  const csvOn = () =>
+    mockUseFeatures.mockReturnValue({ csvImport: true, chatAttachments: false } as unknown as ReturnType<typeof useFeatures>);
+
+  it("keeps CSV import reachable on an empty account", async () => {
+    csvOn();
+    hook({ total: 0 });
+    mockGetExpenses.mockResolvedValue([]);
+    mockGetDailyReport.mockResolvedValue([]);
+    render(<Expenses />);
+
+    await screen.findByRole("button", { name: "Log your first expense" });
+    openMenu();
+    expect(screen.getByRole("button", { name: /Import CSV/ })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Delete all/ })).toBeNull();
+  });
+
+});
