@@ -467,11 +467,12 @@ export default function Dashboard() {
               </Link>
             </li>
           ) : (
-            // A button cannot sit inside a link, so the row is the link plus the action beside it.
-            <li key={`bill-${row.bill.id}-${row.bill.dueDate}`} className="flex items-center">
+            // A button cannot sit inside a link, so the row is the link plus the action beside it. On
+            // a phone the action wraps under the link, so the name keeps its width.
+            <li key={`bill-${row.bill.id}-${row.bill.dueDate}`} className="flex flex-wrap items-center sm:flex-nowrap">
               <Link
                 to="/recurring"
-                className="flex min-w-0 flex-1 items-center gap-4 px-4 py-3 transition-colors hover:bg-surface-2"
+                className="flex min-w-0 flex-1 basis-full items-center gap-4 px-4 py-3 transition-colors hover:bg-surface-2 sm:basis-auto"
               >
                 <div className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-medium text-ink-hi">{row.bill.name}</span>
@@ -484,7 +485,7 @@ export default function Dashboard() {
                 <Button
                   variant="secondary"
                   size="sm"
-                  className="mr-4 min-h-11 shrink-0"
+                  className="mx-4 mb-3 min-h-11 shrink-0 sm:mb-0 sm:ml-0"
                   aria-label={`Mark ${row.bill.name} paid`}
                   disabled={marking}
                   onClick={() => void markPaid(row.bill.id)}
