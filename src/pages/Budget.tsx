@@ -213,6 +213,12 @@ export default function Budget() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    // `max` already stops this where the browser has a month picker; without one it is a text
+    // field. A later month could be created but not seen here, because the stepper stops at now.
+    if (!editing && modalMonth > currentMonth()) {
+      setModalError("Choose this month or an earlier one.");
+      return;
+    }
     if (categoryId === "") {
       setModalError("Please select a category.");
       return;
@@ -533,6 +539,7 @@ export default function Budget() {
               <input
                 type="month"
                 required
+                max={currentMonth()}
                 value={modalMonth}
                 onChange={(e) => setModalMonth(e.target.value)}
                 className={inputClass}
