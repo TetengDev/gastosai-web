@@ -426,3 +426,61 @@ describe("Budget modal month", () => {
     expect(mockCreateBudget).not.toHaveBeenCalled();
   });
 });
+
+/**
+ * Once a month has loaded, a failed refetch or a failed step must not take the working page away:
+ * the failure shows inline, and the stepper stays to move off a month that will not load.
+ */
+describe("Budget load failures after the first load", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2027-01-15T04:00:00+08:00"));
+    mockGetCategories.mockResolvedValue([]);
+    mockGetBudgets.mockResolvedValue([budget()]);
+    mockGetBudgetSummary.mockResolvedValue(summaryOf([item()]));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("keeps the page and says so inline when a refetch fails", async () => {
+    render(<Budget />);
+    await screen.findByRole("progressbar", { name: "Food budget" });
+
+    mockGetBudgets.mockRejectedValueOnce(new Error("down"));
+    act(() => { window.dispatchEvent(new CustomEvent("gastosai:budget-changed")); });
+
+    expect((await screen.findByRole("alert")).textContent).toContain("Failed to load budgets.");
+    expect(screen.getByRole("table")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Add Budget" })).toBeTruthy();
+  });
+
+  it("keeps the stepper after a failed step, so the user can step back", async () => {
+    render(<Budget />);
+    await screen.findByRole("progressbar", { name: "Food budget" });
+
+    mockGetBudgets.mockRejectedValueOnce(new Error("down"));
+    fireEvent.click(screen.getByRole("button", { name: "Previous month" }));
+    await screen.findByRole("alert");
+
+    fireEvent.click(screen.getByRole("button", { name: "Next month" }));
+    await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+    expect(mockGetBudgets).toHaveBeenLastCalledWith("2027-01");
+    expect(screen.getByText("January 2027")).toBeTruthy();
+  });
+
+  it("retries the month on screen from the inline alert", async () => {
+    render(<Budget />);
+    await screen.findByRole("progressbar", { name: "Food budget" });
+
+    mockGetBudgets.mockRejectedValueOnce(new Error("down"));
+    act(() => { window.dispatchEvent(new CustomEvent("gastosai:budget-changed")); });
+    const alert = await screen.findByRole("alert");
+
+    fireEvent.click(within(alert).getByRole("button", { name: "Retry" }));
+    await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+    expect(screen.getByRole("progressbar", { name: "Food budget" })).toBeTruthy();
+  });
+});
