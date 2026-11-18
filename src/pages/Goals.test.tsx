@@ -4,6 +4,7 @@ import Goals from "./Goals";
 import { createGoal, getGoals, updateGoal, type Goal } from "../api/goals";
 import { AuthProvider } from "../context/AuthContext";
 import { celebrationKey } from "../lib/celebrateStore";
+import { currencySymbol } from "../lib/formatters";
 
 vi.mock("../api/goals", () => ({
   getGoals: vi.fn(),
@@ -240,6 +241,18 @@ describe("Goals Add savings", () => {
     expect(screen.getAllByRole("spinbutton")).toHaveLength(1);
     expect(screen.queryByRole("textbox")).toBeNull();
     expect(screen.queryByPlaceholderText("e.g. Emergency Fund")).toBeNull();
+  });
+
+  // Pesos by name; any other currency by its symbol.
+  it.each([
+    ["PHP", "Amount in pesos"],
+    ["USD", `Amount (${currencySymbol("USD")})`],
+  ])("names the field for a %s goal %s", async (currency, name) => {
+    mockGetGoals.mockResolvedValue([goal({ currency })]);
+    renderGoals();
+    await screen.findByText("Emergency Fund");
+    fireEvent.click(within(card("Emergency Fund")).getByRole("button", { name: "Add savings" }));
+    expect(await screen.findByRole("spinbutton", { name })).toBeTruthy();
   });
 
   it.each([
