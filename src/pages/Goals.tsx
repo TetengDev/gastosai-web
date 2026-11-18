@@ -88,6 +88,7 @@ export default function Goals() {
 
   const [confirmDelete, setConfirmDelete] = useState<Goal | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // Add savings holds the goal's id, not the goal: the base for the sum is read from the list at
   // submit, so a reload while the dialog is open cannot leave it adding to a stale figure.
@@ -318,7 +319,8 @@ export default function Goals() {
       setConfirmDelete(null);
       window.dispatchEvent(new CustomEvent("gastosai:goal-changed"));
     } catch {
-      setConfirmDelete(null);
+      // The confirm stays open with the reason, so the goal is not silently left in place.
+      setDeleteError("Could not delete that goal. Try again.");
     } finally {
       setDeleting(false);
     }
@@ -326,13 +328,17 @@ export default function Goals() {
 
   const sel = useMultiSelect(goals.map((g) => g.id));
   const [deletingSelected, setDeletingSelected] = useState(false);
+  const [bulkError, setBulkError] = useState<string | null>(null);
   const deleteSelected = async () => {
     const ids = sel.selectedIds;
     setDeletingSelected(true);
+    setBulkError(null);
     const results = await Promise.allSettled(ids.map((id) => deleteGoal(id)));
     const okIds = new Set(ids.filter((_, i) => results[i].status === "fulfilled"));
     setGoals((prev) => prev.filter((g) => !okIds.has(g.id)));
     sel.replace(ids.filter((id) => !okIds.has(id)));
+    const failed = ids.length - okIds.size;
+    if (failed > 0) setBulkError(`Could not delete ${failed} ${failed === 1 ? "goal" : "goals"}. Try again.`);
     if (okIds.size > 0) window.dispatchEvent(new CustomEvent("gastosai:goal-changed"));
     setDeletingSelected(false);
   };
@@ -403,7 +409,7 @@ export default function Goals() {
               <IconButton onClick={() => openEdit(goal)} title="Edit">
                 <Pencil className="h-3.5 w-3.5" />
               </IconButton>
-              <IconButton onClick={() => setConfirmDelete(goal)} title="Delete" className="hover:text-danger">
+              <IconButton onClick={() => { setDeleteError(null); setConfirmDelete(goal); }} title="Delete" className="hover:text-danger">
                 <Trash2 className="h-3.5 w-3.5" />
               </IconButton>
             </div>
@@ -492,6 +498,11 @@ export default function Goals() {
       ) : (
         <div aria-busy={stale} inert={stale} className={`space-y-6 transition-opacity ${stale ? "opacity-60" : ""}`}>
           <SelectionBar count={sel.count} onDelete={() => void deleteSelected()} onClear={sel.clear} deleting={deletingSelected} noun="goal" />
+          {bulkError && (
+            <p role="alert" className="text-sm text-danger">
+              {bulkError}
+            </p>
+          )}
           {active.length > 0 && (
             <ul aria-label="Goals in progress" className="m-0 grid list-none grid-cols-1 gap-[22px] p-0 md:grid-cols-2">
               {active.map((goal) => (
@@ -670,6 +681,7 @@ export default function Goals() {
         }
         confirmLabel="Delete"
         loading={deleting}
+        error={deleteError}
         onCancel={() => setConfirmDelete(null)}
         onConfirm={handleDelete}
       />
