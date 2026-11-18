@@ -523,7 +523,7 @@ describe("Expenses resilience", () => {
 
   it("deletes what it can of a selection, says what failed, and keeps the failures selected", async () => {
     const { refresh } = hook();
-    vi.mocked(deleteExpense).mockImplementation((id) => (id === 2 ? Promise.reject(new Error("boom")) : Promise.resolve()));
+    vi.mocked(deleteExpense).mockImplementation((id) => (id === 2 ? Promise.reject(new Error("boom")) : Promise.resolve({} as Awaited<ReturnType<typeof deleteExpense>>)));
     await loaded();
     mockGetExpenses.mockResolvedValue(NOVEMBER.filter((e) => e.id !== 1));
     fireEvent.click(screen.getByRole("checkbox", { name: "Select Lunch" }));
