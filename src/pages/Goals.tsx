@@ -291,8 +291,8 @@ export default function Goals() {
     const goal = goals.find((g) => g.id === addingId);
     if (!goal) return;
     const entered = parseAmountToCentavos(addText);
-    if (entered === null) { setAddError(AMOUNT_ERROR); return; }
-    if (entered <= 0) { setAddError("Amount must be greater than 0."); return; }
+    // Mobile's AmountSheet wording, for a malformed amount and a non-positive one alike.
+    if (entered === null || entered <= 0) { setAddError("Enter an amount greater than zero."); return; }
     setAdding(true);
     setAddError(null);
     try {
@@ -412,12 +412,12 @@ export default function Goals() {
             {formatCurrencyAmount(goal.savedAmount, currency)}{" "}
             <span className="text-sm font-normal text-ink-2">saved</span>
           </span>
-          <span className="font-mono text-sm text-ink-2">{goal.progressPercent}%</span>
+          <span className="font-mono text-sm text-ink-2">{Math.round(goal.progressPercent)}%</span>
         </div>
         <ProgressMeter percent={goal.progressPercent} tone={goalTone(goal.status)} label={goal.name} className="mt-3" />
         <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-[13.5px] text-ink-2">
           <span>Target: {formatCurrencyAmount(goal.targetAmount, currency)}</span>
-          {goal.targetDate && !done && <span>By {formatDateOnly(goal.targetDate)}</span>}
+          {goal.targetDate && !done && <span>by {formatDateOnly(goal.targetDate)}</span>}
         </div>
         {!done && (
           <Button size="sm" className="mt-5 w-full sm:w-auto" onClick={() => openAddSavings(goal)}>
