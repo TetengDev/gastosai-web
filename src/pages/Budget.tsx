@@ -353,8 +353,10 @@ export default function Budget() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-start gap-4 sm:items-center sm:gap-5">
-        <div role="img" aria-label={moodName} className="shrink-0">
+      {/* Below sm Piso sits above the header; the actions are one wrapping container because
+          PageHeader's own actions row does not wrap. */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-5">
+        <div role="img" aria-label={moodName} className="w-fit shrink-0">
           <span aria-hidden="true">
             <Piso state={mood} size={64} />
           </span>
@@ -369,7 +371,7 @@ export default function Budget() {
             }
             onDeleteAll={budgets.length > 0 ? () => setConfirmDeleteAll(true) : undefined}
             actions={
-              <>
+              <div className="flex flex-wrap items-center gap-3">
                 <div className="flex items-center rounded-full border border-edge-input bg-surface p-0.5">
                   <button
                     type="button"
@@ -401,7 +403,7 @@ export default function Budget() {
                   <Plus className="h-[15px] w-[15px]" />
                   Add Budget
                 </Button>
-              </>
+              </div>
             }
           />
         </div>
