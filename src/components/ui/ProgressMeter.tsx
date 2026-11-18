@@ -20,11 +20,18 @@ const FILL: Record<MeterTone, string> = {
   paused: "bg-ink-3",
 };
 
-export default function ProgressMeter({ percent, tone, label, height = 8, className }: Props) {
+export default function ProgressMeter({
+  percent,
+  tone,
+  label,
+  height = 8,
+  className,
+}: Props) {
   const value = Number.isFinite(percent) ? percent : 0;
   const width = Math.max(0, Math.min(100, value));
   const shown = Math.round(value);
-  const overflowShare = tone === "over" && value > 100 ? ((value - 100) / value) * 100 : 0;
+  const overflowShare =
+    tone === "over" && value > 100 ? ((value - 100) / value) * 100 : 0;
 
   return (
     <div
@@ -34,21 +41,28 @@ export default function ProgressMeter({ percent, tone, label, height = 8, classN
       aria-valuemax={Math.max(100, shown)}
       aria-valuenow={shown}
       aria-valuetext={`${shown}%`}
-      className={cn("relative overflow-hidden rounded-full bg-track", className)}
+      className={cn(
+        "relative overflow-hidden rounded-full bg-track",
+        // Over reads as an outlined capsule (ring, gap, bar) so it differs from warning without colour.
+        tone === "over" && "border border-warn-ink p-px",
+        className,
+      )}
       style={{ height }}
     >
-      <div
-        data-testid="meter-fill"
-        className={cn("animate-meter h-full rounded-full", FILL[tone])}
-        style={{ width: `${width}%` }}
-      />
-      {overflowShare > 0 && (
+      <div className="relative h-full w-full overflow-hidden rounded-full">
         <div
-          data-testid="meter-overflow"
-          className="ga-hatch absolute inset-y-0 right-0"
-          style={{ width: `${overflowShare}%` }}
+          data-testid="meter-fill"
+          className={cn("animate-meter h-full rounded-full", FILL[tone])}
+          style={{ width: `${width}%` }}
         />
-      )}
+        {overflowShare > 0 && (
+          <div
+            data-testid="meter-overflow"
+            className="ga-hatch absolute inset-y-0 right-0"
+            style={{ width: `${overflowShare}%` }}
+          />
+        )}
+      </div>
     </div>
   );
 }

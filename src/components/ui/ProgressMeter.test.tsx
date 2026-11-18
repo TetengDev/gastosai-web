@@ -13,7 +13,10 @@ describe("ProgressMeter", () => {
   it("clamps the drawn width at 100 but reports 130", () => {
     render(<ProgressMeter percent={130} tone="over" label="Food budget" />);
     expect(screen.getByTestId("meter-fill")).toHaveStyle({ width: "100%" });
-    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "130");
+    expect(screen.getByRole("progressbar")).toHaveAttribute(
+      "aria-valuenow",
+      "130",
+    );
   });
 
   it("draws the overflow share as a hatched segment only when over", () => {
@@ -28,7 +31,36 @@ describe("ProgressMeter", () => {
   });
 
   it("treats a non-finite percent as zero", () => {
-    render(<ProgressMeter percent={Number.NaN} tone="onTrack" label="Food budget" />);
+    render(
+      <ProgressMeter percent={Number.NaN} tone="onTrack" label="Food budget" />,
+    );
     expect(screen.getByTestId("meter-fill")).toHaveStyle({ width: "0%" });
+  });
+
+  it.each([80, 100, 130])(
+    "outlines the over track with a border and gap at percent %i, warning does not",
+    (percent) => {
+      const { unmount } = render(
+        <ProgressMeter percent={percent} tone="over" label="Over" />,
+      );
+      const over = screen.getByRole("progressbar");
+      expect(over).toHaveClass("border", "border-warn-ink", "p-px");
+      expect(screen.getByTestId("meter-fill").parentElement).not.toBe(over);
+      unmount();
+      render(<ProgressMeter percent={percent} tone="warning" label="Warn" />);
+      const warn = screen.getByRole("progressbar");
+      expect(warn).not.toHaveClass("border");
+      expect(warn).not.toHaveClass("p-px");
+    },
+  );
+
+  it("keeps the overflow segment inside the gap", () => {
+    render(<ProgressMeter percent={130} tone="over" label="Over" />);
+    expect(screen.getByTestId("meter-overflow").parentElement).toBe(
+      screen.getByTestId("meter-fill").parentElement,
+    );
+    expect(screen.getByTestId("meter-overflow").parentElement).not.toBe(
+      screen.getByRole("progressbar"),
+    );
   });
 });
