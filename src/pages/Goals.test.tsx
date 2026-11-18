@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Goals from "./Goals";
-import { createGoal, getGoals, updateGoal, type Goal } from "../api/goals";
+import { createGoal, deleteGoal, getGoals, updateGoal, type Goal } from "../api/goals";
 import { AuthProvider } from "../context/AuthContext";
 import { celebrationKey } from "../lib/celebrateStore";
 import { currencySymbol } from "../lib/formatters";
@@ -16,6 +16,7 @@ vi.mock("../api/goals", () => ({
 const mockGetGoals = vi.mocked(getGoals);
 const mockCreateGoal = vi.mocked(createGoal);
 const mockUpdateGoal = vi.mocked(updateGoal);
+const mockDeleteGoal = vi.mocked(deleteGoal);
 
 // Celebrations are per account, so the page renders inside a signed-in AuthProvider, as in the app.
 const ACCOUNT = "a@example.com";
@@ -547,5 +548,32 @@ describe("Goals while a reload is in flight", () => {
     expect(await screen.findByRole("img", { name: "1 goal in progress" })).toBeTruthy();
     expect(cards).toHaveAttribute("aria-busy", "false");
     expect(cards).not.toHaveAttribute("inert");
+  });
+});
+
+describe("Goals failed deletes", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockGetGoals.mockResolvedValue([goal()]);
+    mockDeleteGoal.mockRejectedValue(new Error("down"));
+  });
+
+  it("keeps the confirm open with an error when a delete fails, and keeps the goal", async () => {
+    renderGoals();
+    fireEvent.click(await screen.findByTitle("Delete"));
+    const dialog = screen.getByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Delete" }));
+
+    expect(await within(dialog).findByText("Could not delete that goal. Try again.")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Emergency Fund" })).toBeTruthy();
+  });
+
+  it("says inline when a bulk delete fails", async () => {
+    renderGoals();
+    fireEvent.click(await screen.findByLabelText("Select Emergency Fund"));
+    fireEvent.click(screen.getByRole("button", { name: "Delete selected (1)" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Could not delete 1 goal. Try again.");
+    expect(screen.getByRole("heading", { name: "Emergency Fund" })).toBeTruthy();
   });
 });
