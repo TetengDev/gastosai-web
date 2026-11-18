@@ -505,6 +505,21 @@ describe("Budget load failures after the first load", () => {
     expect(screen.getByText("January 2027")).toBeTruthy();
   });
 
+  // The rows on screen are the previous month's, so a month-scoped write would act on a month the
+  // user has not seen: Delete all would wipe it, and Add would default to it.
+  it("withholds month-scoped writes while the rows belong to another month", async () => {
+    render(<Budget />);
+    await screen.findByRole("progressbar", { name: "Food budget" });
+    expect(screen.getByRole("button", { name: "Delete all" })).toBeTruthy();
+
+    mockGetBudgets.mockRejectedValueOnce(new Error("down"));
+    fireEvent.click(screen.getByRole("button", { name: "Previous month" }));
+    await screen.findByRole("alert");
+
+    expect(screen.queryByRole("button", { name: "Delete all" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Add Budget" })).toBeDisabled();
+  });
+
   it("retries the month on screen from the inline alert", async () => {
     render(<Budget />);
     await screen.findByRole("progressbar", { name: "Food budget" });
