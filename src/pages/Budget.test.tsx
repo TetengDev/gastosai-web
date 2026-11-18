@@ -318,3 +318,37 @@ describe("Budget month stepper", () => {
     await waitFor(() => expect(mockGetBudgets).toHaveBeenLastCalledWith("2027-01"));
   });
 });
+
+describe("Budget while a month loads", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockGetCategories.mockResolvedValue([]);
+    mockGetBudgets.mockResolvedValue([budget()]);
+    mockGetBudgetSummary.mockResolvedValue(
+      summaryOf([item({ percentUsed: 120, remaining: -10_000, status: "OVER_BUDGET" })]),
+    );
+  });
+
+  it("lists the budgets without meters when the summary fails", async () => {
+    mockGetBudgetSummary.mockRejectedValue(new Error("down"));
+    render(<Budget />);
+
+    expect(await screen.findByTitle("Edit")).toBeTruthy();
+    expect(screen.queryByRole("progressbar")).toBeNull();
+    expect(screen.queryByText("Failed to load budgets.")).toBeNull();
+  });
+
+  // Until the new month answers, the rows on screen are the previous month's: they are marked
+  // busy and the mood line, which would describe the wrong month, is withdrawn.
+  it("marks the previous month's rows busy after a step", async () => {
+    render(<Budget />);
+    await screen.findByText("1 over budget");
+    expect(screen.getByRole("table").closest("[aria-busy]")).toHaveAttribute("aria-busy", "false");
+
+    mockGetBudgets.mockReturnValue(new Promise(() => {}));
+    fireEvent.click(screen.getByRole("button", { name: "Previous month" }));
+
+    expect(screen.getByRole("table").closest("[aria-busy]")).toHaveAttribute("aria-busy", "true");
+    expect(screen.queryByText("1 over budget")).toBeNull();
+  });
+});
