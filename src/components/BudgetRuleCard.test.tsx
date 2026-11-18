@@ -187,3 +187,27 @@ describe("BudgetRuleCard month changes", () => {
     expect(screen.getByText("₱400.00 left")).toBeTruthy();
   });
 });
+
+describe("BudgetRuleCard load errors", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockGetBudgetRule.mockResolvedValue(rule(100_000));
+  });
+
+  // The error only renders once the rule is on, so the first load succeeds and a month change fails.
+  it("clears a load error once a later load succeeds", async () => {
+    mockGetBudgetRuleSummary
+      .mockResolvedValueOnce(summary)
+      .mockRejectedValueOnce(new Error("down"))
+      .mockResolvedValue(summary);
+    const props = { categories: [], onCategoriesChanged: vi.fn() };
+    const { rerender } = render(<BudgetRuleCard month="2026-09" {...props} />);
+    await screen.findByText("Budgeting Rule");
+
+    rerender(<BudgetRuleCard month="2026-08" {...props} />);
+    expect(await screen.findByText("Failed to load budgeting rule.")).toBeTruthy();
+
+    rerender(<BudgetRuleCard month="2026-07" {...props} />);
+    await waitFor(() => expect(screen.queryByText("Failed to load budgeting rule.")).toBeNull());
+  });
+});
