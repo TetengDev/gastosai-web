@@ -279,6 +279,18 @@ describe("Budget header", () => {
     expect(screen.queryByText("1 over budget")).toBeNull();
   });
 
+  // Spec §2: at most one Piso per screen. The header's is the screen's, so the empty state carries
+  // no illustration of its own.
+  it("leaves the empty state to the header Piso", async () => {
+    mockGetBudgets.mockResolvedValue([]);
+    mockGetBudgetSummary.mockResolvedValue(summaryOf([]));
+    const { container } = render(<Budget />);
+
+    expect(await screen.findByText("No budgets for this month")).toBeTruthy();
+    expect(screen.queryByText("💰")).toBeNull();
+    expect(container.querySelectorAll("svg[data-piso-state]")).toHaveLength(1);
+  });
+
   it("takes its mood from the statuses, not the percentages", async () => {
     mockGetBudgetSummary.mockResolvedValue(
       summaryOf([
