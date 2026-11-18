@@ -511,7 +511,7 @@ export default function Goals() {
               {formatCurrencyAmount(addingGoal.targetAmount, addingGoal.currency ?? "PHP")}.
             </p>
             <label htmlFor="add-savings-amount" className={labelClass}>
-              Amount to add ({currencySymbol(addingGoal.currency ?? "PHP")})
+              Amount in pesos
             </label>
             <input
               id="add-savings-amount"
@@ -538,7 +538,7 @@ export default function Goals() {
               {/* aria-disabled, not disabled: a disabled button drops focus mid-save, and the guard
                   in the handler is what stops a second press adding the amount twice. */}
               <Button type="submit" className="flex-1 aria-disabled:cursor-not-allowed aria-disabled:opacity-50" aria-disabled={adding}>
-                {adding ? "Adding…" : "Add"}
+                Add
               </Button>
             </div>
           </form>
