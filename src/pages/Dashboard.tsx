@@ -23,7 +23,7 @@ import DailyTrendCard from "../components/DailyTrendCard";
 import GoalProgressCard from "../components/GoalProgressCard";
 import TopExpensesCard from "../components/TopExpensesCard";
 import { Amount, Button, Card, Celebrate, InfoTip, ProgressMeter } from "../components/ui";
-import { APP_TIME_ZONE, formatCentavos, formatDate, formatDayMonth, manilaMonth } from "../lib/formatters";
+import { formatCentavos, formatDate, formatDayMonth, manilaDate, manilaMonth } from "../lib/formatters";
 import { categoryIcon } from "../lib/categoryIcon";
 import { hasCelebrated } from "../lib/celebrateStore";
 import { budgetTone, pisoMoodFor, toBand, worstBand } from "../lib/pisoMood";
@@ -40,10 +40,6 @@ function monthName(yyyyMM: string): string {
   const [y, m] = yyyyMM.split("-").map(Number);
   return new Date(y, m - 1, 1).toLocaleString("default", { month: "long" });
 }
-
-/** Manila's calendar date as `yyyy-mm-dd`; `en-CA` only because it formats that way. */
-const manilaDate = (now: Date) =>
-  new Intl.DateTimeFormat("en-CA", { timeZone: APP_TIME_ZONE }).format(now);
 
 /** Calendar arithmetic on `yyyy-mm-dd` strings, in UTC so no device zone can shift a day. */
 function addDays(ymd: string, n: number): string {

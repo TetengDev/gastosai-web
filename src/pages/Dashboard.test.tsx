@@ -307,6 +307,22 @@ describe("Dashboard render", () => {
     );
   });
 
+  it("counts the day of the month in Manila, not the browser's zone, at 00:30 on 1 Oct", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-09-30T16:30:00Z")); // 00:30 Manila, 1 Oct; still 30 Sep in UTC
+    // Keyed to literal months, not the fixtures' real-month helpers, so this holds in any month.
+    mockGetBudgetSummary.mockImplementation((m: string) =>
+      Promise.resolve(m === "2026-10" ? { ...BUDGET, month: m } : { ...PREV_BUDGET, month: m }),
+    );
+    mount();
+
+    // Day 1 of October: today counts, so 31 days are left, not September's last 1.
+    expect(await screen.findByTestId("hero-status")).toHaveTextContent(
+      `${formatCentavos(BUDGET.safeToSpend)} left for 31 days`,
+    );
+    expect(text(hero())).toMatch(/Total Spend · Oct 2026/);
+  });
+
   it("asks for a budget, without a meter, when there are expenses but no budgets", async () => {
     budgets({ ...BUDGET, items: [] });
     await setup();
