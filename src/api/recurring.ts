@@ -55,3 +55,10 @@ export const getUpcomingBills = (month: string): Promise<UpcomingBillResponse[]>
 
 export const deleteAllRecurring = (): Promise<void> =>
   api.delete("/recurring").then(() => undefined);
+
+/**
+ * Marks one bill paid for one `yyyy-mm` month, decided in Manila. Idempotent. Only `PUT` is wrapped:
+ * nothing calls the matching `DELETE` yet (R14) — add it when a screen gets an undo.
+ */
+export const markRecurringPaid = (id: number, month: string): Promise<void> =>
+  api.put(`/recurring/${id}/payments/${month}`).then(() => undefined);
