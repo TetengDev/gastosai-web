@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Budget from "./Budget";
 import { getBudgetSummary, getBudgets, updateBudget } from "../api/budgets";
 import { getCategories } from "../api/categories";
@@ -221,5 +221,100 @@ describe("Budget rows", () => {
 
     await waitFor(() => expect(bodyRows()[0]).toHaveTextContent("Transport"));
     expect(rowFor("Transport")).toHaveTextContent("Over by ₱100.00");
+  });
+});
+
+describe("Budget header", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockGetCategories.mockResolvedValue([]);
+    mockGetBudgets.mockResolvedValue([
+      budget({ id: 1, categoryId: 1, categoryName: "Transport" }),
+      budget({ id: 2, categoryId: 2, categoryName: "Food" }),
+    ]);
+    mockGetBudgetSummary.mockResolvedValue(
+      summaryOf([
+        item({ categoryId: 1, categoryName: "Transport", percentUsed: 40, status: "ON_TRACK" }),
+        item({ categoryId: 2, categoryName: "Food", percentUsed: 112, remaining: -5_000, status: "OVER_BUDGET" }),
+      ]),
+    );
+  });
+
+  // One Piso per screen, in the worst row's mood; rows carry meters, never a Piso.
+  it("shows one Piso, in the worst band's mood, and none on the rows", async () => {
+    const { container } = render(<Budget />);
+    await screen.findByRole("progressbar", { name: "Food budget" });
+
+    const pisos = container.querySelectorAll("svg[data-piso-state]");
+    expect(pisos).toHaveLength(1);
+    expect(pisos[0]).toHaveAttribute("data-piso-state", "overBudget");
+    expect(pisos[0].closest("table")).toBeNull();
+  });
+
+  // Piso is never the only signal: the header says what the face says, in counts of the server's
+  // own statuses.
+  it("says in words what the mood says", async () => {
+    render(<Budget />);
+    expect(await screen.findByText("1 over budget")).toBeTruthy();
+  });
+
+  it("rests when every budget is on track", async () => {
+    mockGetBudgetSummary.mockResolvedValue(
+      summaryOf([
+        item({ categoryId: 1, categoryName: "Transport", percentUsed: 40 }),
+        item({ categoryId: 2, categoryName: "Food", percentUsed: 10 }),
+      ]),
+    );
+    const { container } = render(<Budget />);
+    expect(await screen.findByText("All on track")).toBeTruthy();
+    expect(container.querySelector("svg[data-piso-state]")).toHaveAttribute("data-piso-state", "resting");
+  });
+});
+
+describe("Budget month stepper", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // Only Date is faked, so the promises and findBy timers still run. January pins the year turn.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2027-01-15T04:00:00+08:00"));
+    mockGetCategories.mockResolvedValue([]);
+    mockGetBudgets.mockResolvedValue([budget()]);
+    mockGetBudgetSummary.mockResolvedValue(summaryOf([item()]));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("opens on the current Manila month, with next disabled", async () => {
+    render(<Budget />);
+
+    expect(await screen.findByText("January 2027")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Next month" })).toBeDisabled();
+    expect(mockGetBudgetSummary).toHaveBeenCalledWith("2027-01");
+  });
+
+  it("asks both queries for the month before, across the year turn", async () => {
+    render(<Budget />);
+    await screen.findByText("January 2027");
+
+    fireEvent.click(screen.getByRole("button", { name: "Previous month" }));
+
+    expect(await screen.findByText("December 2026")).toBeTruthy();
+    await waitFor(() => expect(mockGetBudgetSummary).toHaveBeenLastCalledWith("2026-12"));
+    expect(mockGetBudgets).toHaveBeenLastCalledWith("2026-12");
+    expect(screen.getByRole("button", { name: "Next month" })).toBeEnabled();
+  });
+
+  it("steps forward again to the current month", async () => {
+    render(<Budget />);
+    await screen.findByText("January 2027");
+
+    fireEvent.click(screen.getByRole("button", { name: "Previous month" }));
+    await screen.findByText("December 2026");
+    fireEvent.click(screen.getByRole("button", { name: "Next month" }));
+
+    expect(await screen.findByText("January 2027")).toBeTruthy();
+    await waitFor(() => expect(mockGetBudgets).toHaveBeenLastCalledWith("2027-01"));
   });
 });
