@@ -88,7 +88,9 @@ export default function Modal({
 
   return (
     <div
-      className="fixed inset-0 z-[80] flex items-center justify-center bg-[rgba(23,23,28,0.55)] p-6 backdrop-blur-sm"
+      // The overlay scrolls, not the panel: a dropdown inside (CurrencySelect, CategoryCombobox)
+      // is absolutely positioned, and any clipping box around it would hide its list.
+      className="fixed inset-0 z-[80] flex overflow-y-auto bg-[rgba(23,23,28,0.55)] p-6 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
@@ -99,13 +101,14 @@ export default function Modal({
         tabIndex={-1}
         onKeyDown={onKeyDown}
         className={cn(
-          "animate-pop flex max-h-[calc(100dvh-3rem)] w-full flex-col rounded-[22px] border border-edge bg-surface p-8 outline-none",
+          // m-auto centres a short panel; a tall one starts at the overlay's padding and scrolls with it.
+          "animate-pop m-auto w-full rounded-[22px] border border-edge bg-surface p-8 outline-none",
           maxWidthClass
         )}
         onClick={(e) => e.stopPropagation()}
       >
         {title && (
-          <div className="mb-6 flex shrink-0 items-center justify-between">
+          <div className="mb-6 flex items-center justify-between">
             <h2 id={titleId} className="m-0 font-display text-[26px] font-medium tracking-tight text-ink-hi">
               {title}
             </h2>
@@ -118,8 +121,7 @@ export default function Modal({
             </button>
           </div>
         )}
-        {/* Taller than the viewport (a form on a phone), the body scrolls and the title stays. */}
-        <div className="min-h-0 overflow-y-auto">{children}</div>
+        {children}
       </div>
     </div>
   );
