@@ -9,12 +9,20 @@ import { useEffect, useRef } from "react";
  * or press a button under it — including another popover's toggle. A capture-phase `click` covers
  * taps too: a browser synthesises one, and React's listener on the root lets iOS deliver it.
  */
-export function useDismiss<T extends HTMLElement>(open: boolean, close: () => void) {
+export function useDismiss<T extends HTMLElement>(
+  open: boolean,
+  close: () => void,
+) {
   const root = useRef<T>(null);
   useEffect(() => {
     if (!open) return;
     const onClick = (e: MouseEvent) => {
       if (root.current?.contains(e.target as Node)) return;
+      // Enter/Space on a control (or a programmatic click) fires detail 0: close, never swallow.
+      if (e.detail === 0) {
+        close();
+        return;
+      }
       // Hidden by a breakpoint while open (Menu at 768px, then 1024px): close, but let the click
       // through, since nobody can see what would have swallowed it. Without checkVisibility
       // (jsdom, Safari before 17.4) the popover counts as visible.

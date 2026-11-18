@@ -24,7 +24,7 @@ beforeEach(() => localStorage.clear());
 describe("AdminViewAsToggle — dismissal (TEN-500)", () => {
   it("closes on a click on the page below the bar, without activating what was under it", () => {
     const { under } = renderViewAs();
-    fireEvent.click(screen.getByRole("button", { name: "Under the bar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Under the bar" }), { detail: 1 });
     expect(panel()).toBeNull();
     expect(under).not.toHaveBeenCalled();
   });

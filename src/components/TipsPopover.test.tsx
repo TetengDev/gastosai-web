@@ -25,7 +25,7 @@ beforeEach(() => localStorage.clear());
 describe("TipsPopover — dismissal (TEN-500)", () => {
   it("closes on a click on the page below the bar, without activating what was under it", () => {
     const { under } = renderTips();
-    fireEvent.click(screen.getByRole("button", { name: "Under the bar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Under the bar" }), { detail: 1 });
     expect(panel()).toBeNull();
     expect(under).not.toHaveBeenCalled();
   });

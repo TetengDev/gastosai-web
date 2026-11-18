@@ -421,7 +421,7 @@ describe("Navbar — popovers close on a click outside (TEN-500)", () => {
       fireEvent.click(button);
       expect(document.getElementById(id)).not.toBeNull();
 
-      fireEvent.click(screen.getByRole("button", { name: "Under the bar" }));
+      fireEvent.click(screen.getByRole("button", { name: "Under the bar" }), { detail: 1 });
       expect(document.getElementById(id)).toBeNull();
       expect(button).toHaveAttribute("aria-expanded", "false");
       expect(under).not.toHaveBeenCalled();
@@ -451,7 +451,7 @@ describe("Navbar — popovers close on a click outside (TEN-500)", () => {
     renderWithPage();
     fireEvent.click(screen.getByRole("button", { name: "Admin" }));
     const menu = screen.getByRole("button", { name: "Menu" });
-    fireEvent.click(menu);
+    fireEvent.click(menu, { detail: 1 });
     expect(document.getElementById("admin-menu")).toBeNull();
     expect(document.getElementById("nav-overflow-menu")).toBeNull();
     expect(menu).toHaveAttribute("aria-expanded", "false");
