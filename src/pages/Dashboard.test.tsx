@@ -152,6 +152,7 @@ const BUDGET: BudgetSummaryResponse = {
   safeToSpend: 687_655,
   totalBudgeted: 1_500_000,
   totalSpent: 812_345,
+  percentUsed: 54,
   items: [item()],
 };
 

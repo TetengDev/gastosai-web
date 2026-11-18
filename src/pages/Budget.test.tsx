@@ -55,6 +55,7 @@ const summaryOf = (items: BudgetSummaryItem[], month = "2026-09"): BudgetSummary
   totalSpent: 0,
   safeToSpend: 0,
   dailyAllowance: 0,
+  percentUsed: 0,
 });
 
 /**
