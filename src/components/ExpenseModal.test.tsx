@@ -61,7 +61,7 @@ describe("ExpenseModal amounts", () => {
     const { onSave, user } = setup();
 
     await user.type(amountField(), "150.75");
-    await user.type(screen.getByPlaceholderText("What was this expense for?"), "Lunch");
+    await user.type(screen.getByPlaceholderText("Lunch at Jollibee"), "Lunch");
     await user.click(screen.getByRole("button", { name: "Save" }));
 
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
@@ -79,7 +79,7 @@ describe("ExpenseModal amounts", () => {
     const { onSave, user } = setup();
 
     await user.type(amountField(), typed);
-    await user.type(screen.getByPlaceholderText("What was this expense for?"), "Lunch");
+    await user.type(screen.getByPlaceholderText("Lunch at Jollibee"), "Lunch");
     await user.click(screen.getByRole("button", { name: "Save" }));
 
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
@@ -93,12 +93,12 @@ describe("ExpenseModal amounts", () => {
     const { onSave, user } = setup();
 
     await user.type(amountField(), "150.755");
-    await user.type(screen.getByPlaceholderText("What was this expense for?"), "Lunch");
+    await user.type(screen.getByPlaceholderText("Lunch at Jollibee"), "Lunch");
     await user.click(screen.getByRole("button", { name: "Save" }));
 
     expect(onSave).not.toHaveBeenCalled();
     // No message of ours: the submit never got as far as the handler.
-    expect(screen.queryByText(/at most two decimal places/)).toBeNull();
+    expect(screen.queryByText("Enter an amount greater than zero.")).toBeNull();
   });
 
   // `1e3` is a valid value for a number input and passes `step`, so it reaches the submit
@@ -109,10 +109,10 @@ describe("ExpenseModal amounts", () => {
     const { onSave, user } = setup();
 
     fireEvent.change(amountField(), { target: { value: "1e3" } });
-    await user.type(screen.getByPlaceholderText("What was this expense for?"), "Lunch");
+    await user.type(screen.getByPlaceholderText("Lunch at Jollibee"), "Lunch");
     await user.click(screen.getByRole("button", { name: "Save" }));
 
-    expect(await screen.findByText(/at most two decimal places/)).toBeTruthy();
+    expect(await screen.findByText("Enter an amount greater than zero.")).toBeTruthy();
     expect(onSave).not.toHaveBeenCalled();
   });
 
@@ -326,7 +326,7 @@ describe("ExpenseModal amount-first", () => {
     expect(bills).toHaveAttribute("aria-pressed", "true");
 
     await user.type(screen.getByPlaceholderText("0.00"), "10");
-    await user.type(screen.getByPlaceholderText("What was this expense for?"), "Power");
+    await user.type(screen.getByPlaceholderText("Lunch at Jollibee"), "Power");
     await user.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
     expect(onSave.mock.calls[0][0].category).toBe("Bills");
@@ -367,7 +367,7 @@ describe("ExpenseModal logged toast", () => {
     await user.click(await screen.findByRole("button", { name: "Food" }));
     await user.type(screen.getByPlaceholderText("0.00"), "250");
     fireEvent.change(screen.getByLabelText("Date & Time"), { target: { value: "2026-10-05T09:00" } });
-    await user.type(screen.getByPlaceholderText("What was this expense for?"), "Groceries");
+    await user.type(screen.getByPlaceholderText("Lunch at Jollibee"), "Groceries");
     await user.click(screen.getByRole("button", { name: "Save" }));
     return onSave;
   };
