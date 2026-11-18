@@ -69,7 +69,7 @@ function showToast(text: string) {
   el.setAttribute("role", "status");
   el.dataset.expenseToast = "";
   el.className =
-    "fixed bottom-6 left-1/2 z-[60] max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-full bg-cta px-5 py-3 text-center text-sm font-medium text-cta-fg shadow-lg";
+    "fixed inset-x-4 bottom-6 z-[60] mx-auto w-fit rounded-2xl bg-cta px-5 py-3 text-center text-sm font-medium text-cta-fg shadow-lg";
   document.body.appendChild(el);
   setTimeout(() => { el.textContent = text; }, 0);
   setTimeout(() => el.remove(), TOAST_MS);
