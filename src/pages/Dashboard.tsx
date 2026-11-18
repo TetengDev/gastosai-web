@@ -272,12 +272,11 @@ export default function Dashboard() {
     cheer: monthCelebration !== null,
   });
   const worst = worstBand(bands);
-  // A whole-number percentage of two integer centavo totals, for the bar's width and its caption.
-  // The bar's colour still comes from the server's bands, never from this number.
+  // The server's whole-number share of the month's budget, for the bar's width and its caption; the
+  // bar's colour comes from the server's bands. The guard stays here: the server sends 0 when
+  // nothing is budgeted, which reads the same as "nothing spent".
   const usedPercent =
-    budgetSummary && budgetSummary.totalBudgeted > 0
-      ? Math.round((budgetSummary.totalSpent * 100) / budgetSummary.totalBudgeted)
-      : null;
+    budgetSummary && budgetSummary.totalBudgeted > 0 ? budgetSummary.percentUsed : null;
   const amber = mood === "worried" || mood === "overBudget";
 
   const hero = (

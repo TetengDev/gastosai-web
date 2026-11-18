@@ -152,7 +152,8 @@ const BUDGET: BudgetSummaryResponse = {
   safeToSpend: 687_655,
   totalBudgeted: 1_500_000,
   totalSpent: 812_345,
-  percentUsed: 54,
+  // The server's figure, deliberately not 812,345 / 1,500,000 (54%): the hero must show this one.
+  percentUsed: 61,
   items: [item()],
 };
 
@@ -274,14 +275,21 @@ describe("Dashboard render", () => {
     expect(piso.getAttribute("data-piso-state")).toBe("resting");
 
     const meter = within(hero()).getByRole("progressbar", { name: "Month budget" });
-    // 812,345 of 1,500,000 centavos is 54%.
-    expect(meter).toHaveAttribute("aria-valuenow", "54");
+    // The server's `percentUsed`, never the client's 812,345 / 1,500,000 (54%).
+    expect(meter).toHaveAttribute("aria-valuenow", "61");
     // The hero figure is all of this month's spend; the meter counts budgeted categories only
     // (BudgetService sums `totalSpent` over budget lines), so the caption has to say so.
     expect(text(hero())).toContain(
-      `${formatCentavos(BUDGET.totalSpent)} of ${formatCentavos(BUDGET.totalBudgeted)} budgeted · 54%`,
+      `${formatCentavos(BUDGET.totalSpent)} of ${formatCentavos(BUDGET.totalBudgeted)} budgeted · 61%`,
     );
-    expect(text(hero())).toContain("₱8,123.45 of ₱15,000.00 budgeted · 54%");
+    expect(text(hero())).toContain("₱8,123.45 of ₱15,000.00 budgeted · 61%");
+  });
+
+  it("keeps its own guard: no meter when nothing is budgeted, since the server's 0 also means nothing spent", async () => {
+    budgets({ ...BUDGET, totalBudgeted: 0, percentUsed: 0 });
+    await setup();
+
+    expect(within(hero()).queryByRole("progressbar", { name: "Month budget" })).toBeNull();
   });
 
   it.each([
