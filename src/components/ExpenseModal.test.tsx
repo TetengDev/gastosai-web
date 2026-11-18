@@ -6,6 +6,7 @@ import { getCategories } from "../api/categories";
 import { getExpensesPage, type Expense, type ExpensePage } from "../api/expenses";
 import { getBudgetSummary, type BudgetSummaryResponse } from "../api/budgets";
 import { useAuth } from "../context/AuthContext";
+import { invalidateCategoryCache } from "../lib/cache";
 
 vi.mock("../api/categories", () => ({ getCategories: vi.fn() }));
 vi.mock("../api/expenses", () => ({ getExpensesPage: vi.fn() }));
@@ -20,6 +21,8 @@ const mockUseAuth = vi.mocked(useAuth);
 // Every describe below renders the real modal, which now reads the recent history and, after a
 // new expense saves, the budget summary. Defaults keep both off the network; tests override them.
 beforeEach(() => {
+  // The modal caches categories for five minutes at module level; each test brings its own list.
+  invalidateCategoryCache();
   mockGetExpensesPage.mockResolvedValue({ content: [], totalElements: 0, last: true } as unknown as ExpensePage);
   mockGetBudgetSummary.mockResolvedValue({ items: [] } as unknown as BudgetSummaryResponse);
 });
