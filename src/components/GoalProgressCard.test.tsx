@@ -25,11 +25,11 @@ const goal = (over: Partial<Goal> = {}): Goal => ({
   ...over,
 });
 
-const renderStrip = () =>
+const renderStrip = (onCompleted?: (events: string[]) => void) =>
   render(
     <AuthProvider>
       <MemoryRouter>
-        <GoalProgressCard />
+        <GoalProgressCard onCompleted={onCompleted} />
       </MemoryRouter>
     </AuthProvider>,
   );
@@ -88,17 +88,28 @@ describe("GoalProgressCard strip", () => {
     expect(names).toEqual(["Sooner", "Later", "Done"]);
   });
 
-  it("celebrates a COMPLETED goal once, keyed goal-<id>", async () => {
-    mockGetGoals.mockResolvedValue([goal({ id: 42, status: "COMPLETED", progressPercent: 100 })]);
-    const first = renderStrip();
+  // TEN-504: the hero plays celebrations one at a time, so the strip reports and never plays.
+  it("reports COMPLETED goals as goal-<id> and leaves the celebrating to the hero", async () => {
+    const onCompleted = vi.fn();
+    mockGetGoals.mockResolvedValue([
+      goal({ id: 42, status: "COMPLETED", progressPercent: 100 }),
+      goal({ id: 7, name: "Car", status: "ON_TRACK" }),
+    ]);
+    renderStrip(onCompleted);
     await screen.findByRole("progressbar", { name: "Trip fund" });
-    expect(coin()).not.toBeNull();
-    expect(localStorage.getItem(celebrationKey(ACCOUNT, "goal-42"))).toBe("1");
-    first.unmount();
 
-    renderStrip();
-    await screen.findByRole("progressbar", { name: "Trip fund" });
+    expect(onCompleted).toHaveBeenLastCalledWith(["goal-42"]);
     expect(coin()).toBeNull();
+    // Nothing is marked seen here: a goal that never got its turn in the hero still plays later.
+    expect(localStorage.getItem(celebrationKey(ACCOUNT, "goal-42"))).toBeNull();
+  });
+
+  it("names its link See all goals, in text and accessible name alike", async () => {
+    mockGetGoals.mockResolvedValue([goal()]);
+    renderStrip();
+    const link = await screen.findByRole("link", { name: "See all goals" });
+    expect(link).toHaveAttribute("href", "/goals");
+    expect(link).toHaveTextContent(/^See all goals$/);
   });
 
   it("does not celebrate a goal that is still in progress", async () => {

@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { useEffect } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Dashboard, { abbrevCentavos } from "./Dashboard";
@@ -33,7 +34,15 @@ vi.mock("../api/expenses", () => ({
 // assertion below about markup Dashboard.tsx actually owns.
 vi.mock("../components/AiInsightsCard", () => ({ default: () => <div>AiInsightsCard</div> }));
 vi.mock("../components/DailyTrendCard", () => ({ default: () => <div>DailyTrendCard</div> }));
-vi.mock("../components/GoalProgressCard", () => ({ default: () => <div>GoalProgressCard</div> }));
+// The goals strip reports its COMPLETED goals up so the hero can queue their celebrations; the
+// stub reports whatever the test puts in `goalStrip.completed`.
+const goalStrip = vi.hoisted(() => ({ completed: [] as string[] }));
+vi.mock("../components/GoalProgressCard", () => ({
+  default: function GoalStripStub({ onCompleted }: { onCompleted?: (events: string[]) => void }) {
+    useEffect(() => onCompleted?.(goalStrip.completed), [onCompleted]);
+    return <div>GoalProgressCard</div>;
+  },
+}));
 vi.mock("../components/TopExpensesCard", () => ({ default: () => <div>TopExpensesCard</div> }));
 vi.mock("../components/FeatureGate", () => ({
   default: ({ children }: { children: React.ReactNode }) => <>{children}</>,
@@ -224,6 +233,7 @@ describe("Dashboard render", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    goalStrip.completed = [];
     // Celebrations are per account; AuthContext reads this session at startup.
     localStorage.setItem("token", "t");
     localStorage.setItem("auth_user", JSON.stringify({ email: ACCOUNT, name: "A", role: "USER" }));
@@ -338,7 +348,7 @@ describe("Dashboard render", () => {
 
     expect(hero().querySelector("[data-piso-state]")).toHaveAttribute("data-piso-state", "resting");
     expect(within(hero()).queryByRole("progressbar")).toBeNull();
-    expect(within(hero()).getByTestId("hero-status")).toHaveTextContent("No budget yet");
+    expect(within(hero()).getByTestId("hero-status")).toHaveTextContent("No budget set for this month.");
     expect(within(hero()).getByRole("link", { name: /set one/i })).toHaveAttribute("href", "/budget");
   });
 
@@ -346,7 +356,7 @@ describe("Dashboard render", () => {
     mockGetBudgetSummary.mockRejectedValue(new Error("no budget service"));
     await setup();
 
-    expect(within(hero()).getByTestId("hero-status")).toHaveTextContent("No budget yet");
+    expect(within(hero()).getByTestId("hero-status")).toHaveTextContent("No budget set for this month.");
   });
 
   it("shows an empty Piso and one line when nothing is logged and no budget is set", async () => {
@@ -380,7 +390,8 @@ describe("Dashboard render", () => {
       true,
       (): string => `Over by ${formatCentavos(120_000)}`,
     ],
-    ["resting", { ...BUDGET, items: [] }, true, (): string => "No budget yet. Set one to see what's left."],
+        // R2: word for word with mobile Home, then web's own link to set one.
+    ["resting", { ...BUDGET, items: [] }, true, (): string => "No budget set for this month. Set one"],
     [
       "empty",
       { ...BUDGET, items: [] },
@@ -480,7 +491,7 @@ describe("Dashboard render", () => {
     expect(screen.getByText("GoalProgressCard")).toBeInTheDocument();
   });
 
-  it("shows the last five expenses, each with amount, category and date, and a See all link", async () => {
+  it("shows the last five expenses, each with amount, category and date, and a See all expenses link", async () => {
     const many = Array.from({ length: 7 }, (_, i) => expense({ id: 100 + i, description: `Row ${i}` }));
     mockGetExpensesPage.mockResolvedValue(page(many));
     await setup();
@@ -492,7 +503,11 @@ describe("Dashboard render", () => {
     expect(recent.queryByText("Row 5")).not.toBeInTheDocument();
     expect(recent.getAllByText(formatCentavos(many[0].amount))).toHaveLength(5);
     expect(recent.getAllByText(formatDate(many[0].date))).toHaveLength(5);
-    expect(recent.getByRole("link", { name: "See all" })).toHaveAttribute("href", "/expenses");
+    const seeAll = recent.getByRole("link", { name: "See all expenses" });
+    expect(seeAll).toHaveAttribute("href", "/expenses");
+    // Visible text and accessible name agree: no aria-label hiding a bare "See all".
+    expect(seeAll).toHaveTextContent(/^See all expenses$/);
+    expect(seeAll).not.toHaveAttribute("aria-label");
   });
 
   it("says so in words, with no second Piso, when there are no expenses", async () => {
@@ -546,6 +561,86 @@ describe("Dashboard render", () => {
     await setup();
     expect(pisoStates()).toEqual(["resting"]);
     expect(document.querySelector('[data-testid="coin"]')).toBeNull();
+  });
+
+  // TEN-504: a cheer visit still says when this month is over; the cheer line must not hide it.
+  it("shows the cheer line and this month's Over by on a cheer visit that is over budget", async () => {
+    budgets(
+      { ...BUDGET, safeToSpend: -120_000, items: [item({ status: "OVER_BUDGET", percentUsed: 108 })] },
+      { ...PREV_BUDGET, items: [item()] },
+    );
+    await setup();
+
+    const closed = new Date(cy, cm - 2, 1).toLocaleString("default", { month: "long" });
+    expect(within(hero()).getByTestId("hero-status").textContent).toBe(`${closed} closed under budget. Nice one.`);
+    const over = within(hero()).getByText(`Over by ${formatCentavos(120_000)}`);
+    expect(over).toHaveClass("text-warn-ink");
+  });
+
+  it("adds no Over by line on a cheer visit that is still under budget", async () => {
+    budgets(BUDGET, { ...PREV_BUDGET, items: [item()] });
+    await setup();
+    expect(within(hero()).queryByText(/Over by/)).toBeNull();
+  });
+
+  // --- One celebration at a time ------------------------------------------
+
+  describe("celebration queue", () => {
+    /** How long each celebration holds the hero before the next one takes its place. */
+    const HOLD_MS = 1500;
+    const seen = (event: string) => localStorage.getItem(celebrationKey(ACCOUNT, event)) === "1";
+    const coins = () => document.querySelectorAll('[data-testid="coin"]').length;
+    const advance = async () => {
+      await act(async () => {
+        vi.advanceTimersByTime(HOLD_MS);
+      });
+    };
+
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"], shouldAdvanceTime: true });
+    });
+
+    it("plays one at a time from the hero, the month first, then each completed goal", async () => {
+      budgets(BUDGET, { ...PREV_BUDGET, items: [item()] });
+      goalStrip.completed = ["goal-1", "goal-2"];
+      await setup();
+
+      // The month's cheer is on; the goals wait their turn, unmarked.
+      expect(coins()).toBe(1);
+      expect(hero().querySelector('[data-testid="coin"]')).not.toBeNull();
+      expect([seen(`month-${prevMonth}`), seen("goal-1"), seen("goal-2")]).toEqual([true, false, false]);
+
+      await advance();
+      expect(coins()).toBe(1);
+      expect(hero().querySelector('[data-testid="coin"]')).not.toBeNull();
+      expect([seen("goal-1"), seen("goal-2")]).toEqual([true, false]);
+
+      await advance();
+      expect(coins()).toBe(1);
+      expect(seen("goal-2")).toBe(true);
+
+      // The queue is spent: Piso stays in the month's cheer, with no coin left to drop.
+      await advance();
+      expect(coins()).toBe(0);
+      expect(pisoStates()).toEqual(["cheer"]);
+    });
+
+    it("never replays a celebration whose key has already been seen", async () => {
+      localStorage.setItem(celebrationKey(ACCOUNT, `month-${prevMonth}`), "1");
+      localStorage.setItem(celebrationKey(ACCOUNT, "goal-1"), "1");
+      budgets(BUDGET, { ...PREV_BUDGET, items: [item()] });
+      goalStrip.completed = ["goal-1", "goal-2"];
+      await setup();
+
+      // goal-2 is the only one left, and it plays at once.
+      await waitFor(() => expect(seen("goal-2")).toBe(true));
+      expect(coins()).toBe(1);
+
+      await advance();
+      expect(coins()).toBe(0);
+      // Back to the mood the data picks, since this visit had no month to cheer.
+      expect(pisoStates()).toEqual(["resting"]);
+    });
   });
 
   // With no account there is no flag to scope to, so the hero keeps its resting Piso rather than

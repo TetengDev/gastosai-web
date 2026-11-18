@@ -57,6 +57,9 @@ function previousMonth(yyyyMM: string): string {
   return new Date(Date.UTC(y, m - 2, 1)).toISOString().slice(0, 7);
 }
 
+/** How long each celebration holds the hero before the next one in the queue takes its place. */
+const CELEBRATION_HOLD_MS = 1500;
+
 /** Bills count as needing attention from today through a week out, inclusive. */
 const BILL_WINDOW_DAYS = 7;
 
@@ -91,15 +94,15 @@ function statusLine(
   closedMonth: string | null,
 ): ReactNode {
   if (mood === "cheer" && closedMonth) return `${monthName(closedMonth)} closed under budget. Nice one.`;
+  // Empty and no-budget copy is word for word with mobile Home (R2, TEN-504).
   if (mood === "empty") return "Nothing logged yet. Your first expense goes straight into Piso's slot.";
   if (!budget || budget.items.length === 0) {
     return (
       <>
-        No budget yet.{" "}
+        No budget set for this month.{" "}
         <Link to="/budget" className="font-medium text-ink-hi underline underline-offset-2">
           Set one
-        </Link>{" "}
-        to see what's left.
+        </Link>
       </>
     );
   }
@@ -132,6 +135,19 @@ export default function Dashboard() {
   // The `month-<yyyy-mm>` event to celebrate, frozen at load: Celebrate marks it seen as it mounts,
   // so reading the flag again on the next render would pull the cheer straight back out.
   const [monthCelebration, setMonthCelebration] = useState<string | null>(null);
+  // Celebrations waiting for the hero, played one at a time: the month first (it is queued with
+  // the page's data, before the goals strip mounts), then each COMPLETED goal the strip reports.
+  // Only unseen events get in; Celebrate marks each one seen as it mounts.
+  const [celebrations, setCelebrations] = useState<string[]>([]);
+  const queueCelebrations = useCallback(
+    (events: string[]) =>
+      setCelebrations((queue) => {
+        const fresh = events.filter((e) => account && !queue.includes(e) && !hasCelebrated(account, e));
+        return fresh.length > 0 ? [...queue, ...fresh] : queue;
+      }),
+    [account],
+  );
+  const playing = celebrations[0];
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [insightsOpen, setInsightsOpen] = useState(false);
@@ -179,11 +195,19 @@ export default function Dashboard() {
         const prevBands = (prevBudget?.items ?? []).map((i) => toBand(i.status));
         const closedUnder = prevBands.length > 0 && worstBand(prevBands) !== "OVER_BUDGET";
         const event = `month-${prev}`;
-        setMonthCelebration(closedUnder && account && !hasCelebrated(account, event) ? event : null);
+        const cheer = closedUnder && account && !hasCelebrated(account, event);
+        setMonthCelebration(cheer ? event : null);
+        if (cheer) queueCelebrations([event]);
       })
       .catch(() => setError("Failed to load dashboard data."))
       .finally(() => setLoading(false));
-  }, [account]);
+  }, [account, queueCelebrations]);
+
+  useEffect(() => {
+    if (!playing) return;
+    const t = setTimeout(() => setCelebrations((queue) => queue.slice(1)), CELEBRATION_HOLD_MS);
+    return () => clearTimeout(t);
+  }, [playing]);
 
   useEffect(() => {
     fetchData();
@@ -267,8 +291,9 @@ export default function Dashboard() {
           />
         </div>
         <div className="shrink-0">
-          {monthCelebration ? (
-            <Celebrate event={monthCelebration} size={96} />
+          {playing ? (
+            // Keyed, so each event in the queue mounts its own Celebrate and is marked seen.
+            <Celebrate key={playing} event={playing} size={96} />
           ) : (
             <Piso state={mood} size={96} />
           )}
@@ -296,6 +321,12 @@ export default function Dashboard() {
       >
         {statusLine(mood, budgetSummary, daysLeft, monthCelebration && previousMonth(currentMonth))}
       </p>
+      {/* The cheer line is about last month; it must not hide that this one is over. */}
+      {mood === "cheer" && budgetSummary && budgetSummary.items.length > 0 && budgetSummary.safeToSpend < 0 && (
+        <p className="m-0 mt-1 text-base font-medium text-warn-ink">
+          Over by {formatCentavos(-budgetSummary.safeToSpend)}
+        </p>
+      )}
     </div>
   );
 
@@ -373,7 +404,7 @@ export default function Dashboard() {
         </h2>
         {recentExpenses.length > 0 && (
           <Link to="/expenses" className="text-sm font-medium text-ink-hi underline-offset-4 hover:underline">
-            See all
+            See all expenses
           </Link>
         )}
       </div>
@@ -530,7 +561,7 @@ export default function Dashboard() {
     <div className="mx-auto max-w-3xl space-y-10">
       {hero}
       {attentionSection}
-      <GoalProgressCard />
+      <GoalProgressCard onCompleted={queueCelebrations} />
       {recentSection}
       {insightsSection}
     </div>
