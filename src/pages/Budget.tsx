@@ -92,7 +92,7 @@ export default function Budget() {
       setCategories(catList);
       setDataMonth(month);
     } catch {
-      if (request === latest.current) setError("Failed to load budgets.");
+      if (request === latest.current) setError("Could not load budgets.");
     } finally {
       if (request === latest.current) setLoading(false);
     }
@@ -346,7 +346,7 @@ export default function Budget() {
       <div className="py-8 text-center">
         <p className="mb-3 text-[#b30000]">{error}</p>
         <button onClick={() => { setLoading(true); void load(); }} className="text-sm text-link underline">
-          Retry
+          Try again
         </button>
       </div>
     );
@@ -417,7 +417,7 @@ export default function Budget() {
         <p role="alert" className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-danger">
           {error}
           <button type="button" onClick={() => { void load(); }} className="text-link underline">
-            Retry
+            Try again
           </button>
         </p>
       )}

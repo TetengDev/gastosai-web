@@ -405,7 +405,7 @@ describe("Budget while a month loads", () => {
 
     expect(await screen.findByTitle("Edit")).toBeTruthy();
     expect(screen.queryByRole("progressbar")).toBeNull();
-    expect(screen.queryByText("Failed to load budgets.")).toBeNull();
+    expect(screen.queryByText("Could not load budgets.")).toBeNull();
   });
 
   // Until the new month answers, the rows on screen are the previous month's: they are marked busy.
@@ -500,7 +500,7 @@ describe("Budget load failures after the first load", () => {
     mockGetBudgets.mockRejectedValueOnce(new Error("down"));
     act(() => { window.dispatchEvent(new CustomEvent("gastosai:budget-changed")); });
 
-    expect((await screen.findByRole("alert")).textContent).toContain("Failed to load budgets.");
+    expect((await screen.findByRole("alert")).textContent).toContain("Could not load budgets.");
     expect(screen.getByRole("table")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Add Budget" })).toBeTruthy();
   });
@@ -542,7 +542,7 @@ describe("Budget load failures after the first load", () => {
     act(() => { window.dispatchEvent(new CustomEvent("gastosai:budget-changed")); });
     const alert = await screen.findByRole("alert");
 
-    fireEvent.click(within(alert).getByRole("button", { name: "Retry" }));
+    fireEvent.click(within(alert).getByRole("button", { name: "Try again" }));
     await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
     expect(screen.getByRole("progressbar", { name: "Food budget" })).toBeTruthy();
   });
