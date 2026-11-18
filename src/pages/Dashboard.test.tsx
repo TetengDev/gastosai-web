@@ -730,6 +730,24 @@ describe("Dashboard render", () => {
       expect(mockMarkRecurringPaid).toHaveBeenCalledTimes(1);
     });
 
+    it("keeps Mark paid disabled until the refetch after a mark settles", async () => {
+      upcomingByMonth({ "2026-11": [meralco("2026-11-10")] });
+      mockGetRecurring.mockResolvedValue([recurring()]);
+      mockMarkRecurringPaid.mockResolvedValue();
+      await loaded("2026-11-18T04:00:00Z");
+      // The refetch the mark triggers never answers, so the row stays on screen.
+      mockGetRecurring.mockReturnValue(new Promise(() => {}));
+
+      const button = screen.getByRole("button", { name: "Mark paid: Meralco" });
+      fireEvent.click(button);
+      await waitFor(() => expect(mockGetRecurring).toHaveBeenCalledTimes(2));
+      await act(async () => {}); // let the resolved mark's continuation run
+      fireEvent.click(button);
+
+      expect(button).toBeDisabled();
+      expect(mockMarkRecurringPaid).toHaveBeenCalledTimes(1);
+    });
+
     it("says so inline, and keeps the row, when marking fails", async () => {
       upcomingByMonth({ "2026-11": [meralco("2026-11-10")] });
       serverMarks(true);

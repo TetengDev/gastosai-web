@@ -225,7 +225,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [insightsOpen, setInsightsOpen] = useState(false);
-  // One Mark paid at a time: every Mark paid button is disabled while one is in flight.
+  // One Mark paid at a time: every Mark paid button is disabled from the click until the refetch lands.
   const [marking, setMarking] = useState(false);
   const [markError, setMarkError] = useState(false);
   // The Manila day the last load was for. Read at fetch time so a tab left open past midnight on
@@ -241,7 +241,7 @@ export default function Dashboard() {
     // The bills endpoint is per month, so a window that crosses the month end needs both.
     const billMonths = horizon.slice(0, 7) === month ? [month] : [month, horizon.slice(0, 7)];
 
-    void Promise.all([
+    return Promise.all([
       getCategoryReport(),
       getExpensesPage({ page: 0, size: 5 }),
       getMonthlyReport(),
@@ -285,8 +285,9 @@ export default function Dashboard() {
     try {
       // The month is read at click time: `today` is frozen at the last load.
       await markRecurringPaid(id, manilaMonth(new Date()));
-      // The page listens for this and refetches, so the row leaves without a reload.
-      window.dispatchEvent(new CustomEvent("gastosai:recurring-changed"));
+      // Refetch here rather than through `gastosai:recurring-changed`, so the buttons stay disabled
+      // until the row has left; a click in between would send the mark again.
+      await fetchData();
     } catch {
       setMarkError(true);
     } finally {
