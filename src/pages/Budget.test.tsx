@@ -269,11 +269,14 @@ describe("Budget header", () => {
     expect(pisos[0].closest("table")).toBeNull();
   });
 
-  // Piso is never the only signal: the header says what the face says, in counts of the server's
-  // own statuses.
-  it("says in words what the mood says", async () => {
+  // Mobile has no visible mood line, so web drops it for parity (controller ruling). Piso is still
+  // never the only signal: the header Piso carries the mood as its accessible name.
+  it("names the mood for screen readers instead of printing a mood line", async () => {
     render(<Budget />);
-    expect(await screen.findByText("1 over budget")).toBeTruthy();
+    await screen.findByRole("progressbar", { name: "Food budget" });
+
+    expect(screen.getAllByRole("img", { name: "Over budget" })).toHaveLength(1);
+    expect(screen.queryByText("1 over budget")).toBeNull();
   });
 
   it("takes its mood from the statuses, not the percentages", async () => {
@@ -297,8 +300,9 @@ describe("Budget header", () => {
       ]),
     );
     const { container } = render(<Budget />);
-    expect(await screen.findByText("All on track")).toBeTruthy();
+    expect(await screen.findByRole("img", { name: "All budgets on track" })).toBeTruthy();
     expect(container.querySelector("svg[data-piso-state]")).toHaveAttribute("data-piso-state", "resting");
+    expect(screen.queryByText("All on track")).toBeNull();
   });
 });
 
@@ -369,18 +373,16 @@ describe("Budget while a month loads", () => {
     expect(screen.queryByText("Failed to load budgets.")).toBeNull();
   });
 
-  // Until the new month answers, the rows on screen are the previous month's: they are marked
-  // busy and the mood line, which would describe the wrong month, is withdrawn.
+  // Until the new month answers, the rows on screen are the previous month's: they are marked busy.
   it("marks the previous month's rows busy after a step", async () => {
     render(<Budget />);
-    await screen.findByText("1 over budget");
+    await screen.findByRole("progressbar", { name: "Food budget" });
     expect(screen.getByRole("table").closest("[aria-busy]")).toHaveAttribute("aria-busy", "false");
 
     mockGetBudgets.mockReturnValue(new Promise(() => {}));
     fireEvent.click(screen.getByRole("button", { name: "Previous month" }));
 
     expect(screen.getByRole("table").closest("[aria-busy]")).toHaveAttribute("aria-busy", "true");
-    expect(screen.queryByText("1 over budget")).toBeNull();
   });
 });
 
