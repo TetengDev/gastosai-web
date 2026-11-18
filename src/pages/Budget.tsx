@@ -322,7 +322,7 @@ export default function Budget() {
   // own because elsewhere it sits beside text that already says it.
   const bands = rows.flatMap((r) => (r.item ? [toBand(r.item.status)] : []));
   const mood = pisoMoodFor({ bands, hasExpenses: true });
-  const moodName = PISO_LABELS[mood] ?? (bands.length > 0 ? "All budgets on track" : "No budget figures yet");
+  const moodName = PISO_LABELS[mood] ?? (bands.length > 0 ? "All budgets on track" : "No budget figures");
   const stale = dataMonth !== month;
   const atCurrentMonth = month >= currentMonth();
 
