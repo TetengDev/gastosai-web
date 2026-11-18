@@ -374,7 +374,10 @@ export default function Goals() {
   // Goals carry no budget bands, so the data mood is resting; a completed goal's cheer takes the
   // same slot, so the screen keeps one Piso.
   const mood = pisoMoodFor({ bands: [], hasExpenses: true });
-  const moodName = playing ? "Celebrating" : "Resting";
+  // As on Budgets, a resting face is named for what the data says rather than "Resting".
+  const status =
+    active.length === 0 ? "Every goal reached" : `${active.length} ${active.length === 1 ? "goal" : "goals"} in progress`;
+  const moodName = playing ? "Celebrating" : status;
   const addingGoal = goals.find((g) => g.id === addingId) ?? null;
 
   const goalCard = (goal: Goal, done: boolean) => {
@@ -451,11 +454,7 @@ export default function Goals() {
             title="Goals"
             subtitle={
               goals.length > 0 ? (
-                <span>
-                  {active.length === 0
-                    ? "Every goal reached"
-                    : `${active.length} ${active.length === 1 ? "goal" : "goals"} in progress`}
-                </span>
+                <span>{status}</span>
               ) : undefined
             }
             actions={
