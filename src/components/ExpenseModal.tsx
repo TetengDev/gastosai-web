@@ -165,8 +165,9 @@ export default function ExpenseModal({ expense, onSave, onClose }: Props) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const amount = parseAmountToCentavos(amountText);
-    if (amount === null) {
-      setError("Enter an amount like 150.75 — at most two decimal places.");
+    // Mobile's copy, word for word. A third decimal never gets here: `step` refuses it first.
+    if (amount === null || amount <= 0) {
+      setError("Enter an amount greater than zero.");
       return;
     }
     setSaving(true);
@@ -273,7 +274,7 @@ export default function ExpenseModal({ expense, onSave, onClose }: Props) {
               onChange={(e) =>
                 setForm((f) => ({ ...f, description: e.target.value }))
               }
-              placeholder="What was this expense for?"
+              placeholder="Lunch at Jollibee"
               className={inputClass}
             />
           </div>

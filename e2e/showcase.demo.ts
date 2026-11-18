@@ -90,7 +90,7 @@ test("GastosAI — feature showcase", async ({ page, request }) => {
   const expenseForm = modalWithTitle(page, "New Expense");
   await caption(page, "An amount, and what it was for");
   await expenseForm.locator('input[type="number"]').first().fill("1250.50");
-  await expenseForm.getByPlaceholder("What was this expense for?").fill(expenseName);
+  await expenseForm.getByPlaceholder("Lunch at Jollibee").fill(expenseName);
   await expenseForm.getByRole("button", { name: "Save", exact: true }).click();
   await expenseForm.waitFor({ state: "detached", timeout: 15000 });
 
