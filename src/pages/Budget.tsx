@@ -433,25 +433,25 @@ export default function Budget() {
         ) : (
           <div className="space-y-3">
             <SelectionBar count={sel.count} onDelete={() => void deleteSelected()} onClear={sel.clear} deleting={deletingSelected} noun="budget" />
-            <div className="overflow-hidden rounded-2xl border border-edge">
+            <div className="overflow-x-auto rounded-2xl border border-edge">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-edge-2 bg-surface-2 font-mono text-[11px] uppercase tracking-[0.1em] text-ink-3">
-                  <th className="w-10 px-6 py-4">
+                  <th className="w-10 px-3 py-4 sm:px-6">
                     <input type="checkbox" aria-label="Select all" checked={sel.allSelected} onChange={sel.toggleAll} className="rounded accent-[#1f8a5b]" />
                   </th>
-                  <th className="px-6 py-4 text-left font-normal">Category</th>
-                  <th className="px-6 py-4 text-right font-normal">Budget limit</th>
-                  <th className="px-6 py-4 text-right font-normal">Actions</th>
+                  <th className="px-3 py-4 text-left font-normal sm:px-6">Category</th>
+                  <th className="hidden px-3 py-4 text-right font-normal sm:table-cell sm:px-6">Budget limit</th>
+                  <th className="px-3 py-4 text-right font-normal sm:px-6">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map(({ b, item }) => (
                   <tr key={b.id} className="border-b border-edge-3 transition-colors last:border-0 hover:bg-surface-2">
-                    <td className="px-6 py-5">
+                    <td className="px-3 py-5 sm:px-6">
                       <input type="checkbox" aria-label={`Select ${b.categoryName}`} checked={sel.selected.has(b.id)} onChange={() => sel.toggle(b.id)} className="rounded accent-brand" />
                     </td>
-                    <td className="px-6 py-5">
+                    <td className="px-3 py-5 sm:px-6">
                       <span className="inline-flex items-center gap-2 font-medium text-ink-hi">
                         {(() => { const Ic = categoryIcon(b.categoryName); return <Ic className="h-4 w-4 shrink-0 text-ink-3" />; })()}
                         {b.categoryName}
@@ -482,7 +482,7 @@ export default function Budget() {
                         </>
                       )}
                     </td>
-                    <td className="px-6 py-5 text-right">
+                    <td className="hidden px-3 py-5 text-right sm:table-cell sm:px-6">
                       <span className="inline-flex items-center justify-end gap-2">
                         {b.currency !== "PHP" && (
                           <span className="rounded-md bg-link/10 px-1.5 py-0.5 font-mono text-[11px] text-link">
@@ -494,7 +494,7 @@ export default function Budget() {
                         </span>
                       </span>
                     </td>
-                    <td className="px-6 py-5">
+                    <td className="px-3 py-5 sm:px-6">
                       <div className="flex items-center justify-end gap-2">
                         <IconButton onClick={() => openEdit(b)} title="Edit">
                           <Pencil className="h-4 w-4" />
