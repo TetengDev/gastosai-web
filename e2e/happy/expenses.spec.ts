@@ -13,11 +13,11 @@ test.describe("Happy · expenses", { tag: "@happy" }, () => {
     const description = uniqueName("Coffee");
 
     await page.goto("/expenses");
-    await page.getByRole("button", { name: /Add Expense|Add your first expense/ }).click();
+    await page.getByRole("button", { name: /Add Expense|Log your first expense/ }).click();
 
     const form = modalWithTitle(page, "New Expense");
     await form.locator('input[type="number"]').first().fill("150.75");
-    await form.getByPlaceholder("What was this expense for?").fill(description);
+    await form.getByPlaceholder("Lunch at Jollibee").fill(description);
 
     // Both halves of the money invariant, on one action: what leaves the browser and what the
     // browser draws. The request body must carry integer centavos (15075) — a float round-trip

@@ -32,6 +32,8 @@ const bill = (over: Partial<RecurringExpenseResponse> = {}): RecurringExpenseRes
   active: true,
   currency: "PHP",
   exchangeRate: 1,
+  paidThisMonth: false,
+  lastPaidMonth: null,
   ...over,
 });
 

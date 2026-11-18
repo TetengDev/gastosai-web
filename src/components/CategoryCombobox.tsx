@@ -33,6 +33,7 @@ export default function CategoryCombobox({
     (c) => c.name.toLowerCase() === inputValue.toLowerCase()
   );
   const showCreate = allowCreate && focused && inputValue.trim().length > 0 && !exactMatch;
+  const listShown = open && !disabled && (filtered.length > 0 || showCreate);
 
   const handleFocus = () => {
     setInputValue(value);
@@ -71,10 +72,16 @@ export default function CategoryCombobox({
         onFocus={handleFocus}
         onBlur={handleBlur}
         onChange={handleChange}
-        onKeyDown={(e) => { if (e.key === "Escape") setOpen(false); }}
+        onKeyDown={(e) => {
+          // An open list owns Escape, so a dialog around it stays open; a closed one lets it through.
+          if (e.key !== "Escape" || !listShown) return;
+          e.preventDefault();
+          e.stopPropagation();
+          setOpen(false);
+        }}
         className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-shadow bg-gray-50/50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 dark:placeholder-gray-500 disabled:opacity-60 disabled:cursor-not-allowed"
       />
-      {open && !disabled && (filtered.length > 0 || showCreate) && (
+      {listShown && (
         <ul className="absolute z-50 mt-1 w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg max-h-52 overflow-y-auto">
           {filtered.map((c) => (
             <li

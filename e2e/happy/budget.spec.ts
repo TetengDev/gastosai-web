@@ -31,6 +31,9 @@ test.describe("Happy · budgets", { tag: "@happy" }, () => {
     const row = page.locator("table tbody tr").filter({ hasText: category });
     await expect(row).toHaveCount(1, { timeout: 15000 });
     await expect(row).toContainText("₱2,500.00");
+    // The row's figures come from the budget summary, which the page refetches after the save.
+    await expect(row.getByRole("progressbar", { name: `${category} budget` })).toBeVisible({ timeout: 15000 });
+    await expect(row).toContainText("₱2,500.00 left");
 
     await row.getByRole("button", { name: "Delete", exact: true }).click();
     await confirmInModal(page, `Delete budget for "${category}"?`);

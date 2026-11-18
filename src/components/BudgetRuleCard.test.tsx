@@ -99,3 +99,115 @@ describe("BudgetRuleCard monthly income", () => {
     expect(mockPutBudgetRule).not.toHaveBeenCalled();
   });
 });
+
+/**
+ * A bucket has no server `status` (`BucketSummaryV2` carries none), so its meter's tone comes from
+ * the sign of the server's `remaining` (ruling R16) — never from comparing `percentUsed` to a
+ * threshold in the browser.
+ */
+describe("BudgetRuleCard bucket meters", () => {
+  const withBuckets = (buckets: BudgetRuleSummary["buckets"]): BudgetRuleSummary => ({ ...summary, buckets });
+  const bucket = (over: Partial<BudgetRuleSummary["buckets"][number]>): BudgetRuleSummary["buckets"][number] => ({
+    bucket: "NEEDS",
+    percent: 50,
+    target: 50_000,
+    spent: 0,
+    remaining: 50_000,
+    percentUsed: 0,
+    ...over,
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockGetBudgetRule.mockResolvedValue(rule(100_000));
+  });
+
+  const fillOf = (name: string) =>
+    screen.getByRole("progressbar", { name }).querySelector<HTMLElement>('[data-testid="meter-fill"]')!;
+
+  it("draws an overspent bucket with the over fill and says how much over", async () => {
+    mockGetBudgetRuleSummary.mockResolvedValue(
+      withBuckets([bucket({ bucket: "WANTS", spent: 55_000, remaining: -5_000, percentUsed: 110 })]),
+    );
+    render(<BudgetRuleCard month="2026-09" categories={[]} onCategoriesChanged={vi.fn()} />);
+
+    const meter = await screen.findByRole("progressbar", { name: "Wants bucket" });
+    expect(meter).toHaveAttribute("aria-valuenow", "110");
+    expect(fillOf("Wants bucket")).toHaveClass("bg-warn-ink");
+    expect(fillOf("Wants bucket").style.backgroundColor).toBe("");
+    expect(screen.getByText("Over by ₱50.00")).toBeTruthy();
+  });
+
+  // 85% would have been amber under the old client-side threshold; the server says nothing about
+  // a band here, so the bucket reads as on track while money is left.
+  it("draws a bucket with money left with the on-track fill", async () => {
+    mockGetBudgetRuleSummary.mockResolvedValue(
+      withBuckets([bucket({ bucket: "NEEDS", spent: 45_000, remaining: 5_000, percentUsed: 85 })]),
+    );
+    render(<BudgetRuleCard month="2026-09" categories={[]} onCategoriesChanged={vi.fn()} />);
+
+    await screen.findByRole("progressbar", { name: "Needs bucket" });
+    expect(fillOf("Needs bucket")).toHaveClass("bg-brand");
+    expect(fillOf("Needs bucket").style.backgroundColor).toBe("");
+    expect(screen.getByText("₱50.00 left")).toBeTruthy();
+  });
+});
+
+/**
+ * The budgets page keeps this card mounted while its month stepper moves, so two quick steps can
+ * leave two summary requests in flight. Only the newest month may write.
+ */
+describe("BudgetRuleCard month changes", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockGetBudgetRule.mockResolvedValue(rule(100_000));
+  });
+
+  it("keeps the later month's buckets when the earlier response lands last", async () => {
+    const forMonth = (month: string, spent: number): BudgetRuleSummary => ({
+      ...summary,
+      month,
+      buckets: [{ bucket: "NEEDS", percent: 50, target: 50_000, spent, remaining: 50_000 - spent, percentUsed: spent / 500 }],
+    });
+    let resolveOld!: (s: BudgetRuleSummary) => void;
+    let resolveNew!: (s: BudgetRuleSummary) => void;
+    mockGetBudgetRuleSummary
+      .mockReturnValueOnce(new Promise((r) => { resolveOld = r; }))
+      .mockReturnValueOnce(new Promise((r) => { resolveNew = r; }));
+
+    const { rerender } = render(<BudgetRuleCard month="2026-09" categories={[]} onCategoriesChanged={vi.fn()} />);
+    rerender(<BudgetRuleCard month="2026-08" categories={[]} onCategoriesChanged={vi.fn()} />);
+
+    resolveNew(forMonth("2026-08", 10_000));
+    expect(await screen.findByText("₱400.00 left")).toBeTruthy();
+    resolveOld(forMonth("2026-09", 30_000));
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(screen.queryByText("₱200.00 left")).toBeNull();
+    expect(screen.getByText("₱400.00 left")).toBeTruthy();
+  });
+});
+
+describe("BudgetRuleCard load errors", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockGetBudgetRule.mockResolvedValue(rule(100_000));
+  });
+
+  // The error only renders once the rule is on, so the first load succeeds and a month change fails.
+  it("clears a load error once a later load succeeds", async () => {
+    mockGetBudgetRuleSummary
+      .mockResolvedValueOnce(summary)
+      .mockRejectedValueOnce(new Error("down"))
+      .mockResolvedValue(summary);
+    const props = { categories: [], onCategoriesChanged: vi.fn() };
+    const { rerender } = render(<BudgetRuleCard month="2026-09" {...props} />);
+    await screen.findByText("Budgeting Rule");
+
+    rerender(<BudgetRuleCard month="2026-08" {...props} />);
+    expect(await screen.findByText("Failed to load budgeting rule.")).toBeTruthy();
+
+    rerender(<BudgetRuleCard month="2026-07" {...props} />);
+    await waitFor(() => expect(screen.queryByText("Failed to load budgeting rule.")).toBeNull());
+  });
+});

@@ -41,7 +41,17 @@ export default function CurrencySelect({ value, onChange, className = "" }: Prop
   }, []);
 
   return (
-    <div ref={ref} className={`relative ${className}`}>
+    <div
+      ref={ref}
+      className={`relative ${className}`}
+      onKeyDown={(e) => {
+        // An open list owns Escape, so a dialog around it stays open; a closed one lets it through.
+        if (e.key !== "Escape" || !open) return;
+        e.preventDefault();
+        e.stopPropagation();
+        setOpen(false);
+      }}
+    >
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}

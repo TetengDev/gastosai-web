@@ -13,10 +13,10 @@ import {
 } from "recharts";
 import { getBudgetSummary } from "../api/budgets";
 import { getCategoryReport, getExpensesPage, getMonthlyComparison, getMonthlyReport } from "../api/expenses";
-import { getUpcomingBills } from "../api/recurring";
+import { getRecurring, getUpcomingBills, markRecurringPaid } from "../api/recurring";
 import type { BudgetSummaryItem, BudgetSummaryResponse } from "../api/budgets";
 import type { CategoryReport, Expense, MonthlyReport } from "../api/expenses";
-import type { UpcomingBillResponse } from "../api/recurring";
+import type { RecurringExpenseResponse, UpcomingBillResponse } from "../api/recurring";
 import AiInsightsCard from "../components/AiInsightsCard";
 import FeatureGate from "../components/FeatureGate";
 import DailyTrendCard from "../components/DailyTrendCard";
@@ -114,14 +114,88 @@ function statusLine(
   return left;
 }
 
-type AttentionRow =
-  | { kind: "budget"; item: BudgetSummaryItem }
-  | { kind: "bill"; bill: UpcomingBillResponse; inDays: number };
+/**
+ * A bill in Needs attention; `line` is the sub-line under its name. `canMarkPaid` is false on a row
+ * due next month: the mark is for the current month, so it would record the wrong one (R6).
+ */
+type BillRow = { bill: UpcomingBillResponse; line: string; overdue: boolean; canMarkPaid: boolean };
+
+type AttentionRow = { kind: "budget"; item: BudgetSummaryItem } | ({ kind: "bill" } & BillRow);
 
 function dueIn(days: number): string {
   if (days === 0) return "Due today";
   if (days === 1) return "Due tomorrow";
   return `Due in ${days} days`;
+}
+
+const dueDay = (ymd: string) => formatDayMonth(ymd + "T00:00:00+08:00");
+
+/**
+ * Needs attention's bill rows: overdue first, then bills due within the window. Every due date is
+ * the server's (`/recurring/upcoming`) and the paid state is the server's (`/recurring`, joined by
+ * id, R2); this only compares Manila `yyyy-mm-dd` strings. A bill missing from `recurring` (or the
+ * list failing to load) is never overdue, never hidden and offers no Mark paid: without its paid
+ * state there is no knowing what a mark would mean. That is the behaviour before 3.5.0.
+ *
+ * - Overdue this month: unpaid, with a due date this month before today. One row per bill, at its
+ *   most recent missed date, replacing its upcoming rows (R4).
+ * - Unpaid last month: `lastPaidMonth` before last month (null never counts, R1), and only for a
+ *   bill the server says was due last month (R3). A bill overdue both ways gets the dated line.
+ * - A bill paid for this month or later shows no row due this month; next month's rows still show
+ *   (R5).
+ */
+function billRows(
+  upcoming: UpcomingBillResponse[],
+  upcomingLastMonth: UpcomingBillResponse[],
+  recurring: RecurringExpenseResponse[],
+  today: string,
+): BillRow[] {
+  const month = today.slice(0, 7);
+  const lastMonth = previousMonth(month);
+  const paid = new Map(recurring.map((r) => [r.id, r]));
+  // Marked paid for this month or later; a `lastPaidMonth` at or after this month means nothing is
+  // overdue. A bill with no record is neither paid nor unpaid.
+  const paidUp = (r: RecurringExpenseResponse) =>
+    r.paidThisMonth || (r.lastPaidMonth !== null && r.lastPaidMonth >= month);
+  const unpaid = (id: number) => {
+    const r = paid.get(id);
+    return !!r && !paidUp(r);
+  };
+
+  const overdue = new Map<number, BillRow>();
+  for (const bill of [...upcoming].sort((a, b) => a.dueDate.localeCompare(b.dueDate))) {
+    if (bill.dueDate.startsWith(month) && bill.dueDate < today && unpaid(bill.id)) {
+      overdue.set(bill.id, {
+        bill,
+        line: `Overdue · was due ${dueDay(bill.dueDate)}`,
+        overdue: true,
+        canMarkPaid: true,
+      });
+    }
+  }
+  for (const bill of upcomingLastMonth) {
+    const last = paid.get(bill.id)?.lastPaidMonth ?? null;
+    if (!overdue.has(bill.id) && unpaid(bill.id) && last !== null && last < lastMonth) {
+      overdue.set(bill.id, { bill, line: "Overdue · not paid last month", overdue: true, canMarkPaid: true });
+    }
+  }
+
+  const soon = upcoming
+    .map((bill) => ({ bill, inDays: daysBetween(today, bill.dueDate) }))
+    .filter(({ bill, inDays }) => inDays >= 0 && inDays <= BILL_WINDOW_DAYS && !overdue.has(bill.id))
+    .filter(({ bill }) => {
+      const r = paid.get(bill.id);
+      return !(bill.dueDate.startsWith(month) && r && paidUp(r));
+    })
+    .sort((a, b) => a.inDays - b.inDays)
+    .map(({ bill, inDays }) => ({
+      bill,
+      line: `${dueIn(inDays)} · ${dueDay(bill.dueDate)}`,
+      overdue: false,
+      canMarkPaid: bill.dueDate.startsWith(month) && paid.has(bill.id),
+    }));
+
+  return [...overdue.values(), ...soon];
 }
 
 export default function Dashboard() {
@@ -131,7 +205,7 @@ export default function Dashboard() {
   const [monthlyData, setMonthlyData] = useState<MonthlyReport[]>([]);
   const [total, setTotal] = useState(0);
   const [budgetSummary, setBudgetSummary] = useState<BudgetSummaryResponse | null>(null);
-  const [bills, setBills] = useState<{ bill: UpcomingBillResponse; inDays: number }[]>([]);
+  const [bills, setBills] = useState<BillRow[]>([]);
   // The `month-<yyyy-mm>` event to celebrate, frozen at load: Celebrate marks it seen as it mounts,
   // so reading the flag again on the next render would pull the cheer straight back out.
   const [monthCelebration, setMonthCelebration] = useState<string | null>(null);
@@ -151,6 +225,9 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [insightsOpen, setInsightsOpen] = useState(false);
+  // One Mark paid at a time: every Mark paid button is disabled from the click until the refetch lands.
+  const [marking, setMarking] = useState(false);
+  const [markError, setMarkError] = useState(false);
   // The Manila day the last load was for. Read at fetch time so a tab left open past midnight on
   // the 1st asks for the new month; it is set with the data, so the labels never disagree with it.
   const [today, setToday] = useState(() => manilaDate(new Date()));
@@ -164,7 +241,7 @@ export default function Dashboard() {
     // The bills endpoint is per month, so a window that crosses the month end needs both.
     const billMonths = horizon.slice(0, 7) === month ? [month] : [month, horizon.slice(0, 7)];
 
-    void Promise.all([
+    return Promise.all([
       getCategoryReport(),
       getExpensesPage({ page: 0, size: 5 }),
       getMonthlyReport(),
@@ -174,8 +251,12 @@ export default function Dashboard() {
       Promise.all(billMonths.map((m) => getUpcomingBills(m)))
         .then((r) => r.flat())
         .catch(() => [] as UpcomingBillResponse[]),
+      // Last month's occurrences, for the unpaid-last-month check (R3), and the paid state (R2).
+      // Either failing falls back to upcoming rows only.
+      getUpcomingBills(prev).catch(() => [] as UpcomingBillResponse[]),
+      getRecurring().catch(() => [] as RecurringExpenseResponse[]),
     ])
-      .then(([cats, expenses, monthly, mom, budget, prevBudget, upcoming]) => {
+      .then(([cats, expenses, monthly, mom, budget, prevBudget, upcoming, upcomingPrev, recurring]) => {
         setToday(day);
         setCategoryData(cats);
         setRecentExpenses(expenses.content);
@@ -185,12 +266,7 @@ export default function Dashboard() {
         setBudgetSummary(budget);
         // The two months' responses can overlap, so one occurrence is kept per bill and due date.
         const unique = [...new Map(upcoming.map((b) => [`${b.id}-${b.dueDate}`, b])).values()];
-        setBills(
-          unique
-            .map((bill) => ({ bill, inDays: daysBetween(day, bill.dueDate) }))
-            .filter(({ inDays }) => inDays >= 0 && inDays <= BILL_WINDOW_DAYS)
-            .sort((a, b) => a.inDays - b.inDays),
-        );
+        setBills(billRows(unique, upcomingPrev, recurring, day));
         // A month closes under budget when it had budgets and the server put none of them over.
         const prevBands = (prevBudget?.items ?? []).map((i) => toBand(i.status));
         const closedUnder = prevBands.length > 0 && worstBand(prevBands) !== "OVER_BUDGET";
@@ -202,6 +278,22 @@ export default function Dashboard() {
       .catch(() => setError("Failed to load dashboard data."))
       .finally(() => setLoading(false));
   }, [account, queueCelebrations]);
+
+  const markPaid = async (id: number) => {
+    setMarking(true);
+    setMarkError(false);
+    try {
+      // The month is read at click time: `today` is frozen at the last load.
+      await markRecurringPaid(id, manilaMonth(new Date()));
+      // Refetch here rather than through `gastosai:recurring-changed`, so the buttons stay disabled
+      // until the row has left; a click in between would send the mark again.
+      await fetchData();
+    } catch {
+      setMarkError(true);
+    } finally {
+      setMarking(false);
+    }
+  };
 
   useEffect(() => {
     if (!playing) return;
@@ -253,7 +345,7 @@ export default function Dashboard() {
             fetchData();
           }}
         >
-          Retry
+          Try again
         </Button>
       </Card>
     );
@@ -272,12 +364,11 @@ export default function Dashboard() {
     cheer: monthCelebration !== null,
   });
   const worst = worstBand(bands);
-  // A whole-number percentage of two integer centavo totals, for the bar's width and its caption.
-  // The bar's colour still comes from the server's bands, never from this number.
+  // The server's whole-number share of the month's budget, for the bar's width and its caption; the
+  // bar's colour comes from the server's bands. The guard stays here: the server sends 0 when
+  // nothing is budgeted, which reads the same as "nothing spent".
   const usedPercent =
-    budgetSummary && budgetSummary.totalBudgeted > 0
-      ? Math.round((budgetSummary.totalSpent * 100) / budgetSummary.totalBudgeted)
-      : null;
+    budgetSummary && budgetSummary.totalBudgeted > 0 ? budgetSummary.percentUsed : null;
   const amber = mood === "worried" || mood === "overBudget";
 
   const hero = (
@@ -349,6 +440,11 @@ export default function Dashboard() {
       <h2 id="attention-heading" className="m-0 font-display text-lg font-medium text-ink-hi">
         Needs attention
       </h2>
+      {markError && (
+        <p role="alert" className="m-0 mt-3 text-sm text-danger">
+          Could not mark that bill paid. Try again.
+        </p>
+      )}
       <ul className="m-0 mt-3 list-none divide-y divide-edge-3 rounded-xl border border-edge bg-surface p-0">
         {attention.map((row) =>
           row.kind === "budget" ? (
@@ -380,19 +476,33 @@ export default function Dashboard() {
               </Link>
             </li>
           ) : (
-            <li key={`bill-${row.bill.id}-${row.bill.dueDate}`}>
+            // A button cannot sit inside a link, so the row is the link plus the action beside it. On
+            // a phone the action wraps under the link, so the name keeps its width.
+            <li key={`bill-${row.bill.id}-${row.bill.dueDate}`} className="flex flex-wrap items-center sm:flex-nowrap">
               <Link
                 to="/recurring"
-                className="flex items-center gap-4 px-4 py-3 transition-colors hover:bg-surface-2"
+                className="flex min-w-0 flex-1 basis-full items-center gap-4 px-4 py-3 transition-colors hover:bg-surface-2 sm:basis-auto"
               >
                 <div className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-medium text-ink-hi">{row.bill.name}</span>
-                  <span className="text-xs text-ink-2">
-                    {dueIn(row.inDays)} · {formatDayMonth(row.bill.dueDate + "T00:00:00+08:00")}
-                  </span>
+                  {/* Overdue is amber, never red (spec §3). */}
+                  <span className={`text-xs ${row.overdue ? "text-warn-ink" : "text-ink-2"}`}>{row.line}</span>
                 </div>
                 <Amount centavos={row.bill.amount} currency={row.bill.currency} className="w-28 shrink-0 text-right" />
               </Link>
+              {row.canMarkPaid && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="mx-4 mb-3 min-h-11 shrink-0 sm:mb-0 sm:ml-0"
+                  // "Mark paid" leads the name, so speaking the visible label hits it (WCAG 2.5.3).
+                  aria-label={`Mark paid: ${row.bill.name}`}
+                  disabled={marking}
+                  onClick={() => void markPaid(row.bill.id)}
+                >
+                  Mark paid
+                </Button>
+              )}
             </li>
           ),
         )}

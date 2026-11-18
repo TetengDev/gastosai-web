@@ -86,11 +86,11 @@ test("GastosAI — feature showcase", async ({ page, request }) => {
   await chapter(page, "add-expense");
 
   await page.goto("/expenses");
-  await page.getByRole("button", { name: /Add Expense|Add your first expense/ }).click();
+  await page.getByRole("button", { name: /Add Expense|Log your first expense/ }).click();
   const expenseForm = modalWithTitle(page, "New Expense");
   await caption(page, "An amount, and what it was for");
   await expenseForm.locator('input[type="number"]').first().fill("1250.50");
-  await expenseForm.getByPlaceholder("What was this expense for?").fill(expenseName);
+  await expenseForm.getByPlaceholder("Lunch at Jollibee").fill(expenseName);
   await expenseForm.getByRole("button", { name: "Save", exact: true }).click();
   await expenseForm.waitFor({ state: "detached", timeout: 15000 });
 
@@ -232,6 +232,8 @@ test("GastosAI — feature showcase", async ({ page, request }) => {
   // ── 8. Export as CSV ──────────────────────────────────────────────────────────────────────
   await page.goto("/expenses");
   await chapter(page, "export");
+  // Export lives under More actions since TEN-440.
+  await page.getByRole("button", { name: "More actions" }).click();
   const exportButton = page.getByRole("button", { name: /Export CSV|Exporting…/ });
   await exportButton.scrollIntoViewIfNeeded();
   const [exported] = await Promise.all([

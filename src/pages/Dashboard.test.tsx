@@ -17,11 +17,21 @@ import {
   type MonthlyComparison,
   type MonthlyReport,
 } from "../api/expenses";
-import { getUpcomingBills, type UpcomingBillResponse } from "../api/recurring";
-import { formatCentavos, formatDate, manilaMonth } from "../lib/formatters";
+import {
+  getRecurring,
+  getUpcomingBills,
+  markRecurringPaid,
+  type RecurringExpenseResponse,
+  type UpcomingBillResponse,
+} from "../api/recurring";
+import { formatCentavos, formatDate, formatDayMonth, manilaMonth } from "../lib/formatters";
 
 vi.mock("../api/budgets", () => ({ getBudgetSummary: vi.fn() }));
-vi.mock("../api/recurring", () => ({ getUpcomingBills: vi.fn() }));
+vi.mock("../api/recurring", () => ({
+  getRecurring: vi.fn(),
+  getUpcomingBills: vi.fn(),
+  markRecurringPaid: vi.fn(),
+}));
 
 vi.mock("../api/expenses", () => ({
   getCategoryReport: vi.fn(),
@@ -55,6 +65,8 @@ vi.mock("../components/CategoryChip", () => ({
 
 const mockGetBudgetSummary = vi.mocked(getBudgetSummary);
 const mockGetUpcomingBills = vi.mocked(getUpcomingBills);
+const mockGetRecurring = vi.mocked(getRecurring);
+const mockMarkRecurringPaid = vi.mocked(markRecurringPaid);
 const mockGetCategoryReport = vi.mocked(getCategoryReport);
 const mockGetExpensesPage = vi.mocked(getExpensesPage);
 const mockGetMonthlyComparison = vi.mocked(getMonthlyComparison);
@@ -152,6 +164,8 @@ const BUDGET: BudgetSummaryResponse = {
   safeToSpend: 687_655,
   totalBudgeted: 1_500_000,
   totalSpent: 812_345,
+  // The server's figure, deliberately not 812,345 / 1,500,000 (54%): the hero must show this one.
+  percentUsed: 61,
   items: [item()],
 };
 
@@ -173,6 +187,31 @@ const bill = (over: Partial<UpcomingBillResponse> = {}): UpcomingBillResponse =>
   frequency: "MONTHLY",
   ...over,
 });
+
+/** The paid state lives on `/recurring` only (R2), joined to the upcoming bills by id. */
+const recurring = (over: Partial<RecurringExpenseResponse> = {}): RecurringExpenseResponse => ({
+  id: 7,
+  name: "Meralco",
+  amount: 254_900,
+  amountInBaseCurrency: 254_900,
+  categoryName: "Utilities",
+  currency: "PHP",
+  exchangeRate: 1,
+  frequency: "MONTHLY",
+  dayOfMonth: 10,
+  dayOfWeek: null,
+  monthOfYear: null,
+  active: true,
+  paidThisMonth: false,
+  lastPaidMonth: "2026-10",
+  ...over,
+});
+
+const meralco = (dueDate: string) => bill({ id: 7, name: "Meralco", amount: 254_900, dueDate });
+
+/** The upcoming endpoint is per month; each month answers with its own occurrences. */
+const upcomingByMonth = (byMonth: Record<string, UpcomingBillResponse[]>) =>
+  mockGetUpcomingBills.mockImplementation((m: string) => Promise.resolve(byMonth[m] ?? []));
 
 const budgets = (current: BudgetSummaryResponse, previous: BudgetSummaryResponse = PREV_BUDGET) =>
   mockGetBudgetSummary.mockImplementation((m: string) =>
@@ -242,6 +281,7 @@ describe("Dashboard render", () => {
     mockGetMonthlyReport.mockResolvedValue(MONTHLY);
     mockGetMonthlyComparison.mockResolvedValue(MOM);
     mockGetUpcomingBills.mockResolvedValue([]);
+    mockGetRecurring.mockResolvedValue([]);
     budgets(BUDGET);
   });
 
@@ -273,14 +313,21 @@ describe("Dashboard render", () => {
     expect(piso.getAttribute("data-piso-state")).toBe("resting");
 
     const meter = within(hero()).getByRole("progressbar", { name: "Month budget" });
-    // 812,345 of 1,500,000 centavos is 54%.
-    expect(meter).toHaveAttribute("aria-valuenow", "54");
+    // The server's `percentUsed`, never the client's 812,345 / 1,500,000 (54%).
+    expect(meter).toHaveAttribute("aria-valuenow", "61");
     // The hero figure is all of this month's spend; the meter counts budgeted categories only
     // (BudgetService sums `totalSpent` over budget lines), so the caption has to say so.
     expect(text(hero())).toContain(
-      `${formatCentavos(BUDGET.totalSpent)} of ${formatCentavos(BUDGET.totalBudgeted)} budgeted · 54%`,
+      `${formatCentavos(BUDGET.totalSpent)} of ${formatCentavos(BUDGET.totalBudgeted)} budgeted · 61%`,
     );
-    expect(text(hero())).toContain("₱8,123.45 of ₱15,000.00 budgeted · 54%");
+    expect(text(hero())).toContain("₱8,123.45 of ₱15,000.00 budgeted · 61%");
+  });
+
+  it("keeps its own guard: no meter when nothing is budgeted, since the server's 0 also means nothing spent", async () => {
+    budgets({ ...BUDGET, totalBudgeted: 0, percentUsed: 0 });
+    await setup();
+
+    expect(within(hero()).queryByRole("progressbar", { name: "Month budget" })).toBeNull();
   });
 
   it.each([
@@ -463,6 +510,8 @@ describe("Dashboard render", () => {
 
     await waitFor(() => expect(mockGetUpcomingBills).toHaveBeenCalledWith("2026-11"));
     expect(mockGetUpcomingBills).toHaveBeenCalledWith("2026-10");
+    // ...and last month, for the unpaid-last-month check (R3).
+    expect(mockGetUpcomingBills).toHaveBeenCalledWith("2026-09");
   });
 
   it("lists a bill once when both months' responses carry the same occurrence", async () => {
@@ -474,7 +523,8 @@ describe("Dashboard render", () => {
     mount();
 
     await screen.findByRole("heading", { name: "Needs attention" });
-    expect(mockGetUpcomingBills).toHaveBeenCalledTimes(2);
+    // This month, next month, and last month for the unpaid-last-month check.
+    expect(mockGetUpcomingBills).toHaveBeenCalledTimes(3);
     expect(within(section("attention")!).getAllByRole("listitem")).toHaveLength(1);
   });
 
@@ -484,7 +534,250 @@ describe("Dashboard render", () => {
     mount();
 
     await waitFor(() => expect(mockGetUpcomingBills).toHaveBeenCalledWith("2026-10"));
-    expect(mockGetUpcomingBills).toHaveBeenCalledTimes(1);
+    expect(mockGetUpcomingBills).toHaveBeenCalledWith("2026-09"); // last month, for R3
+    expect(mockGetUpcomingBills).toHaveBeenCalledTimes(2);
+  });
+
+  // --- Overdue bills (contract 3.5.0) ---------------------------------------
+  // The clock is faked in Manila; `mount()` rather than `setup()`, which waits on the real month.
+
+  describe("overdue bills", () => {
+    const attentionRows = () =>
+      section("attention") ? within(section("attention")!).getAllByRole("listitem").map(text) : [];
+    /** Waits for the page, so an absent row means absent, not still loading. */
+    const loaded = async (at: string) => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(new Date(at));
+      mount();
+      await screen.findByTestId("hero-status");
+    };
+
+    it("keeps an unpaid bill whose due date this month has passed, marked overdue, above the upcoming ones", async () => {
+      upcomingByMonth({
+        "2026-11": [meralco("2026-11-10"), bill({ id: 8, name: "Netflix", dueDate: "2026-11-18" })],
+      });
+      mockGetRecurring.mockResolvedValue([recurring(), recurring({ id: 8, name: "Netflix" })]);
+      await loaded("2026-11-18T04:00:00Z"); // noon, 18 Nov, Manila
+
+      const rows = attentionRows();
+      expect(rows).toHaveLength(2);
+      expect(rows[0]).toContain("Meralco");
+      expect(rows[0]).toContain(`Overdue · was due ${formatDayMonth("2026-11-10T00:00:00+08:00")}`);
+      // Due today is not overdue yet.
+      expect(rows[1]).toContain("Netflix");
+      expect(rows[1]).toContain("Due today");
+    });
+
+    it("shows no row for a bill marked paid this month, past or upcoming (R5)", async () => {
+      upcomingByMonth({ "2026-11": [meralco("2026-11-10"), meralco("2026-11-20")] });
+      mockGetRecurring.mockResolvedValue([recurring({ paidThisMonth: true, lastPaidMonth: "2026-11" })]);
+      await loaded("2026-11-18T04:00:00Z");
+
+      expect(screen.queryByRole("heading", { name: "Needs attention" })).toBeNull();
+    });
+
+    it("flags a bill left unpaid last month, once it had an occurrence there", async () => {
+      upcomingByMonth({ "2026-11": [meralco("2026-11-20")], "2026-10": [meralco("2026-10-20")] });
+      mockGetRecurring.mockResolvedValue([recurring({ lastPaidMonth: "2026-09" })]);
+      await loaded("2026-11-03T04:00:00Z");
+
+      const rows = attentionRows();
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toContain("Meralco");
+      expect(rows[0]).toContain("Overdue · not paid last month");
+    });
+
+    it("flags nothing when the bill is marked paid for a later month", async () => {
+      upcomingByMonth({ "2026-11": [meralco("2026-11-10")] });
+      mockGetRecurring.mockResolvedValue([recurring({ paidThisMonth: false, lastPaidMonth: "2026-12" })]);
+      await loaded("2026-11-18T04:00:00Z");
+
+      expect(screen.queryByRole("heading", { name: "Needs attention" })).toBeNull();
+    });
+
+    it("lists no upcoming row this month for a bill marked paid for a later month", async () => {
+      upcomingByMonth({ "2026-11": [meralco("2026-11-20")] });
+      mockGetRecurring.mockResolvedValue([recurring({ paidThisMonth: false, lastPaidMonth: "2026-12" })]);
+      await loaded("2026-11-18T04:00:00Z");
+
+      expect(screen.queryByRole("heading", { name: "Needs attention" })).toBeNull();
+    });
+
+    it("still lists next month's row for a bill paid this month, with no action (R5, R6)", async () => {
+      upcomingByMonth({ "2026-11": [meralco("2026-11-01")] });
+      mockGetRecurring.mockResolvedValue([recurring({ paidThisMonth: true, lastPaidMonth: "2026-10" })]);
+      await loaded("2026-10-28T04:00:00Z");
+
+      // Budget rows may share the list (the fixtures' last month can land on October), so count bills.
+      expect(attentionRows().filter((r) => r.includes("Meralco"))).toHaveLength(1);
+      expect(screen.queryByRole("button", { name: "Mark paid: Meralco" })).toBeNull();
+    });
+
+    it("still flags a never-marked bill once this month's due date has passed (R1)", async () => {
+      upcomingByMonth({ "2026-11": [meralco("2026-11-10")] });
+      mockGetRecurring.mockResolvedValue([recurring({ lastPaidMonth: null })]);
+      await loaded("2026-11-18T04:00:00Z");
+
+      const rows = attentionRows();
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toContain(`Overdue · was due ${formatDayMonth("2026-11-10T00:00:00+08:00")}`);
+    });
+
+    it("shows one dated row for a bill overdue both this month and last", async () => {
+      upcomingByMonth({ "2026-11": [meralco("2026-11-10")], "2026-10": [meralco("2026-10-10")] });
+      mockGetRecurring.mockResolvedValue([recurring({ lastPaidMonth: "2026-09" })]);
+      await loaded("2026-11-18T04:00:00Z");
+
+      const rows = attentionRows();
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toContain(`Overdue · was due ${formatDayMonth("2026-11-10T00:00:00+08:00")}`);
+    });
+
+    it("does not flag a never-marked bill for last month, on the 1st (R1)", async () => {
+      upcomingByMonth({ "2026-11": [meralco("2026-11-20")], "2026-10": [meralco("2026-10-20")] });
+      mockGetRecurring.mockResolvedValue([recurring({ lastPaidMonth: null })]);
+      await loaded("2026-11-01T04:00:00Z");
+
+      expect(screen.queryByRole("heading", { name: "Needs attention" })).toBeNull();
+    });
+
+    it("does not flag a yearly bill that had no occurrence last month (R3)", async () => {
+      upcomingByMonth({ "2026-11": [meralco("2026-11-20")] });
+      mockGetRecurring.mockResolvedValue([recurring({ frequency: "YEARLY", lastPaidMonth: "2026-01" })]);
+      await loaded("2026-11-03T04:00:00Z");
+
+      expect(screen.queryByRole("heading", { name: "Needs attention" })).toBeNull();
+    });
+
+    it("shows one row per overdue bill, at its most recent missed date, replacing its upcoming rows (R4)", async () => {
+      upcomingByMonth({ "2026-11": ["2026-11-04", "2026-11-11", "2026-11-18"].map(meralco) });
+      mockGetRecurring.mockResolvedValue([recurring({ frequency: "WEEKLY" })]);
+      await loaded("2026-11-18T04:00:00Z");
+
+      const rows = attentionRows();
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toContain(`Overdue · was due ${formatDayMonth("2026-11-11T00:00:00+08:00")}`);
+    });
+
+    it("falls back to upcoming rows only, with no Mark paid, when the bill list fails to load (R2)", async () => {
+      upcomingByMonth({
+        "2026-11": [meralco("2026-11-10"), bill({ id: 8, name: "Netflix", dueDate: "2026-11-21" })],
+      });
+      mockGetRecurring.mockRejectedValue(new Error("down"));
+      await loaded("2026-11-18T04:00:00Z");
+
+      const rows = attentionRows();
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toContain("Netflix");
+      expect(rows[0]).toContain("Due in 3 days");
+      // Without the paid state there is no knowing what a mark would mean.
+      expect(screen.queryByRole("button", { name: /^Mark paid/ })).toBeNull();
+    });
+
+    // --- Mark paid ------------------------------------------------------------
+
+    /** The server's paid state, flipped by a successful mark, so any number of refetches agree. */
+    const serverMarks = (fail = false) => {
+      let paid = false;
+      mockGetRecurring.mockImplementation(() =>
+        Promise.resolve([recurring(paid ? { paidThisMonth: true, lastPaidMonth: "2026-11" } : {})]),
+      );
+      mockMarkRecurringPaid.mockImplementation(() => {
+        if (fail) return Promise.reject(new Error("down"));
+        paid = true;
+        return Promise.resolve();
+      });
+    };
+
+    it("offers Mark paid on overdue rows and on upcoming rows due this month, outside the row's link", async () => {
+      upcomingByMonth({
+        "2026-11": [meralco("2026-11-10"), bill({ id: 8, name: "Netflix", dueDate: "2026-11-20" })],
+      });
+      mockGetRecurring.mockResolvedValue([recurring(), recurring({ id: 8, name: "Netflix" })]);
+      await loaded("2026-11-18T04:00:00Z");
+
+      for (const name of ["Meralco", "Netflix"]) {
+        const button = screen.getByRole("button", { name: `Mark paid: ${name}` });
+        expect(button).toHaveTextContent("Mark paid");
+        // A button inside a link would navigate; it sits beside it instead.
+        expect(button.closest("a")).toBeNull();
+      }
+    });
+
+    it("marks the bill paid for this Manila month and drops the row without a reload", async () => {
+      upcomingByMonth({ "2026-11": [meralco("2026-11-10")] });
+      serverMarks();
+      await loaded("2026-11-18T04:00:00Z");
+
+      fireEvent.click(screen.getByRole("button", { name: "Mark paid: Meralco" }));
+
+      await waitFor(() => expect(screen.queryByRole("heading", { name: "Needs attention" })).toBeNull());
+      expect(mockMarkRecurringPaid).toHaveBeenCalledTimes(1);
+      expect(mockMarkRecurringPaid).toHaveBeenCalledWith(7, "2026-11");
+      expect(screen.queryByRole("alert")).toBeNull();
+    });
+
+    it("sends one mark for a double click while the first is in flight", async () => {
+      upcomingByMonth({ "2026-11": [meralco("2026-11-10")] });
+      mockGetRecurring.mockResolvedValue([recurring()]);
+      mockMarkRecurringPaid.mockReturnValue(new Promise(() => {}));
+      await loaded("2026-11-18T04:00:00Z");
+
+      const button = screen.getByRole("button", { name: "Mark paid: Meralco" });
+      fireEvent.click(button);
+      fireEvent.click(button);
+
+      expect(mockMarkRecurringPaid).toHaveBeenCalledTimes(1);
+    });
+
+    it("keeps Mark paid disabled until the refetch after a mark settles", async () => {
+      upcomingByMonth({ "2026-11": [meralco("2026-11-10")] });
+      mockGetRecurring.mockResolvedValue([recurring()]);
+      mockMarkRecurringPaid.mockResolvedValue();
+      await loaded("2026-11-18T04:00:00Z");
+      // The refetch the mark triggers never answers, so the row stays on screen.
+      mockGetRecurring.mockReturnValue(new Promise(() => {}));
+
+      const button = screen.getByRole("button", { name: "Mark paid: Meralco" });
+      fireEvent.click(button);
+      await waitFor(() => expect(mockGetRecurring).toHaveBeenCalledTimes(2));
+      await act(async () => {}); // let the resolved mark's continuation run
+      fireEvent.click(button);
+
+      expect(button).toBeDisabled();
+      expect(mockMarkRecurringPaid).toHaveBeenCalledTimes(1);
+    });
+
+    it("says so inline, and keeps the row, when marking fails", async () => {
+      upcomingByMonth({ "2026-11": [meralco("2026-11-10")] });
+      serverMarks(true);
+      await loaded("2026-11-18T04:00:00Z");
+
+      fireEvent.click(screen.getByRole("button", { name: "Mark paid: Meralco" }));
+
+      const alert = await within(section("attention")!).findByRole("alert");
+      expect(alert).toHaveTextContent("Could not mark that bill paid. Try again.");
+      expect(attentionRows().some((r) => r.includes("Meralco"))).toBe(true);
+      // The next attempt clears it.
+      mockMarkRecurringPaid.mockReturnValue(new Promise(() => {}));
+      fireEvent.click(screen.getByRole("button", { name: "Mark paid: Meralco" }));
+      expect(screen.queryByRole("alert")).toBeNull();
+    });
+
+    it("offers no Mark paid on a row due next month, since the mark covers this month only (R6)", async () => {
+      upcomingByMonth({
+        "2026-10": [bill({ id: 8, name: "Netflix", dueDate: "2026-10-30" })],
+        "2026-11": [meralco("2026-11-01")],
+      });
+      // Unpaid in October, so `lastPaidMonth` sits before it.
+      const unpaid = { paidThisMonth: false, lastPaidMonth: "2026-09" };
+      mockGetRecurring.mockResolvedValue([recurring(unpaid), recurring({ id: 8, name: "Netflix", ...unpaid })]);
+      await loaded("2026-10-28T04:00:00Z");
+
+      expect(attentionRows().some((r) => r.includes("Meralco"))).toBe(true);
+      expect(screen.queryByRole("button", { name: "Mark paid: Meralco" })).toBeNull();
+      expect(screen.getByRole("button", { name: "Mark paid: Netflix" })).toBeInTheDocument();
+    });
   });
 
   // --- Goals, recent, insights --------------------------------------------
@@ -724,7 +1017,7 @@ describe("Dashboard render", () => {
     const { container } = mount();
 
     expect(await screen.findByText("Failed to load dashboard data.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Retry" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
     expect(container.innerHTML).not.toMatch(/#[0-9a-fA-F]{6}/);
   });
 

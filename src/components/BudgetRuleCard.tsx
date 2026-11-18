@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Sparkles } from "lucide-react";
 import { assignBuckets, getBudgetRule, getBudgetRuleSummary, putBudgetRule, setBudgetRuleEnabled } from "../api/budgetRules";
 import type { Bucket, BudgetRuleSummary, BudgetRuleType } from "../api/budgetRules";
 import type { Category } from "../api/categories";
-import { Button, InfoTip } from "./ui";
+import { Button, InfoTip, ProgressMeter } from "./ui";
 import { centavosToAmount, formatCentavos, parseAmountToCentavos } from "../lib/formatters";
 
 interface Props {
@@ -21,12 +21,6 @@ const PRESETS: { value: BudgetRuleType; label: string; hint: string }[] = [
 const BUCKETS: Bucket[] = ["NEEDS", "WANTS", "SAVINGS"];
 const BUCKET_LABEL: Record<Bucket, string> = { NEEDS: "Needs", WANTS: "Wants", SAVINGS: "Savings" };
 
-function barColor(percentUsed: number): string {
-  if (percentUsed >= 100) return "#e8590c";
-  if (percentUsed >= 80) return "#d9a400";
-  return "#1f8a5b";
-}
-
 export default function BudgetRuleCard({ month, categories, onCategoriesChanged }: Props) {
   const [ruleType, setRuleType] = useState<BudgetRuleType>("FIFTY_THIRTY_TWENTY");
   const [income, setIncome] = useState("0");
@@ -38,9 +32,16 @@ export default function BudgetRuleCard({ month, categories, onCategoriesChanged 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // The budgets page keeps this card mounted while its month stepper moves, so only the newest
+  // request may write.
+  const latest = useRef(0);
+
   const load = useCallback(async () => {
+    const request = ++latest.current;
     try {
       const [rule, sum] = await Promise.all([getBudgetRule(), getBudgetRuleSummary(month)]);
+      if (request !== latest.current) return;
+      setError(null);
       setEnabledState(rule.enabled);
       setRuleType(rule.ruleType);
       setIncome(centavosToAmount(rule.monthlyIncome));
@@ -49,6 +50,8 @@ export default function BudgetRuleCard({ month, categories, onCategoriesChanged 
       setSavings(rule.savingsPct);
       setSummary(sum);
     } catch {
+      if (request !== latest.current) return;
+      setSummary(null);
       setError("Failed to load budgeting rule.");
     }
   }, [month]);
@@ -210,14 +213,16 @@ export default function BudgetRuleCard({ month, categories, onCategoriesChanged 
                 {formatCentavos(b.spent)}
                 <span className="ml-1 text-[13px] text-ink-3">/ {formatCentavos(b.target)}</span>
               </div>
-              <div className="mt-2 h-2 overflow-hidden rounded-full bg-track">
-                <div
-                  className="h-full rounded-full"
-                  style={{ width: `${Math.min(b.percentUsed, 100)}%`, backgroundColor: barColor(b.percentUsed) }}
-                />
-              </div>
-              <div className="mt-1.5 text-xs text-ink-3">
-                {b.remaining >= 0 ? `${formatCentavos(b.remaining)} left` : `${formatCentavos(-b.remaining)} over`}
+              {/* A bucket has no server status (ruling R16), so the tone is the sign of the
+                  server's remaining — never a threshold on percentUsed. */}
+              <ProgressMeter
+                percent={b.percentUsed}
+                tone={b.remaining < 0 ? "over" : "onTrack"}
+                label={`${BUCKET_LABEL[b.bucket]} bucket`}
+                className="mt-2"
+              />
+              <div className={`mt-1.5 text-xs ${b.remaining < 0 ? "text-warn-ink" : "text-ink-2"}`}>
+                {b.remaining < 0 ? `Over by ${formatCentavos(-b.remaining)}` : `${formatCentavos(b.remaining)} left`}
               </div>
             </div>
           ))}

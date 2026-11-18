@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import Modal from "./Modal";
 import Button from "./Button";
 
@@ -27,12 +27,13 @@ export default function ConfirmDialog({
   onConfirm,
   onCancel,
 }: Props) {
+  const titleId = useId();
   return (
-    <Modal open={open} onClose={onCancel} maxWidthClass="max-w-sm">
-      <h3 className="mb-2 font-display text-xl font-medium text-ink-hi">{title}</h3>
+    <Modal open={open} onClose={onCancel} maxWidthClass="max-w-sm" labelledBy={titleId}>
+      <h3 id={titleId} className="mb-2 font-display text-xl font-medium text-ink-hi">{title}</h3>
       <div className="mb-4 text-sm leading-relaxed text-ink-2">{message}</div>
       {error && (
-        <p className="mb-4 rounded-xl bg-[#b30000]/10 px-4 py-2.5 text-sm text-[#b30000]">
+        <p role="alert" className="mb-4 rounded-xl bg-[#b30000]/10 px-4 py-2.5 text-sm text-[#b30000]">
           {error}
         </p>
       )}
