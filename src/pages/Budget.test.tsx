@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Budget from "./Budget";
-import { getBudgetSummary, getBudgets, updateBudget } from "../api/budgets";
+import { createBudget, getBudgetSummary, getBudgets, updateBudget } from "../api/budgets";
 import { getCategories } from "../api/categories";
 import type { BudgetResponse, BudgetSummaryItem, BudgetSummaryResponse } from "../api/budgets";
 import { EXPENSE_CHANGED } from "../lib/events";
@@ -21,6 +21,7 @@ vi.mock("../components/BudgetRuleCard", () => ({ default: () => null }));
 const mockGetBudgets = vi.mocked(getBudgets);
 const mockGetBudgetSummary = vi.mocked(getBudgetSummary);
 const mockUpdateBudget = vi.mocked(updateBudget);
+const mockCreateBudget = vi.mocked(createBudget);
 const mockGetCategories = vi.mocked(getCategories);
 
 const budget = (over: Partial<BudgetResponse> = {}): BudgetResponse => ({
@@ -380,5 +381,48 @@ describe("Budget while a month loads", () => {
 
     expect(screen.getByRole("table").closest("[aria-busy]")).toHaveAttribute("aria-busy", "true");
     expect(screen.queryByText("1 over budget")).toBeNull();
+  });
+});
+
+/**
+ * The stepper stops at the current Manila month, so a budget for a later month could be created
+ * but not seen, edited or deleted on web until that month arrived. The modal stops there too: by
+ * `max` where the browser has a month picker, and in the save handler where it does not.
+ */
+describe("Budget modal month", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2027-01-15T04:00:00+08:00"));
+    mockGetCategories.mockResolvedValue([{ id: 7, name: "Food" } as never]);
+    mockGetBudgets.mockResolvedValue([]);
+    mockGetBudgetSummary.mockResolvedValue(summaryOf([]));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const monthField = () => document.querySelector<HTMLInputElement>('form input[type="month"]')!;
+
+  it("caps the month at the current Manila month", async () => {
+    render(<Budget />);
+    fireEvent.click(await screen.findByRole("button", { name: "Add Budget" }));
+
+    expect(monthField()).toHaveAttribute("max", "2027-01");
+    expect(monthField()).toHaveValue("2027-01");
+  });
+
+  // `fireEvent.submit` skips the field's own constraint validation, as a browser without a month
+  // picker does.
+  it("refuses a later month in the save handler too", async () => {
+    render(<Budget />);
+    fireEvent.click(await screen.findByRole("button", { name: "Add Budget" }));
+
+    fireEvent.change(monthField(), { target: { value: "2027-02" } });
+    fireEvent.submit(monthField().closest("form")!);
+
+    expect(await screen.findByText("Choose this month or an earlier one.")).toBeTruthy();
+    expect(mockCreateBudget).not.toHaveBeenCalled();
   });
 });
