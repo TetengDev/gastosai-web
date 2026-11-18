@@ -305,15 +305,192 @@ export default function Expenses() {
     />
   );
 
+  // Shared by the first-run and the populated page: CSV import stays reachable on an empty account.
+  const moreActions = (
+    <div ref={menuRef} className="relative">
+      {/* Inside the dismiss root, so choosing a file does not close the menu, and outside the
+          panel, so it stays mounted when the menu does close. */}
+      {features?.csvImport && (
+        <input ref={csvInputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={handleCsvChange} />
+      )}
+      <button
+        ref={toggleRef}
+        type="button"
+        aria-label="More actions"
+        title="More actions"
+        aria-expanded={menuOpen}
+        aria-controls={MENU_ID}
+        onClick={() => setMenuOpen((o) => !o)}
+        className="grid h-10 w-10 cursor-pointer place-items-center rounded-full border border-edge-input bg-surface text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink-hi"
+      >
+        <MoreHorizontal className="h-5 w-5" aria-hidden="true" />
+      </button>
+      {menuOpen && (
+        <div
+          id={MENU_ID}
+          className="absolute right-0 top-full z-30 mt-2 w-[min(20rem,calc(100vw-2rem))] space-y-3 rounded-2xl border border-edge bg-surface p-3 shadow-lg"
+        >
+          <fieldset className="space-y-2">
+            <legend className={`${labelClass} mb-2 px-1`}>Export</legend>
+            <div className="grid grid-cols-2 gap-2">
+              <label className="space-y-1">
+                <span className="block px-1 text-xs text-ink-2">From</span>
+                <input
+                  type="date"
+                  aria-label="Export from"
+                  value={exportRange.from}
+                  onChange={(e) => setExportRange((r) => ({ ...r, from: e.target.value }))}
+                  className={inputClass}
+                />
+              </label>
+              <label className="space-y-1">
+                <span className="block px-1 text-xs text-ink-2">To</span>
+                <input
+                  type="date"
+                  aria-label="Export to"
+                  value={exportRange.to}
+                  onChange={(e) => setExportRange((r) => ({ ...r, to: e.target.value }))}
+                  className={inputClass}
+                />
+              </label>
+            </div>
+            {canExportPdf && projects.length > 0 && (
+              <label className="block space-y-1">
+                <span className="block px-1 text-xs text-ink-2">Tag</span>
+                <select
+                  aria-label="Tag"
+                  value={projectId}
+                  onChange={(e) => setProjectId(e.target.value)}
+                  className={inputClass}
+                >
+                  <option value="">All tags</option>
+                  {projects.map((p) => (
+                    <option key={p.id} value={String(p.id)}>{p.name}</option>
+                  ))}
+                </select>
+              </label>
+            )}
+            <button type="button" className={menuItemClass} aria-disabled={exporting} onClick={() => void runExport("csv")}>
+              {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              {exporting ? "Exporting…" : "Export CSV"}
+            </button>
+            {canExportPdf && (
+              <button type="button" className={menuItemClass} aria-disabled={exportingPdf} onClick={() => void runExport("pdf")}>
+                {exportingPdf ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
+                {exportingPdf ? "Exporting…" : "Export PDF"}
+              </button>
+            )}
+          </fieldset>
+          {features?.csvImport && (
+            <div className="space-y-1 border-t border-edge-2 pt-3">
+              <button
+                type="button"
+                className={menuItemClass}
+                aria-disabled={importing}
+                onClick={() => { if (!importing) csvInputRef.current?.click(); }}
+              >
+                {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                {importing ? "Importing…" : "Import CSV"}
+              </button>
+              <div className="flex items-center justify-between px-3">
+                <label className="inline-flex min-h-10 cursor-pointer select-none items-center gap-2 text-sm text-ink-2" title="Reject the whole file if any row is invalid">
+                  <input
+                    type="checkbox"
+                    checked={strictImport}
+                    onChange={(e) => setStrictImport(e.target.checked)}
+                    className="h-4 w-4 rounded accent-brand"
+                  />
+                  Strict import
+                </label>
+                <IconButton
+                  type="button"
+                  onClick={closeMenuThen(() => setShowFormatHelp(true))}
+                  aria-label="CSV format help"
+                  title="CSV format help"
+                >
+                  <HelpCircle className="h-4 w-4" />
+                </IconButton>
+              </div>
+            </div>
+          )}
+          {total > 0 && (
+            <div className="border-t border-edge-2 pt-3">
+              <button
+                type="button"
+                className={`${menuItemClass} text-danger`}
+                onClick={closeMenuThen(() => setConfirmDeleteAll(true))}
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete all
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
+  const importBanner = importResult && (
+    <div
+      className={`flex items-start gap-3 rounded-xl border px-4 py-3 text-sm ${
+        importResult.errors.length > 0
+          ? "border-warn-edge bg-warn-bg text-warn-ink"
+          : "border-brand/30 bg-green-soft text-deep"
+      }`}
+    >
+      <div className="flex-1">
+        <p className="font-medium">
+          {importResult.imported} expense{importResult.imported !== 1 ? "s" : ""} imported
+          {importResult.skipped > 0 && `, ${importResult.skipped} skipped`}
+          {importResult.errors.length > 0 && `, ${importResult.errors.length} not imported`}
+        </p>
+        {importResult.errors.length > 0 && (
+          <p className="mt-1 text-xs">
+            Some rows couldn’t be imported. Check the format (amount required, one row per expense) or download the template.
+          </p>
+        )}
+      </div>
+      <button
+        type="button"
+        aria-label="Dismiss"
+        onClick={() => setImportResult(null)}
+        className="cursor-pointer text-base leading-none opacity-70 transition-opacity hover:opacity-100"
+      >
+        ×
+      </button>
+    </div>
+  );
+
+  const helpModal = (
+    <Modal open={showFormatHelp} onClose={() => setShowFormatHelp(false)} title="CSV import format">
+      <ul className="mb-4 list-disc space-y-1.5 pl-5 text-sm text-ink-2">
+        <li><b>amount</b> — required, greater than 0 (currency symbols/commas are stripped).</li>
+        <li><b>category</b> — optional; defaults to "Uncategorized".</li>
+        <li><b>description</b> — optional.</li>
+        <li><b>date</b> — optional; accepts <code>YYYY-MM-DD</code>, <code>MM/DD/YYYY</code>, <code>DD/MM/YYYY</code>, with or without time; defaults to now.</li>
+        <li>Column order doesn't matter; the header row is required.</li>
+        <li><b>Strict</b> mode: if any row is missing/invalid, the whole file is rejected.</li>
+      </ul>
+      <div className="flex items-center justify-between gap-3">
+        <Button variant="ghost" size="sm" type="button" onClick={() => void downloadImportTemplate()}>
+          <Download className="h-4 w-4" /> Download template
+        </Button>
+        <Button type="button" onClick={() => setShowFormatHelp(false)}>Got it</Button>
+      </div>
+    </Modal>
+  );
+
   if (firstRun)
     return (
       <div className="space-y-8">
-        <PageHeader title="Expenses" />
+        <PageHeader title="Expenses" actions={moreActions} />
+        {importBanner}
         <EmptyState
           title="No expenses yet"
           body="Log what you spend and this page groups your month by day, with each day's total."
           action={{ label: "Log your first expense", onClick: openAdd }}
         />
+        {helpModal}
         {modal}
       </div>
     );
@@ -337,125 +514,7 @@ export default function Expenses() {
                 className="h-10 w-full rounded-full border border-edge-input bg-input pl-9 pr-4 text-sm text-ink placeholder:text-ink-2"
               />
             </label>
-            <div ref={menuRef} className="relative">
-              {/* Inside the dismiss root, so choosing a file does not close the menu, and outside the
-                  panel, so it stays mounted when the menu does close. */}
-              {features?.csvImport && (
-                <input ref={csvInputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={handleCsvChange} />
-              )}
-              <button
-                ref={toggleRef}
-                type="button"
-                aria-label="More actions"
-                title="More actions"
-                aria-expanded={menuOpen}
-                aria-controls={MENU_ID}
-                onClick={() => setMenuOpen((o) => !o)}
-                className="grid h-10 w-10 cursor-pointer place-items-center rounded-full border border-edge-input bg-surface text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink-hi"
-              >
-                <MoreHorizontal className="h-5 w-5" aria-hidden="true" />
-              </button>
-              {menuOpen && (
-                <div
-                  id={MENU_ID}
-                  className="absolute right-0 top-full z-30 mt-2 w-[min(20rem,calc(100vw-2rem))] space-y-3 rounded-2xl border border-edge bg-surface p-3 shadow-lg"
-                >
-                  <fieldset className="space-y-2">
-                    <legend className={`${labelClass} mb-2 px-1`}>Export</legend>
-                    <div className="grid grid-cols-2 gap-2">
-                      <label className="space-y-1">
-                        <span className="block px-1 text-xs text-ink-2">From</span>
-                        <input
-                          type="date"
-                          aria-label="Export from"
-                          value={exportRange.from}
-                          onChange={(e) => setExportRange((r) => ({ ...r, from: e.target.value }))}
-                          className={inputClass}
-                        />
-                      </label>
-                      <label className="space-y-1">
-                        <span className="block px-1 text-xs text-ink-2">To</span>
-                        <input
-                          type="date"
-                          aria-label="Export to"
-                          value={exportRange.to}
-                          onChange={(e) => setExportRange((r) => ({ ...r, to: e.target.value }))}
-                          className={inputClass}
-                        />
-                      </label>
-                    </div>
-                    {canExportPdf && projects.length > 0 && (
-                      <label className="block space-y-1">
-                        <span className="block px-1 text-xs text-ink-2">Tag</span>
-                        <select
-                          aria-label="Tag"
-                          value={projectId}
-                          onChange={(e) => setProjectId(e.target.value)}
-                          className={inputClass}
-                        >
-                          <option value="">All tags</option>
-                          {projects.map((p) => (
-                            <option key={p.id} value={String(p.id)}>{p.name}</option>
-                          ))}
-                        </select>
-                      </label>
-                    )}
-                    <button type="button" className={menuItemClass} aria-disabled={exporting} onClick={() => void runExport("csv")}>
-                      {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                      {exporting ? "Exporting…" : "Export CSV"}
-                    </button>
-                    {canExportPdf && (
-                      <button type="button" className={menuItemClass} aria-disabled={exportingPdf} onClick={() => void runExport("pdf")}>
-                        {exportingPdf ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
-                        {exportingPdf ? "Exporting…" : "Export PDF"}
-                      </button>
-                    )}
-                  </fieldset>
-                  {features?.csvImport && (
-                    <div className="space-y-1 border-t border-edge-2 pt-3">
-                      <button
-                        type="button"
-                        className={menuItemClass}
-                        aria-disabled={importing}
-                        onClick={() => { if (!importing) csvInputRef.current?.click(); }}
-                      >
-                        {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                        {importing ? "Importing…" : "Import CSV"}
-                      </button>
-                      <div className="flex items-center justify-between px-3">
-                        <label className="inline-flex min-h-10 cursor-pointer select-none items-center gap-2 text-sm text-ink-2" title="Reject the whole file if any row is invalid">
-                          <input
-                            type="checkbox"
-                            checked={strictImport}
-                            onChange={(e) => setStrictImport(e.target.checked)}
-                            className="h-4 w-4 rounded accent-brand"
-                          />
-                          Strict import
-                        </label>
-                        <IconButton
-                          type="button"
-                          onClick={closeMenuThen(() => setShowFormatHelp(true))}
-                          aria-label="CSV format help"
-                          title="CSV format help"
-                        >
-                          <HelpCircle className="h-4 w-4" />
-                        </IconButton>
-                      </div>
-                    </div>
-                  )}
-                  <div className="border-t border-edge-2 pt-3">
-                    <button
-                      type="button"
-                      className={`${menuItemClass} text-danger`}
-                      onClick={closeMenuThen(() => setConfirmDeleteAll(true))}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      Delete all
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+            {moreActions}
           </div>
 
           <div className="flex items-center rounded-full border border-edge-input bg-surface p-0.5">
@@ -516,36 +575,7 @@ export default function Expenses() {
         </p>
       )}
 
-      {importResult && (
-        <div
-          className={`flex items-start gap-3 rounded-xl border px-4 py-3 text-sm ${
-            importResult.errors.length > 0
-              ? "border-warn-edge bg-warn-bg text-warn-ink"
-              : "border-brand/30 bg-green-soft text-deep"
-          }`}
-        >
-          <div className="flex-1">
-            <p className="font-medium">
-              {importResult.imported} expense{importResult.imported !== 1 ? "s" : ""} imported
-              {importResult.skipped > 0 && `, ${importResult.skipped} skipped`}
-              {importResult.errors.length > 0 && `, ${importResult.errors.length} not imported`}
-            </p>
-            {importResult.errors.length > 0 && (
-              <p className="mt-1 text-xs">
-                Some rows couldn’t be imported. Check the format (amount required, one row per expense) or download the template.
-              </p>
-            )}
-          </div>
-          <button
-            type="button"
-            aria-label="Dismiss"
-            onClick={() => setImportResult(null)}
-            className="cursor-pointer text-base leading-none opacity-70 transition-opacity hover:opacity-100"
-          >
-            ×
-          </button>
-        </div>
-      )}
+      {importBanner}
 
       {rows !== null && (
         <div aria-busy={stale && !monthError} inert={stale} className={stale ? "space-y-3 opacity-60 transition-opacity" : "space-y-3 transition-opacity"}>
@@ -668,22 +698,7 @@ export default function Expenses() {
         </div>
       )}
 
-      <Modal open={showFormatHelp} onClose={() => setShowFormatHelp(false)} title="CSV import format">
-        <ul className="mb-4 list-disc space-y-1.5 pl-5 text-sm text-ink-2">
-          <li><b>amount</b> — required, greater than 0 (currency symbols/commas are stripped).</li>
-          <li><b>category</b> — optional; defaults to "Uncategorized".</li>
-          <li><b>description</b> — optional.</li>
-          <li><b>date</b> — optional; accepts <code>YYYY-MM-DD</code>, <code>MM/DD/YYYY</code>, <code>DD/MM/YYYY</code>, with or without time; defaults to now.</li>
-          <li>Column order doesn't matter; the header row is required.</li>
-          <li><b>Strict</b> mode: if any row is missing/invalid, the whole file is rejected.</li>
-        </ul>
-        <div className="flex items-center justify-between gap-3">
-          <Button variant="ghost" size="sm" type="button" onClick={() => void downloadImportTemplate()}>
-            <Download className="h-4 w-4" /> Download template
-          </Button>
-          <Button type="button" onClick={() => setShowFormatHelp(false)}>Got it</Button>
-        </div>
-      </Modal>
+      {helpModal}
 
       <ConfirmDialog
         open={confirmDelete !== null}
