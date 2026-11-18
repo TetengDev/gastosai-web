@@ -13,7 +13,7 @@ test.describe("Happy · expenses", { tag: "@happy" }, () => {
     const description = uniqueName("Coffee");
 
     await page.goto("/expenses");
-    await page.getByRole("button", { name: /Add Expense|Add your first expense/ }).click();
+    await page.getByRole("button", { name: /Add Expense|Log your first expense/ }).click();
 
     const form = modalWithTitle(page, "New Expense");
     await form.locator('input[type="number"]').first().fill("150.75");
