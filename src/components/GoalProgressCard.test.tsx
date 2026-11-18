@@ -112,11 +112,12 @@ describe("GoalProgressCard strip", () => {
     expect(link).toHaveTextContent(/^See all goals$/);
   });
 
-  it("does not celebrate a goal that is still in progress", async () => {
+  it("reports no goal to celebrate while every goal is still in progress", async () => {
+    const onCompleted = vi.fn();
     mockGetGoals.mockResolvedValue([goal({ status: "ON_TRACK", progressPercent: 99 })]);
-    renderStrip();
+    renderStrip(onCompleted);
     await screen.findByRole("progressbar", { name: "Trip fund" });
-    expect(coin()).toBeNull();
+    expect(onCompleted).toHaveBeenLastCalledWith([]);
   });
 
   it("offers to set a goal when there are none", async () => {

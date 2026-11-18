@@ -591,19 +591,26 @@ describe("Dashboard render", () => {
     const seen = (event: string) => localStorage.getItem(celebrationKey(ACCOUNT, event)) === "1";
     const coins = () => document.querySelectorAll('[data-testid="coin"]').length;
     const advance = async () => {
-      await act(async () => {
-        vi.advanceTimersByTime(HOLD_MS);
-      });
+      await act(() => vi.advanceTimersByTimeAsync(HOLD_MS));
     };
 
+    /** Mounts and lets the data land without moving the clock past any hold. */
+    const load = async () => {
+      mount();
+      for (let i = 0; i < 5; i++) await act(() => vi.advanceTimersByTimeAsync(0));
+      expect(hero()).not.toBeNull();
+    };
+
+    // Time moves only when a test advances it, so a slow runner cannot end a hold early. That is
+    // also why these tests load with `load()`: findBy waits on timers that are frozen here.
     beforeEach(() => {
-      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"], shouldAdvanceTime: true });
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     });
 
     it("plays one at a time from the hero, the month first, then each completed goal", async () => {
       budgets(BUDGET, { ...PREV_BUDGET, items: [item()] });
       goalStrip.completed = ["goal-1", "goal-2"];
-      await setup();
+      await load();
 
       // The month's cheer is on; the goals wait their turn, unmarked.
       expect(coins()).toBe(1);
@@ -625,15 +632,43 @@ describe("Dashboard render", () => {
       expect(pisoStates()).toEqual(["cheer"]);
     });
 
+    // Another tab can mark a queued goal while it waits; it is skipped, not held as a blank slot.
+    it("skips a queued event that was marked seen elsewhere while it waited", async () => {
+      budgets(BUDGET, { ...PREV_BUDGET, items: [item()] });
+      goalStrip.completed = ["goal-1", "goal-2"];
+      await load();
+      localStorage.setItem(celebrationKey(ACCOUNT, "goal-1"), "1");
+
+      await advance();
+      // goal-2 takes the hero straight after the month; goal-1 does not hold it.
+      expect(seen("goal-2")).toBe(true);
+      expect(coins()).toBe(1);
+    });
+
+    // A flag that cannot be written stops Celebrate playing; the hero still shows Piso's mood.
+    it("keeps Piso in the hero when the head's celebration declines to play", async () => {
+      budgets(BUDGET, { ...PREV_BUDGET, items: [item()] });
+      const write = vi.spyOn(localStorage, "setItem").mockImplementation(() => {
+        throw new Error("quota");
+      });
+      try {
+        await load();
+        expect(coins()).toBe(0);
+        expect(pisoStates()).toEqual(["cheer"]);
+      } finally {
+        write.mockRestore();
+      }
+    });
+
     it("never replays a celebration whose key has already been seen", async () => {
       localStorage.setItem(celebrationKey(ACCOUNT, `month-${prevMonth}`), "1");
       localStorage.setItem(celebrationKey(ACCOUNT, "goal-1"), "1");
       budgets(BUDGET, { ...PREV_BUDGET, items: [item()] });
       goalStrip.completed = ["goal-1", "goal-2"];
-      await setup();
+      await load();
 
       // goal-2 is the only one left, and it plays at once.
-      await waitFor(() => expect(seen("goal-2")).toBe(true));
+      expect(seen("goal-2")).toBe(true);
       expect(coins()).toBe(1);
 
       await advance();

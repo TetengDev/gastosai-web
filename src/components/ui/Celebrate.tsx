@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import Piso from "../../brand/Piso";
 import { useAuth } from "../../context/AuthContext";
 import { hasCelebrated, markCelebrated } from "../../lib/celebrateStore";
@@ -7,6 +7,8 @@ interface Props {
   /** Seen-flag key: `goal-<id>`, `month-<yyyy-mm>` or `first-expense`. */
   event: string;
   size?: number;
+  /** Rendered instead when the celebration does not play, so its slot is never left blank. */
+  fallback?: ReactNode;
 }
 
 /**
@@ -16,13 +18,13 @@ interface Props {
  * written skips the animation, because nothing would stop it replaying on every visit. The flag
  * is per account, so with nobody signed in nothing plays and nothing is marked (as on mobile).
  */
-export default function Celebrate({ event, size = 96 }: Props) {
+export default function Celebrate({ event, size = 96, fallback = null }: Props) {
   const account = useAuth().user?.email;
   const [playing] = useState(
     () => !!account && !hasCelebrated(account, event) && markCelebrated(account, event),
   );
 
-  if (!playing) return null;
+  if (!playing) return fallback;
 
   return (
     <div className="relative inline-block" style={{ width: size, height: size }}>

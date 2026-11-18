@@ -205,9 +205,12 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!playing) return;
-    const t = setTimeout(() => setCelebrations((queue) => queue.slice(1)), CELEBRATION_HOLD_MS);
+    // Re-checked as each event reaches the head: another tab may have played one while it waited.
+    const next = () =>
+      setCelebrations((queue) => queue.slice(1).filter((e) => !!account && !hasCelebrated(account, e)));
+    const t = setTimeout(next, CELEBRATION_HOLD_MS);
     return () => clearTimeout(t);
-  }, [playing]);
+  }, [playing, account]);
 
   useEffect(() => {
     fetchData();
@@ -291,9 +294,10 @@ export default function Dashboard() {
           />
         </div>
         <div className="shrink-0">
+          {/* Keyed, so each event in the queue mounts its own Celebrate and is marked seen. If it
+              declines to play (the flag cannot be written), Piso's mood holds the slot. */}
           {playing ? (
-            // Keyed, so each event in the queue mounts its own Celebrate and is marked seen.
-            <Celebrate key={playing} event={playing} size={96} />
+            <Celebrate key={playing} event={playing} size={96} fallback={<Piso state={mood} size={96} />} />
           ) : (
             <Piso state={mood} size={96} />
           )}
