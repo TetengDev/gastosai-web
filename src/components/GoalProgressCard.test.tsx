@@ -3,6 +3,8 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import GoalProgressCard from "./GoalProgressCard";
 import { getGoals, type Goal } from "../api/goals";
+import { AuthProvider } from "../context/AuthContext";
+import { celebrationKey } from "../lib/celebrateStore";
 import { formatCurrencyAmount } from "../lib/formatters";
 
 vi.mock("../api/goals", () => ({ getGoals: vi.fn() }));
@@ -25,10 +27,14 @@ const goal = (over: Partial<Goal> = {}): Goal => ({
 
 const renderStrip = () =>
   render(
-    <MemoryRouter>
-      <GoalProgressCard />
-    </MemoryRouter>,
+    <AuthProvider>
+      <MemoryRouter>
+        <GoalProgressCard />
+      </MemoryRouter>
+    </AuthProvider>,
   );
+
+const ACCOUNT = "a@example.com";
 
 const coin = () => document.querySelector('[data-testid="coin"]');
 
@@ -36,6 +42,9 @@ describe("GoalProgressCard strip", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    // Celebrations are per account; AuthContext reads this session at startup.
+    localStorage.setItem("token", "t");
+    localStorage.setItem("auth_user", JSON.stringify({ email: ACCOUNT, name: "A", role: "USER" }));
   });
 
   it.each([
@@ -84,7 +93,7 @@ describe("GoalProgressCard strip", () => {
     const first = renderStrip();
     await screen.findByRole("progressbar", { name: "Trip fund" });
     expect(coin()).not.toBeNull();
-    expect(localStorage.getItem("ga.celebrate.anon.goal-42")).toBe("1");
+    expect(localStorage.getItem(celebrationKey(ACCOUNT, "goal-42"))).toBe("1");
     first.unmount();
 
     renderStrip();

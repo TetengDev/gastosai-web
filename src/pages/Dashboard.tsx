@@ -25,6 +25,7 @@ import TopExpensesCard from "../components/TopExpensesCard";
 import { Amount, Button, Card, Celebrate, InfoTip, ProgressMeter } from "../components/ui";
 import { formatCentavos, formatDate, formatDayMonth, manilaDate, manilaMonth } from "../lib/formatters";
 import { categoryIcon } from "../lib/categoryIcon";
+import { useAuth } from "../context/AuthContext";
 import { hasCelebrated } from "../lib/celebrateStore";
 import { budgetTone, pisoMoodFor, toBand, worstBand } from "../lib/pisoMood";
 import type { PisoState } from "../brand/pisoTokens";
@@ -121,6 +122,7 @@ function dueIn(days: number): string {
 }
 
 export default function Dashboard() {
+  const account = useAuth().user?.email;
   const [categoryData, setCategoryData] = useState<CategoryReport[]>([]);
   const [recentExpenses, setRecentExpenses] = useState<Expense[]>([]);
   const [monthlyData, setMonthlyData] = useState<MonthlyReport[]>([]);
@@ -177,11 +179,11 @@ export default function Dashboard() {
         const prevBands = (prevBudget?.items ?? []).map((i) => toBand(i.status));
         const closedUnder = prevBands.length > 0 && worstBand(prevBands) !== "OVER_BUDGET";
         const event = `month-${prev}`;
-        setMonthCelebration(closedUnder && !hasCelebrated(event) ? event : null);
+        setMonthCelebration(closedUnder && account && !hasCelebrated(account, event) ? event : null);
       })
       .catch(() => setError("Failed to load dashboard data."))
       .finally(() => setLoading(false));
-  }, []);
+  }, [account]);
 
   useEffect(() => {
     fetchData();

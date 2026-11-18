@@ -2,6 +2,8 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Dashboard, { abbrevCentavos } from "./Dashboard";
+import { AuthProvider } from "../context/AuthContext";
+import { celebrationKey } from "../lib/celebrateStore";
 import { getBudgetSummary, type BudgetSummaryItem, type BudgetSummaryResponse } from "../api/budgets";
 import {
   getCategoryReport,
@@ -216,10 +218,15 @@ describe("abbrevCentavos", () => {
 // Render tests. Expectations are derived from the fixture, never copied out of the JSX.
 // ---------------------------------------------------------------------------
 
+const ACCOUNT = "a@example.com";
+
 describe("Dashboard render", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    // Celebrations are per account; AuthContext reads this session at startup.
+    localStorage.setItem("token", "t");
+    localStorage.setItem("auth_user", JSON.stringify({ email: ACCOUNT, name: "A", role: "USER" }));
     mockGetCategoryReport.mockResolvedValue(CATEGORIES);
     mockGetExpensesPage.mockResolvedValue(page(EXPENSES));
     mockGetMonthlyReport.mockResolvedValue(MONTHLY);
@@ -232,9 +239,11 @@ describe("Dashboard render", () => {
 
   const mount = () =>
     render(
-      <MemoryRouter>
-        <Dashboard />
-      </MemoryRouter>,
+      <AuthProvider>
+        <MemoryRouter>
+          <Dashboard />
+        </MemoryRouter>
+      </AuthProvider>,
     );
 
   const setup = async () => {
@@ -531,12 +540,26 @@ describe("Dashboard render", () => {
     expect(within(hero()).getByTestId("hero-status").textContent).toBe(
       `${closed} closed under budget. Nice one.`,
     );
-    expect(localStorage.getItem(`ga.celebrate.anon.month-${prevMonth}`)).toBe("1");
+    expect(localStorage.getItem(celebrationKey(ACCOUNT, `month-${prevMonth}`))).toBe("1");
     first.unmount();
 
     await setup();
     expect(pisoStates()).toEqual(["resting"]);
     expect(document.querySelector('[data-testid="coin"]')).toBeNull();
+  });
+
+  // With no account there is no flag to scope to, so the hero keeps its resting Piso rather than
+  // mounting a Celebrate that would render nothing.
+  it("does not celebrate, and keeps Piso, when nobody is signed in", async () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("auth_user");
+    budgets(BUDGET, { ...PREV_BUDGET, items: [item()] });
+    await setup();
+
+    expect(pisoStates()).toEqual(["resting"]);
+    expect(document.querySelector('[data-testid="coin"]')).toBeNull();
+    const keys = Array.from({ length: localStorage.length }, (_, i) => localStorage.key(i)!);
+    expect(keys.filter((k) => k.startsWith("ga.celebrate."))).toEqual([]);
   });
 
   it.each([

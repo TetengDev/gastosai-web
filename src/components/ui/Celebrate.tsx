@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Piso from "../../brand/Piso";
+import { useAuth } from "../../context/AuthContext";
 import { hasCelebrated, markCelebrated } from "../../lib/celebrateStore";
 
 interface Props {
@@ -12,10 +13,14 @@ interface Props {
  * Mount it only when the trigger holds. Spec §3: on mount it marks the event seen first and only
  * then plays, so a remount (StrictMode, navigation) finds the flag and cannot replay it. React
  * keeps the first initializer result when StrictMode calls it twice. A flag that cannot be
- * written skips the animation, because nothing would stop it replaying on every visit.
+ * written skips the animation, because nothing would stop it replaying on every visit. The flag
+ * is per account, so with nobody signed in nothing plays and nothing is marked (as on mobile).
  */
 export default function Celebrate({ event, size = 96 }: Props) {
-  const [playing] = useState(() => !hasCelebrated(event) && markCelebrated(event));
+  const account = useAuth().user?.email;
+  const [playing] = useState(
+    () => !!account && !hasCelebrated(account, event) && markCelebrated(account, event),
+  );
 
   if (!playing) return null;
 
