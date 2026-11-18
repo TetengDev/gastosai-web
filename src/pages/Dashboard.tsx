@@ -13,7 +13,7 @@ import {
 } from "recharts";
 import { getBudgetSummary } from "../api/budgets";
 import { getCategoryReport, getExpensesPage, getMonthlyComparison, getMonthlyReport } from "../api/expenses";
-import { getRecurring, getUpcomingBills } from "../api/recurring";
+import { getRecurring, getUpcomingBills, markRecurringPaid } from "../api/recurring";
 import type { BudgetSummaryItem, BudgetSummaryResponse } from "../api/budgets";
 import type { CategoryReport, Expense, MonthlyReport } from "../api/expenses";
 import type { RecurringExpenseResponse, UpcomingBillResponse } from "../api/recurring";
@@ -114,8 +114,11 @@ function statusLine(
   return left;
 }
 
-/** A bill in Needs attention; `line` is the sub-line under its name. */
-type BillRow = { bill: UpcomingBillResponse; line: string; overdue: boolean };
+/**
+ * A bill in Needs attention; `line` is the sub-line under its name. `canMarkPaid` is false on a row
+ * due next month: the mark is for the current month, so it would record the wrong one (R6).
+ */
+type BillRow = { bill: UpcomingBillResponse; line: string; overdue: boolean; canMarkPaid: boolean };
 
 type AttentionRow = { kind: "budget"; item: BudgetSummaryItem } | ({ kind: "bill" } & BillRow);
 
@@ -157,13 +160,18 @@ function billRows(
   const overdue = new Map<number, BillRow>();
   for (const bill of [...upcoming].sort((a, b) => a.dueDate.localeCompare(b.dueDate))) {
     if (bill.dueDate.startsWith(month) && bill.dueDate < today && unpaid(bill.id)) {
-      overdue.set(bill.id, { bill, line: `Overdue · was due ${dueDay(bill.dueDate)}`, overdue: true });
+      overdue.set(bill.id, {
+        bill,
+        line: `Overdue · was due ${dueDay(bill.dueDate)}`,
+        overdue: true,
+        canMarkPaid: true,
+      });
     }
   }
   for (const bill of upcomingLastMonth) {
     const last = paid.get(bill.id)?.lastPaidMonth ?? null;
     if (!overdue.has(bill.id) && unpaid(bill.id) && last !== null && last < lastMonth) {
-      overdue.set(bill.id, { bill, line: "Overdue · not paid last month", overdue: true });
+      overdue.set(bill.id, { bill, line: "Overdue · not paid last month", overdue: true, canMarkPaid: true });
     }
   }
 
@@ -172,7 +180,12 @@ function billRows(
     .filter(({ bill, inDays }) => inDays >= 0 && inDays <= BILL_WINDOW_DAYS && !overdue.has(bill.id))
     .filter(({ bill }) => !(bill.dueDate.startsWith(month) && paid.get(bill.id)?.paidThisMonth))
     .sort((a, b) => a.inDays - b.inDays)
-    .map(({ bill, inDays }) => ({ bill, line: `${dueIn(inDays)} · ${dueDay(bill.dueDate)}`, overdue: false }));
+    .map(({ bill, inDays }) => ({
+      bill,
+      line: `${dueIn(inDays)} · ${dueDay(bill.dueDate)}`,
+      overdue: false,
+      canMarkPaid: bill.dueDate.startsWith(month),
+    }));
 
   return [...overdue.values(), ...soon];
 }
@@ -204,6 +217,9 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [insightsOpen, setInsightsOpen] = useState(false);
+  // One Mark paid at a time: every Mark paid button is disabled while one is in flight.
+  const [marking, setMarking] = useState(false);
+  const [markError, setMarkError] = useState(false);
   // The Manila day the last load was for. Read at fetch time so a tab left open past midnight on
   // the 1st asks for the new month; it is set with the data, so the labels never disagree with it.
   const [today, setToday] = useState(() => manilaDate(new Date()));
@@ -254,6 +270,21 @@ export default function Dashboard() {
       .catch(() => setError("Failed to load dashboard data."))
       .finally(() => setLoading(false));
   }, [account, queueCelebrations]);
+
+  const markPaid = async (id: number) => {
+    setMarking(true);
+    setMarkError(false);
+    try {
+      // The month is read at click time: `today` is frozen at the last load.
+      await markRecurringPaid(id, manilaMonth(new Date()));
+      // The page listens for this and refetches, so the row leaves without a reload.
+      window.dispatchEvent(new CustomEvent("gastosai:recurring-changed"));
+    } catch {
+      setMarkError(true);
+    } finally {
+      setMarking(false);
+    }
+  };
 
   useEffect(() => {
     if (!playing) return;
@@ -400,6 +431,11 @@ export default function Dashboard() {
       <h2 id="attention-heading" className="m-0 font-display text-lg font-medium text-ink-hi">
         Needs attention
       </h2>
+      {markError && (
+        <p role="alert" className="m-0 mt-3 text-sm text-danger">
+          Could not mark that bill paid. Try again.
+        </p>
+      )}
       <ul className="m-0 mt-3 list-none divide-y divide-edge-3 rounded-xl border border-edge bg-surface p-0">
         {attention.map((row) =>
           row.kind === "budget" ? (
@@ -431,10 +467,11 @@ export default function Dashboard() {
               </Link>
             </li>
           ) : (
-            <li key={`bill-${row.bill.id}-${row.bill.dueDate}`}>
+            // A button cannot sit inside a link, so the row is the link plus the action beside it.
+            <li key={`bill-${row.bill.id}-${row.bill.dueDate}`} className="flex items-center">
               <Link
                 to="/recurring"
-                className="flex items-center gap-4 px-4 py-3 transition-colors hover:bg-surface-2"
+                className="flex min-w-0 flex-1 items-center gap-4 px-4 py-3 transition-colors hover:bg-surface-2"
               >
                 <div className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-medium text-ink-hi">{row.bill.name}</span>
@@ -443,6 +480,18 @@ export default function Dashboard() {
                 </div>
                 <Amount centavos={row.bill.amount} currency={row.bill.currency} className="w-28 shrink-0 text-right" />
               </Link>
+              {row.canMarkPaid && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="mr-4 min-h-11 shrink-0"
+                  aria-label={`Mark ${row.bill.name} paid`}
+                  disabled={marking}
+                  onClick={() => void markPaid(row.bill.id)}
+                >
+                  Mark paid
+                </Button>
+              )}
             </li>
           ),
         )}

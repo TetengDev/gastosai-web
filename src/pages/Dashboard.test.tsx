@@ -20,13 +20,18 @@ import {
 import {
   getRecurring,
   getUpcomingBills,
+  markRecurringPaid,
   type RecurringExpenseResponse,
   type UpcomingBillResponse,
 } from "../api/recurring";
 import { formatCentavos, formatDate, formatDayMonth, manilaMonth } from "../lib/formatters";
 
 vi.mock("../api/budgets", () => ({ getBudgetSummary: vi.fn() }));
-vi.mock("../api/recurring", () => ({ getRecurring: vi.fn(), getUpcomingBills: vi.fn() }));
+vi.mock("../api/recurring", () => ({
+  getRecurring: vi.fn(),
+  getUpcomingBills: vi.fn(),
+  markRecurringPaid: vi.fn(),
+}));
 
 vi.mock("../api/expenses", () => ({
   getCategoryReport: vi.fn(),
@@ -61,6 +66,7 @@ vi.mock("../components/CategoryChip", () => ({
 const mockGetBudgetSummary = vi.mocked(getBudgetSummary);
 const mockGetUpcomingBills = vi.mocked(getUpcomingBills);
 const mockGetRecurring = vi.mocked(getRecurring);
+const mockMarkRecurringPaid = vi.mocked(markRecurringPaid);
 const mockGetCategoryReport = vi.mocked(getCategoryReport);
 const mockGetExpensesPage = vi.mocked(getExpensesPage);
 const mockGetMonthlyComparison = vi.mocked(getMonthlyComparison);
@@ -618,6 +624,91 @@ describe("Dashboard render", () => {
       expect(rows).toHaveLength(1);
       expect(rows[0]).toContain("Netflix");
       expect(rows[0]).toContain("Due in 3 days");
+    });
+
+    // --- Mark paid ------------------------------------------------------------
+
+    /** The server's paid state, flipped by a successful mark, so any number of refetches agree. */
+    const serverMarks = (fail = false) => {
+      let paid = false;
+      mockGetRecurring.mockImplementation(() =>
+        Promise.resolve([recurring(paid ? { paidThisMonth: true, lastPaidMonth: "2026-11" } : {})]),
+      );
+      mockMarkRecurringPaid.mockImplementation(() => {
+        if (fail) return Promise.reject(new Error("down"));
+        paid = true;
+        return Promise.resolve();
+      });
+    };
+
+    it("offers Mark paid on overdue rows and on upcoming rows due this month, outside the row's link", async () => {
+      upcomingByMonth({
+        "2026-11": [meralco("2026-11-10"), bill({ id: 8, name: "Netflix", dueDate: "2026-11-20" })],
+      });
+      mockGetRecurring.mockResolvedValue([recurring(), recurring({ id: 8, name: "Netflix" })]);
+      await loaded("2026-11-18T04:00:00Z");
+
+      for (const name of ["Meralco", "Netflix"]) {
+        const button = screen.getByRole("button", { name: `Mark ${name} paid` });
+        expect(button).toHaveTextContent("Mark paid");
+        // A button inside a link would navigate; it sits beside it instead.
+        expect(button.closest("a")).toBeNull();
+      }
+    });
+
+    it("marks the bill paid for this Manila month and drops the row without a reload", async () => {
+      upcomingByMonth({ "2026-11": [meralco("2026-11-10")] });
+      serverMarks();
+      await loaded("2026-11-18T04:00:00Z");
+
+      fireEvent.click(screen.getByRole("button", { name: "Mark Meralco paid" }));
+
+      await waitFor(() => expect(screen.queryByRole("heading", { name: "Needs attention" })).toBeNull());
+      expect(mockMarkRecurringPaid).toHaveBeenCalledTimes(1);
+      expect(mockMarkRecurringPaid).toHaveBeenCalledWith(7, "2026-11");
+      expect(screen.queryByRole("alert")).toBeNull();
+    });
+
+    it("sends one mark for a double click while the first is in flight", async () => {
+      upcomingByMonth({ "2026-11": [meralco("2026-11-10")] });
+      mockGetRecurring.mockResolvedValue([recurring()]);
+      mockMarkRecurringPaid.mockReturnValue(new Promise(() => {}));
+      await loaded("2026-11-18T04:00:00Z");
+
+      const button = screen.getByRole("button", { name: "Mark Meralco paid" });
+      fireEvent.click(button);
+      fireEvent.click(button);
+
+      expect(mockMarkRecurringPaid).toHaveBeenCalledTimes(1);
+    });
+
+    it("says so inline, and keeps the row, when marking fails", async () => {
+      upcomingByMonth({ "2026-11": [meralco("2026-11-10")] });
+      serverMarks(true);
+      await loaded("2026-11-18T04:00:00Z");
+
+      fireEvent.click(screen.getByRole("button", { name: "Mark Meralco paid" }));
+
+      const alert = await within(section("attention")!).findByRole("alert");
+      expect(alert).toHaveTextContent("Could not mark that bill paid. Try again.");
+      expect(attentionRows().some((r) => r.includes("Meralco"))).toBe(true);
+      // The next attempt clears it.
+      mockMarkRecurringPaid.mockReturnValue(new Promise(() => {}));
+      fireEvent.click(screen.getByRole("button", { name: "Mark Meralco paid" }));
+      expect(screen.queryByRole("alert")).toBeNull();
+    });
+
+    it("offers no Mark paid on a row due next month, since the mark covers this month only (R6)", async () => {
+      upcomingByMonth({
+        "2026-10": [bill({ id: 8, name: "Netflix", dueDate: "2026-10-30" })],
+        "2026-11": [meralco("2026-11-01")],
+      });
+      mockGetRecurring.mockResolvedValue([recurring(), recurring({ id: 8, name: "Netflix" })]);
+      await loaded("2026-10-28T04:00:00Z");
+
+      expect(attentionRows().some((r) => r.includes("Meralco"))).toBe(true);
+      expect(screen.queryByRole("button", { name: "Mark Meralco paid" })).toBeNull();
+      expect(screen.getByRole("button", { name: "Mark Netflix paid" })).toBeInTheDocument();
     });
   });
 
