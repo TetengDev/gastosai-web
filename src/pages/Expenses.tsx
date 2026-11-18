@@ -545,8 +545,10 @@ export default function Expenses() {
           </div>
 
           <div className="ml-auto flex items-center gap-2">
-            {/* R26: the save's reward, beside the button that started it. Reserved, so it never shifts the bar. */}
-            <span className="grid h-10 w-10 place-items-center">
+            {/* R26: the save's reward, beside the button that started it. */}
+            {/* Reserved from 640px up so it never shifts the bar; on a phone it takes room only
+                while Piso shows, so the bar stays two rows. */}
+            <span className={`${saved ? "grid" : "hidden sm:grid"} h-10 w-10 place-items-center`}>
               {saved &&
                 (saved.first ? (
                   <Celebrate event="first-expense" size={40} fallback={<Piso state="saved" size={40} />} />
