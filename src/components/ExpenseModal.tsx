@@ -204,7 +204,9 @@ export default function ExpenseModal({ expense, onSave, onClose }: Props) {
               </span>
               <input
                 id={`${ids}-amount`}
-                aria-label={form.currency === "PHP" ? "Amount in pesos" : `Amount in ${form.currency}`}
+                aria-label={
+                  form.currency === "PHP" ? "Amount in pesos" : `Amount (${currencySymbol(form.currency ?? "PHP")})`
+                }
                 type="number"
                 inputMode="decimal"
                 step="0.01"
