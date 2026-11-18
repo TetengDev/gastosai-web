@@ -292,7 +292,9 @@ export default function ExpenseModal({ expense, onSave, onClose }: Props) {
               />
             </div>
             <div>
-              <span className={labelClass}>Currency</span>
+              <span id={`${ids}-currency`} className={labelClass}>Currency</span>
+              {/* CurrencySelect takes no id, so the label names the group that holds its button. */}
+              <div role="group" aria-labelledby={`${ids}-currency`}>
               <CurrencySelect
                 value={form.currency ?? "PHP"}
                 onChange={(c) => {
@@ -300,6 +302,7 @@ export default function ExpenseModal({ expense, onSave, onClose }: Props) {
                   setForm((f) => ({ ...f, currency: c, exchangeRate: c === "PHP" ? 1 : f.exchangeRate }));
                 }}
               />
+              </div>
             </div>
           </div>
           {form.currency !== "PHP" && (
