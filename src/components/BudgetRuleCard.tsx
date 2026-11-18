@@ -221,7 +221,7 @@ export default function BudgetRuleCard({ month, categories, onCategoriesChanged 
                 label={`${BUCKET_LABEL[b.bucket]} bucket`}
                 className="mt-2"
               />
-              <div className={`mt-1.5 text-xs ${b.remaining < 0 ? "text-warn-ink" : "text-ink-3"}`}>
+              <div className={`mt-1.5 text-xs ${b.remaining < 0 ? "text-warn-ink" : "text-ink-2"}`}>
                 {b.remaining < 0 ? `Over by ${formatCentavos(-b.remaining)}` : `${formatCentavos(b.remaining)} left`}
               </div>
             </div>

@@ -468,7 +468,7 @@ export default function Budget() {
                             className="mt-3"
                           />
                           <div className="mt-1.5 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 text-xs">
-                            <span className="font-mono tabular-nums text-ink-3">
+                            <span className="font-mono tabular-nums text-ink-2">
                               {formatCentavos(item.spent)} of {formatCentavos(item.budgeted)} · {Math.round(item.percentUsed)}%
                             </span>
                             {item.remaining < 0 ? (
