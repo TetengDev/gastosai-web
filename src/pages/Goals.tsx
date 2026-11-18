@@ -1,5 +1,5 @@
 import { ChevronDown, Pencil, Plus, RotateCcw, Trash2 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createGoal, deleteGoal, getGoals, updateGoal, type Goal, type GoalRequest } from "../api/goals";
 import Piso from "../brand/Piso";
 import CurrencySelect from "../components/CurrencySelect";
@@ -121,6 +121,19 @@ export default function Goals() {
     return () => clearTimeout(t);
   }, [playing, account]);
 
+  // A save that completes a goal moves its card into the closed Achieved group, taking the control
+  // that opened the dialog with it, so focus goes to the group's summary instead.
+  const achievedRef = useRef<HTMLElement>(null);
+  const focusAchieved = useRef(false);
+  const noteCompleted = (before: Goal, after: Goal) => {
+    if (after.status === "COMPLETED" && before.status !== "COMPLETED") focusAchieved.current = true;
+  };
+  useEffect(() => {
+    if (!focusAchieved.current) return;
+    focusAchieved.current = false;
+    achievedRef.current?.focus();
+  });
+
   const load = useCallback(async () => {
     setRefreshing(true);
     setError(null);
@@ -198,6 +211,7 @@ export default function Goals() {
         const updated = await updateGoal(editing.id, request);
         setGoals((prev) => prev.map((g) => (g.id === editing.id ? updated : g)));
         queueCelebrations([updated]);
+        noteCompleted(editing, updated);
       } else {
         const created = await createGoal(request);
         setGoals((prev) => [created, ...prev]);
@@ -247,6 +261,7 @@ export default function Goals() {
       const updated = await updateGoal(conflict.id, request);
       setGoals((prev) => prev.map((g) => (g.id === conflict.id ? updated : g)));
       queueCelebrations([updated]);
+      noteCompleted(conflict, updated);
       closeModal();
       window.dispatchEvent(new CustomEvent("gastosai:goal-changed"));
     } catch {
@@ -284,6 +299,7 @@ export default function Goals() {
       const updated = await updateGoal(goal.id, { ...requestOf(goal), savedAmount: goal.savedAmount + entered });
       setGoals((prev) => prev.map((g) => (g.id === goal.id ? updated : g)));
       queueCelebrations([updated]);
+      noteCompleted(goal, updated);
       setAddingId(null);
       window.dispatchEvent(new CustomEvent("gastosai:goal-changed"));
     } catch {
@@ -487,7 +503,7 @@ export default function Goals() {
           {achieved.length > 0 && (
             <details className="group/achieved">
               {/* A flex summary drops the native marker, so the chevron is the disclosure cue. */}
-              <summary className="flex min-h-11 w-fit cursor-pointer list-none items-center gap-2 text-[15px] font-medium text-ink-2 hover:text-ink-hi [&::-webkit-details-marker]:hidden">
+              <summary ref={achievedRef} className="flex min-h-11 w-fit cursor-pointer list-none items-center gap-2 text-[15px] font-medium text-ink-2 hover:text-ink-hi [&::-webkit-details-marker]:hidden">
                 {`Achieved (${achieved.length})`}
                 <ChevronDown className="h-4 w-4 transition-transform group-open/achieved:rotate-180" aria-hidden="true" />
               </summary>
