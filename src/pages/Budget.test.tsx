@@ -196,6 +196,23 @@ describe("Budget rows", () => {
     expect(screen.getByRole("progressbar", { name: "Food budget" })).toHaveClass("border-warn-ink");
   });
 
+  // Statuses that disagree with an 80/100 reading of the percentage: a client that re-derived the
+  // band from percentUsed would colour both of these wrongly.
+  it("follows the status even where the percentage would band otherwise", async () => {
+    mockGetBudgets.mockResolvedValue([three[0].b, three[2].b]);
+    mockGetBudgetSummary.mockResolvedValue(
+      summaryOf([
+        { ...three[0].i, percentUsed: 95, status: "ON_TRACK" },
+        { ...three[2].i, percentUsed: 40, status: "WARNING" },
+      ]),
+    );
+    render(<Budget />);
+    await screen.findByRole("progressbar", { name: "Transport budget" });
+
+    expect(fillOf("Transport budget")).toHaveClass("bg-brand");
+    expect(fillOf("Bills budget")).toHaveClass("bg-warn-ink");
+  });
+
   it("keeps a budget the summary does not know yet, last and without a meter", async () => {
     const fresh = budget({ id: 9, categoryId: 9, categoryName: "Pets" });
     mockGetBudgets.mockResolvedValue([fresh, ...three.map((r) => r.b)]);
@@ -256,6 +273,19 @@ describe("Budget header", () => {
   it("says in words what the mood says", async () => {
     render(<Budget />);
     expect(await screen.findByText("1 over budget")).toBeTruthy();
+  });
+
+  it("takes its mood from the statuses, not the percentages", async () => {
+    mockGetBudgetSummary.mockResolvedValue(
+      summaryOf([
+        item({ categoryId: 1, categoryName: "Transport", percentUsed: 150, status: "ON_TRACK" }),
+        item({ categoryId: 2, categoryName: "Food", percentUsed: 30, status: "WARNING" }),
+      ]),
+    );
+    const { container } = render(<Budget />);
+    await screen.findByRole("progressbar", { name: "Food budget" });
+
+    expect(container.querySelector("svg[data-piso-state]")).toHaveAttribute("data-piso-state", "worried");
   });
 
   it("rests when every budget is on track", async () => {
