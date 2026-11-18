@@ -99,13 +99,13 @@ export default function Modal({
         tabIndex={-1}
         onKeyDown={onKeyDown}
         className={cn(
-          "animate-pop w-full rounded-[22px] border border-edge bg-surface p-8 outline-none",
+          "animate-pop flex max-h-[calc(100dvh-3rem)] w-full flex-col rounded-[22px] border border-edge bg-surface p-8 outline-none",
           maxWidthClass
         )}
         onClick={(e) => e.stopPropagation()}
       >
         {title && (
-          <div className="mb-6 flex items-center justify-between">
+          <div className="mb-6 flex shrink-0 items-center justify-between">
             <h2 id={titleId} className="m-0 font-display text-[26px] font-medium tracking-tight text-ink-hi">
               {title}
             </h2>
@@ -118,7 +118,8 @@ export default function Modal({
             </button>
           </div>
         )}
-        {children}
+        {/* Taller than the viewport (a form on a phone), the body scrolls and the title stays. */}
+        <div className="min-h-0 overflow-y-auto">{children}</div>
       </div>
     </div>
   );
