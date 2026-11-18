@@ -33,7 +33,7 @@ function shiftMonth(yyyyMM: string, delta: number): string {
 }
 
 const STEP_CLASS =
-  "grid h-10 w-10 cursor-pointer place-items-center rounded-full text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink-hi focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent";
+  "grid h-10 w-10 cursor-pointer place-items-center rounded-full text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink-hi focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand aria-disabled:cursor-not-allowed aria-disabled:opacity-40 aria-disabled:hover:bg-transparent";
 
 export default function Budget() {
   const [month, setMonth] = useState(currentMonth);
@@ -324,6 +324,7 @@ export default function Budget() {
   const mood = pisoMoodFor({ bands, hasExpenses: true });
   const moodName = PISO_LABELS[mood] ?? (bands.length > 0 ? "All budgets on track" : "No budget figures yet");
   const stale = dataMonth !== month;
+  const atCurrentMonth = month >= currentMonth();
 
   const inputClass = "w-full rounded-xl border border-edge-input bg-input px-4 py-2.5 text-sm text-ink";
   const labelClass = "mb-1.5 block text-sm font-medium text-ink";
@@ -384,8 +385,10 @@ export default function Budget() {
                   <button
                     type="button"
                     aria-label="Next month"
-                    onClick={() => setMonth((m) => shiftMonth(m, 1))}
-                    disabled={month >= currentMonth()}
+                    // aria-disabled, not disabled: a disabled button drops focus the moment the
+                    // step that reached the current month lands.
+                    onClick={() => { if (!atCurrentMonth) setMonth((m) => shiftMonth(m, 1)); }}
+                    aria-disabled={atCurrentMonth}
                     className={STEP_CLASS}
                   >
                     <ChevronRight className="h-4 w-4" aria-hidden="true" />
