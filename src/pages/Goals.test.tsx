@@ -167,7 +167,7 @@ const pisos = () => document.querySelectorAll("[data-piso-state]");
 const openAddSavings = async (name = "Emergency Fund") => {
   await screen.findByText(name);
   fireEvent.click(within(card(name)).getByRole("button", { name: "Add savings" }));
-  return screen.findByLabelText(/Amount to add/);
+  return screen.findByLabelText("Amount in pesos");
 };
 
 describe("Goals cards", () => {
@@ -309,6 +309,20 @@ describe("Goals Add savings", () => {
     expect(mockUpdateGoal).toHaveBeenCalledTimes(1);
   });
 
+  // Closing mid-save would let the answer land in whatever dialog is open by then.
+  it("stays open on Cancel while a save is in flight", async () => {
+    mockGetGoals.mockResolvedValue([goal()]);
+    mockUpdateGoal.mockReturnValue(new Promise(() => {}));
+    renderGoals();
+    fireEvent.change(await openAddSavings(), { target: { value: "500" } });
+    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Add" })).toHaveAttribute("aria-disabled", "true"));
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    expect(screen.getByLabelText("Amount in pesos")).toBeTruthy();
+  });
+
   it("keeps the dialog open with an error when the save fails", async () => {
     mockGetGoals.mockResolvedValue([goal()]);
     mockUpdateGoal.mockRejectedValue(new Error("boom"));
@@ -317,7 +331,7 @@ describe("Goals Add savings", () => {
     fireEvent.click(screen.getByRole("button", { name: "Add" }));
 
     expect(await screen.findByText("Could not add savings. Try again.")).toBeTruthy();
-    expect(screen.getByLabelText(/Amount to add/)).toBeTruthy();
+    expect(screen.getByLabelText("Amount in pesos")).toBeTruthy();
   });
 });
 
@@ -347,7 +361,7 @@ describe("Goals celebration", () => {
     fireEvent.click(screen.getByRole("button", { name: "Add" }));
 
     await waitFor(() => expect(mockUpdateGoal).toHaveBeenCalledTimes(1));
-    await waitFor(() => expect(screen.queryByLabelText(/Amount to add/)).toBeNull());
+    await waitFor(() => expect(screen.queryByLabelText("Amount in pesos")).toBeNull());
     expect(coin()).toBeNull();
     expect(seen("goal-1")).toBe(false);
   });
