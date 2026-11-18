@@ -1,3 +1,4 @@
+import { EXPENSE_CHANGED } from "../lib/events";
 import { useCallback, useEffect, useState } from "react";
 import { getAlerts } from "../api/alerts";
 import { manilaMonth } from "../lib/formatters";
@@ -15,10 +16,10 @@ export function useUnreadAlertCount(): number {
 
   useEffect(() => {
     refresh();
-    window.addEventListener("gastosai:expense-changed", refresh);
+    window.addEventListener(EXPENSE_CHANGED, refresh);
     window.addEventListener("gastosai:alert-changed", refresh);
     return () => {
-      window.removeEventListener("gastosai:expense-changed", refresh);
+      window.removeEventListener(EXPENSE_CHANGED, refresh);
       window.removeEventListener("gastosai:alert-changed", refresh);
     };
   }, [refresh]);

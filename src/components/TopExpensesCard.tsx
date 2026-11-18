@@ -1,3 +1,4 @@
+import { EXPENSE_CHANGED } from "../lib/events";
 import { useCallback, useEffect, useState } from "react";
 import { getTopTransactions } from "../api/expenses";
 import type { Expense } from "../api/expenses";
@@ -25,8 +26,8 @@ export default function TopExpensesCard({ month }: Props) {
 
   useEffect(() => {
     fetchData();
-    window.addEventListener("gastosai:expense-changed", fetchData);
-    return () => window.removeEventListener("gastosai:expense-changed", fetchData);
+    window.addEventListener(EXPENSE_CHANGED, fetchData);
+    return () => window.removeEventListener(EXPENSE_CHANGED, fetchData);
   }, [fetchData]);
 
   return (

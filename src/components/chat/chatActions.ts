@@ -1,6 +1,7 @@
 // Helpers for chatbot CRUD action cards: labels, editable field specs, the structured confirm
 // call, and the data-change event dispatcher. Extracted from ChatWidget; no UI or state here.
 
+import { EXPENSE_CHANGED } from "../../lib/events";
 import api, { UNVERSIONED_BASE_URL } from "../../api/client";
 import type { components } from "../../api/generated/schema";
 import { manilaMonth } from "../../lib/formatters";
@@ -205,7 +206,7 @@ export async function confirmChatAction(
 }
 
 export function dispatchDataEvents(toolName: string) {
-  window.dispatchEvent(new CustomEvent("gastosai:expense-changed"));
+  window.dispatchEvent(new CustomEvent(EXPENSE_CHANGED));
   if (toolName.includes("budget")) window.dispatchEvent(new CustomEvent("gastosai:budget-changed"));
   if (toolName.includes("goal")) window.dispatchEvent(new CustomEvent("gastosai:goal-changed"));
   if (toolName.includes("recurring")) window.dispatchEvent(new CustomEvent("gastosai:recurring-changed"));
@@ -216,7 +217,7 @@ export function dispatchDataEvents(toolName: string) {
   }
   if (toolName === "set_category_icon") window.dispatchEvent(new CustomEvent("gastosai:category-changed"));
   if (toolName === "delete_expenses" || toolName === "recategorize_expenses") {
-    window.dispatchEvent(new CustomEvent("gastosai:expense-changed"));
+    window.dispatchEvent(new CustomEvent(EXPENSE_CHANGED));
   }
 }
 

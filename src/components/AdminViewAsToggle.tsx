@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { useDismiss } from "../hooks/useDismiss";
 import { Eye } from "lucide-react";
 import { VIEW_AS_CHANGED_EVENT } from "../api/entitlements";
 
@@ -17,6 +18,13 @@ function read(key: string, fallback: string) {
  */
 export default function AdminViewAsToggle() {
   const [open, setOpen] = useState(false);
+  const toggle = useRef<HTMLButtonElement>(null);
+  // Back to the toggle, so Escape from inside the panel does not drop focus to the page.
+  const close = () => {
+    setOpen(false);
+    toggle.current?.focus();
+  };
+  const root = useDismiss<HTMLDivElement>(open, close);
   const [plan, setPlan] = useState(() => read(PLAN_KEY, "ADMIN"));
   const [ai, setAi] = useState(() => read(AI_KEY, "on"));
   const [role, setRole] = useState(() => read(ROLE_KEY, "ADMIN"));
@@ -34,8 +42,9 @@ export default function AdminViewAsToggle() {
   const selectCls = "w-full mt-1 text-sm rounded-lg border border-edge-input bg-input text-ink px-2 py-1.5";
 
   return (
-    <div className="relative">
+    <div ref={root} className="relative">
       <button
+        ref={toggle}
         onClick={() => setOpen((o) => !o)}
         title="View as (admin)"
         aria-label="View as (admin)"
@@ -50,8 +59,7 @@ export default function AdminViewAsToggle() {
 
       {open && (
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 mt-2 w-60 z-50 bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-100 dark:border-gray-800 p-4 space-y-3 text-gray-900 dark:text-gray-100">
+          <div data-nav-popover className="absolute right-0 mt-2 w-60 z-50 bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-100 dark:border-gray-800 p-4 space-y-3 text-gray-900 dark:text-gray-100">
             <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">View as (admin)</p>
             <label className="block text-xs font-medium text-gray-600 dark:text-gray-300">
               Plan

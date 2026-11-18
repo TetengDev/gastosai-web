@@ -69,11 +69,17 @@ test("GastosAI — feature showcase", async ({ page, request }) => {
   const totalSpend = page.locator("div.bg-hero").filter({ hasText: /Total Spend ·/ });
   await expect(totalSpend).toContainText(/₱[\d,]+\.\d{2}/, { timeout: 20000 });
   await chapter(page, "dashboard");
-  await caption(page, "Spend, remaining budget and a daily average — for this month");
-  await expect(page.locator("svg.recharts-surface").first()).toBeVisible({ timeout: 20000 });
+  await caption(page, "This month's spend, with Piso reading the budget beside it");
+  await caption(page, "One line says what's left — or by how much it's over");
   await page.mouse.wheel(0, 600);
-  await caption(page, "Where it went, by category — and the trend across months");
-  await page.mouse.wheel(0, -600);
+  await caption(page, "Then what needs attention, your goals and the latest expenses");
+  // The charts sit in Insights, collapsed until asked for.
+  const insights = page.getByRole("button", { name: /Insights/ });
+  await insights.scrollIntoViewIfNeeded();
+  await insights.click();
+  await expect(page.locator("svg.recharts-surface").first()).toBeVisible({ timeout: 20000 });
+  await caption(page, "Insights open on the trend, top expenses and where it went by category");
+  await page.mouse.wheel(0, -1200);
 
   // ── 3. Add an expense, and watch the total move ───────────────────────────────────────────
   const spendBefore = ((await totalSpend.textContent()) ?? "").trim();
@@ -237,7 +243,7 @@ test("GastosAI — feature showcase", async ({ page, request }) => {
 
   // ── Close ─────────────────────────────────────────────────────────────────────────────────
   await page.goto("/");
-  await expect(page.locator("svg.recharts-surface").first()).toBeVisible({ timeout: 20000 });
+  await expect(totalSpend).toContainText(/₱[\d,]+\.\d{2}/, { timeout: 20000 });
   await caption(page, "GastosAI — your money, tracked and explained", BEAT + 1200);
   // Nothing is torn down here on purpose: undoing the story is not part of the story, and the
   // `afterEach` sweep does it off camera for every outcome rather than only for this one.

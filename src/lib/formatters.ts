@@ -164,6 +164,13 @@ export const APP_TIME_ZONE = "Asia/Manila";
 export const manilaMonth = (now: Date = new Date()): string =>
   new Intl.DateTimeFormat("en-CA", { timeZone: APP_TIME_ZONE, year: "numeric", month: "2-digit" }).format(now);
 
+/**
+ * `yyyy-mm-dd` for the day `now` falls on, in Manila. The day of the month comes from here, never
+ * from `Date#getDate()`, which is the device's day: on 1 Oct 00:30 Manila a UTC browser says 30 Sep.
+ */
+export const manilaDate = (now: Date = new Date()): string =>
+  new Intl.DateTimeFormat("en-CA", { timeZone: APP_TIME_ZONE }).format(now);
+
 export const formatDate = (date: string | null | undefined): string => {
   if (!date) return "-";
   return new Date(date).toLocaleString("en-PH", {

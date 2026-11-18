@@ -1,3 +1,4 @@
+import { EXPENSE_CHANGED } from "../lib/events";
 import { useCallback, useEffect, useState } from "react";
 import { invalidateCategoryCache } from "../lib/cache";
 import { Pencil, Plus, Star, Trash2 } from "lucide-react";
@@ -106,7 +107,7 @@ export default function Categories() {
       }
       closeModal();
       invalidateCategoryCache();
-      window.dispatchEvent(new CustomEvent("gastosai:expense-changed"));
+      window.dispatchEvent(new CustomEvent(EXPENSE_CHANGED));
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
@@ -126,7 +127,7 @@ export default function Categories() {
       setCategories((prev) => prev.filter((c) => c.id !== confirmDelete.id));
       setConfirmDelete(null);
       invalidateCategoryCache();
-      window.dispatchEvent(new CustomEvent("gastosai:expense-changed"));
+      window.dispatchEvent(new CustomEvent(EXPENSE_CHANGED));
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
@@ -168,7 +169,7 @@ export default function Categories() {
     sel.replace(ids.filter((id) => !okIds.has(id)));
     if (okIds.size > 0) {
       invalidateCategoryCache();
-      window.dispatchEvent(new CustomEvent("gastosai:expense-changed"));
+      window.dispatchEvent(new CustomEvent(EXPENSE_CHANGED));
     }
     setDeletingSelected(false);
   };
@@ -362,7 +363,7 @@ export default function Categories() {
             setCategories((prev) => prev.filter((c) => isDefaultCategory(c.name)));
             setConfirmDeleteAll(false);
             invalidateCategoryCache();
-            window.dispatchEvent(new CustomEvent("gastosai:expense-changed"));
+            window.dispatchEvent(new CustomEvent(EXPENSE_CHANGED));
           } catch (err: unknown) {
             const msg =
               (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??

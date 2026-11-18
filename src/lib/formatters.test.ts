@@ -14,6 +14,7 @@ import {
   toDateTimeLocal,
   formatMonth,
   manilaMonth,
+  manilaDate,
 } from "./formatters";
 
 describe("getAvatarGradient", () => {
@@ -330,5 +331,15 @@ describe("manilaMonth", () => {
     ["2026-10-31T15:59:00Z", "2026-10"], // 23:59 on 31 Oct in Manila
   ])("keys %s to the Manila month %s", (now, month) => {
     expect(manilaMonth(new Date(now))).toBe(month);
+  });
+});
+
+describe("manilaDate", () => {
+  it.each([
+    ["2026-09-30T16:30:00Z", "2026-10-01"], // 00:30 on 1 Oct in Manila, still 30 Sep in UTC
+    ["2026-12-31T16:30:00Z", "2027-01-01"], // 00:30 on 1 Jan in Manila, still last year in UTC
+    ["2026-10-31T15:59:00Z", "2026-10-31"], // 23:59 on 31 Oct in Manila
+  ])("keys %s to the Manila date %s", (now, day) => {
+    expect(manilaDate(new Date(now))).toBe(day);
   });
 });

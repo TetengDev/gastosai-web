@@ -3,6 +3,8 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import GoalProgressCard from "./GoalProgressCard";
 import { getGoals, type Goal } from "../api/goals";
+import { AuthProvider } from "../context/AuthContext";
+import { celebrationKey } from "../lib/celebrateStore";
 import { formatCurrencyAmount } from "../lib/formatters";
 
 vi.mock("../api/goals", () => ({ getGoals: vi.fn() }));
@@ -23,12 +25,16 @@ const goal = (over: Partial<Goal> = {}): Goal => ({
   ...over,
 });
 
-const renderStrip = () =>
+const renderStrip = (onCompleted?: (events: string[]) => void) =>
   render(
-    <MemoryRouter>
-      <GoalProgressCard />
-    </MemoryRouter>,
+    <AuthProvider>
+      <MemoryRouter>
+        <GoalProgressCard onCompleted={onCompleted} />
+      </MemoryRouter>
+    </AuthProvider>,
   );
+
+const ACCOUNT = "a@example.com";
 
 const coin = () => document.querySelector('[data-testid="coin"]');
 
@@ -36,6 +42,9 @@ describe("GoalProgressCard strip", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    // Celebrations are per account; AuthContext reads this session at startup.
+    localStorage.setItem("token", "t");
+    localStorage.setItem("auth_user", JSON.stringify({ email: ACCOUNT, name: "A", role: "USER" }));
   });
 
   it.each([
@@ -79,24 +88,36 @@ describe("GoalProgressCard strip", () => {
     expect(names).toEqual(["Sooner", "Later", "Done"]);
   });
 
-  it("celebrates a COMPLETED goal once, keyed goal-<id>", async () => {
-    mockGetGoals.mockResolvedValue([goal({ id: 42, status: "COMPLETED", progressPercent: 100 })]);
-    const first = renderStrip();
+  // TEN-504: the hero plays celebrations one at a time, so the strip reports and never plays.
+  it("reports COMPLETED goals as goal-<id> and leaves the celebrating to the hero", async () => {
+    const onCompleted = vi.fn();
+    mockGetGoals.mockResolvedValue([
+      goal({ id: 42, status: "COMPLETED", progressPercent: 100 }),
+      goal({ id: 7, name: "Car", status: "ON_TRACK" }),
+    ]);
+    renderStrip(onCompleted);
     await screen.findByRole("progressbar", { name: "Trip fund" });
-    expect(coin()).not.toBeNull();
-    expect(localStorage.getItem("ga.celebrate.anon.goal-42")).toBe("1");
-    first.unmount();
 
-    renderStrip();
-    await screen.findByRole("progressbar", { name: "Trip fund" });
+    expect(onCompleted).toHaveBeenLastCalledWith(["goal-42"]);
     expect(coin()).toBeNull();
+    // Nothing is marked seen here: a goal that never got its turn in the hero still plays later.
+    expect(localStorage.getItem(celebrationKey(ACCOUNT, "goal-42"))).toBeNull();
   });
 
-  it("does not celebrate a goal that is still in progress", async () => {
-    mockGetGoals.mockResolvedValue([goal({ status: "ON_TRACK", progressPercent: 99 })]);
+  it("names its link See all goals, in text and accessible name alike", async () => {
+    mockGetGoals.mockResolvedValue([goal()]);
     renderStrip();
+    const link = await screen.findByRole("link", { name: "See all goals" });
+    expect(link).toHaveAttribute("href", "/goals");
+    expect(link).toHaveTextContent(/^See all goals$/);
+  });
+
+  it("reports no goal to celebrate while every goal is still in progress", async () => {
+    const onCompleted = vi.fn();
+    mockGetGoals.mockResolvedValue([goal({ status: "ON_TRACK", progressPercent: 99 })]);
+    renderStrip(onCompleted);
     await screen.findByRole("progressbar", { name: "Trip fund" });
-    expect(coin()).toBeNull();
+    expect(onCompleted).toHaveBeenLastCalledWith([]);
   });
 
   it("offers to set a goal when there are none", async () => {

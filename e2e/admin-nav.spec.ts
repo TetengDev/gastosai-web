@@ -97,3 +97,28 @@ test("ADMIN menu holds the three admin pages", async ({ page }) => {
   await page.keyboard.press("Escape");
   await expect(nav.getByRole("link", { name: "Messages" })).toHaveCount(0);
 });
+
+// TEN-500: the nav's backdrop blur pinned each popover's click-away layer to the 72px bar, so a
+// click on the page below it left the popover open. Each one now closes, and the closing click is
+// swallowed: the page stays where it was.
+const POPOVERS = [
+  { name: "Admin", role: "ADMIN", width: 1440, open: "#admin-menu" },
+  { name: "View as (admin)", role: "ADMIN", width: 1440, open: "[data-nav-popover]" },
+  { name: "Tips", role: "USER", width: 1280, open: "[data-nav-popover]" },
+  { name: "Menu", role: "USER", width: 375, open: "#nav-overflow-menu" },
+] as const;
+
+for (const { name, role, width, open } of POPOVERS) {
+  test(`${role} ${name} popover closes on a click below the bar at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await asRole(page, role);
+    const nav = page.locator("nav.sticky");
+    await nav.getByRole("button", { name, exact: true }).click();
+    await expect(nav.locator(open)).toBeVisible();
+    const url = page.url();
+    // Well below the bar, and clear of the popover panels, which hang from the right of it.
+    await page.mouse.click(Math.round(width / 4), 600);
+    await expect(nav.locator(open)).toHaveCount(0);
+    expect(page.url()).toBe(url);
+  });
+}

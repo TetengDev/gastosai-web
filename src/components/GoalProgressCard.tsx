@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getGoals, type Goal } from "../api/goals";
-import { Celebrate, ProgressMeter } from "./ui";
+import { ProgressMeter } from "./ui";
 import { formatCurrencyAmount } from "../lib/formatters";
 import { goalTone } from "../lib/pisoMood";
 
@@ -18,8 +18,17 @@ function stripOrder(goals: Goal[]): Goal[] {
   return [...active, ...done];
 }
 
+interface Props {
+  /**
+   * Called after every load with the `goal-<id>` celebration keys of the COMPLETED goals. The
+   * strip never celebrates itself: the dashboard plays them one at a time from its hero (TEN-504).
+   * Pass a stable callback, since it is a dependency of the fetch.
+   */
+  onCompleted?: (events: string[]) => void;
+}
+
 /** The dashboard's goals strip: one horizontally scrolling row of meters. */
-export default function GoalProgressCard() {
+export default function GoalProgressCard({ onCompleted }: Props) {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -29,10 +38,11 @@ export default function GoalProgressCard() {
       .then((data) => {
         setGoals(data);
         setError(null);
+        onCompleted?.(data.filter((g) => g.status === "COMPLETED").map((g) => `goal-${g.id}`));
       })
       .catch(() => setError("Couldn't load your goals."))
       .finally(() => setLoading(false));
-  }, []);
+  }, [onCompleted]);
 
   useEffect(() => {
     fetchData();
@@ -50,7 +60,7 @@ export default function GoalProgressCard() {
         </h2>
         {shown.length > 0 && (
           <Link to="/goals" className="text-sm font-medium text-ink-hi underline-offset-4 hover:underline">
-            See all
+            See all goals
           </Link>
         )}
       </div>
@@ -74,7 +84,6 @@ export default function GoalProgressCard() {
         <ul className="-mx-1 mt-3 flex snap-x list-none gap-3 overflow-x-auto px-1 pb-2">
           {shown.map((goal) => {
             const currency = goal.currency ?? "PHP";
-            const completed = goal.status === "COMPLETED";
             return (
               <li
                 key={goal.id}
@@ -82,11 +91,7 @@ export default function GoalProgressCard() {
               >
                 <div className="flex min-h-10 items-center justify-between gap-2">
                   <span className="truncate text-sm font-medium text-ink">{goal.name}</span>
-                  {completed ? (
-                    <Celebrate event={`goal-${goal.id}`} size={40} />
-                  ) : (
-                    goal.status === "BEHIND" && <span className="shrink-0 text-xs text-warn-ink">Behind</span>
-                  )}
+                  {goal.status === "BEHIND" && <span className="shrink-0 text-xs text-warn-ink">Behind</span>}
                 </div>
                 <ProgressMeter
                   percent={goal.progressPercent}

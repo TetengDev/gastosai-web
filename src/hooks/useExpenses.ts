@@ -1,3 +1,4 @@
+import { EXPENSE_CHANGED } from "../lib/events";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   createExpense,
@@ -55,11 +56,11 @@ export function useExpenses() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
-    window.addEventListener("gastosai:expense-changed", load);
-    return () => window.removeEventListener("gastosai:expense-changed", load);
+    window.addEventListener(EXPENSE_CHANGED, load);
+    return () => window.removeEventListener(EXPENSE_CHANGED, load);
   }, [load]);
 
-  const dispatch = () => window.dispatchEvent(new CustomEvent("gastosai:expense-changed"));
+  const dispatch = () => window.dispatchEvent(new CustomEvent(EXPENSE_CHANGED));
 
   const add = async (req: ExpenseRequest): Promise<Expense> => {
     const created = await createExpense(req);

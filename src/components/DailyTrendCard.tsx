@@ -1,3 +1,4 @@
+import { EXPENSE_CHANGED } from "../lib/events";
 import { useCallback, useEffect, useState } from "react";
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { getDailyReport } from "../api/expenses";
@@ -27,8 +28,8 @@ export default function DailyTrendCard({ month }: Props) {
 
   useEffect(() => {
     fetchData();
-    window.addEventListener("gastosai:expense-changed", fetchData);
-    return () => window.removeEventListener("gastosai:expense-changed", fetchData);
+    window.addEventListener(EXPENSE_CHANGED, fetchData);
+    return () => window.removeEventListener(EXPENSE_CHANGED, fetchData);
   }, [fetchData]);
 
   const chartData = data.map((d) => ({

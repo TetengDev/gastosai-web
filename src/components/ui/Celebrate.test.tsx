@@ -1,12 +1,50 @@
-import { render } from "@testing-library/react";
-import { StrictMode } from "react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { render as rtlRender } from "@testing-library/react";
+import { StrictMode, type ReactElement } from "react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { AuthProvider } from "../../context/AuthContext";
+import { celebrationKey } from "../../lib/celebrateStore";
 import Celebrate from "./Celebrate";
 
 const cheering = (c: HTMLElement) => c.querySelector('[data-piso-state="cheer"]');
 
+const ACCOUNT = "a@example.com";
+
+/** Signs a user in the way AuthContext reads it at startup: a token and the user record. */
+const signIn = () => {
+  localStorage.setItem("token", "t");
+  localStorage.setItem("auth_user", JSON.stringify({ email: ACCOUNT, name: "A", role: "USER" }));
+};
+
+const render = (ui: ReactElement) => rtlRender(<AuthProvider>{ui}</AuthProvider>);
+
+const celebrateKeys = () =>
+  Array.from({ length: localStorage.length }, (_, i) => localStorage.key(i)!).filter((k) =>
+    k.startsWith("ga.celebrate."),
+  );
+
+describe("Celebrate, signed out", () => {
+  // Matches mobile (TEN-454): the seen flag is per account, so with no account there is nothing
+  // to scope it to. An `auth_user` record without a token is not a session in AuthContext either.
+  it.each([
+    ["no session at all", () => {}],
+    ["a user record but no token", () => localStorage.setItem("auth_user", JSON.stringify({ email: ACCOUNT }))],
+  ])("renders nothing and marks nothing with %s", (_, seed) => {
+    seed();
+    const { container } = render(<Celebrate event="first-expense" />);
+    expect(cheering(container)).toBeNull();
+    expect(container).toBeEmptyDOMElement();
+    expect(celebrateKeys()).toEqual([]);
+  });
+});
+
 describe("Celebrate", () => {
+  beforeEach(signIn);
   afterEach(() => vi.restoreAllMocks());
+
+  it("marks the event under the signed-in account, never an anon scope", () => {
+    render(<Celebrate event="goal-5" />);
+    expect(celebrateKeys()).toEqual([celebrationKey(ACCOUNT, "goal-5")]);
+  });
 
   // Spec §3: a storage failure skips the animation. An unwritable flag cannot stop a replay on
   // the next visit, so the celebration does not start at all.

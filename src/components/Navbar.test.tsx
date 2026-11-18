@@ -394,6 +394,77 @@ describe("Navbar — admin menu (TEN-494)", () => {
   });
 });
 
+describe("Navbar — popovers close on a click outside (TEN-500)", () => {
+  // The nav's backdrop blur pinned the old click-away layer to the 72px bar, so a click on the page
+  // below it left the menu open. The closing click is swallowed, so it does not also act.
+  function renderWithPage() {
+    const under = vi.fn();
+    render(
+      <MemoryRouter>
+        <Navbar isDark={false} onToggleDark={vi.fn()} />
+        <main>
+          <button onClick={under}>Under the bar</button>
+        </main>
+      </MemoryRouter>,
+    );
+    return { under };
+  }
+
+  for (const [name, id, admin] of [
+    ["Admin", "admin-menu", true],
+    ["Menu", "nav-overflow-menu", false],
+  ] as const) {
+    it(`closes the ${name} menu on a click below the bar, without activating what was under it`, () => {
+      auth.isAdmin = admin;
+      const { under } = renderWithPage();
+      const button = screen.getByRole("button", { name });
+      fireEvent.click(button);
+      expect(document.getElementById(id)).not.toBeNull();
+
+      fireEvent.click(screen.getByRole("button", { name: "Under the bar" }), { detail: 1 });
+      expect(document.getElementById(id)).toBeNull();
+      expect(button).toHaveAttribute("aria-expanded", "false");
+      expect(under).not.toHaveBeenCalled();
+    });
+
+    it(`keeps the ${name} toggle toggling`, () => {
+      auth.isAdmin = admin;
+      renderWithPage();
+      const button = screen.getByRole("button", { name });
+      fireEvent.click(button);
+      fireEvent.click(button);
+      expect(document.getElementById(id)).toBeNull();
+      expect(button).toHaveAttribute("aria-expanded", "false");
+    });
+  }
+
+  it("closes on a click on the bar itself, outside the menu", () => {
+    auth.isAdmin = true;
+    renderWithPage();
+    fireEvent.click(screen.getByRole("button", { name: "Admin" }));
+    fireEvent.click(document.querySelector("nav")!);
+    expect(document.getElementById("admin-menu")).toBeNull();
+  });
+
+  it("takes a click on another popover's toggle as only closing the open one", () => {
+    auth.isAdmin = true;
+    renderWithPage();
+    fireEvent.click(screen.getByRole("button", { name: "Admin" }));
+    const menu = screen.getByRole("button", { name: "Menu" });
+    fireEvent.click(menu, { detail: 1 });
+    expect(document.getElementById("admin-menu")).toBeNull();
+    expect(document.getElementById("nav-overflow-menu")).toBeNull();
+    expect(menu).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("ignores n while a menu is open, as it did when the click-away layer was the signal", () => {
+    renderWithPage();
+    fireEvent.click(screen.getByRole("button", { name: "Menu" }));
+    fireEvent.keyDown(document.body, { key: "n" });
+    expect(screen.queryByRole("dialog", { name: "Expense form" })).toBeNull();
+  });
+});
+
 describe("Navbar — sign out (TEN-507)", () => {
   // Logged out, `/` is the public landing page, so clearing the session alone would leave a
   // dashboard user on `/` looking at the landing page instead of the sign-in form.

@@ -1,3 +1,4 @@
+import { EXPENSE_CHANGED } from "../lib/events";
 import { createElement, useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { ChevronDown, LogOut, Menu, Moon, Plus, Sun, Zap } from "lucide-react";
@@ -17,6 +18,7 @@ import { NotificationBell } from "./NotificationBell";
 import TipsPopover from "./TipsPopover";
 import { useEntitlements } from "../hooks/useEntitlements";
 import { BILLING_ENABLED } from "../config/billing";
+import { useDismiss } from "../hooks/useDismiss";
 
 interface Props {
   isDark: boolean;
@@ -32,7 +34,6 @@ const NAV_ITEMS = [
   { to: "/goals", label: "Goals", end: false, tour: "nav-goals" },
 ] as const;
 
-const EXPENSE_CHANGED = "gastosai:expense-changed";
 /** Spec §2: Piso holds `saved` for 1.2 s after a log, then falls back to the month's mood. */
 const SAVED_MS = 1200;
 
@@ -46,10 +47,11 @@ function isTextEntry(target: EventTarget | null): boolean {
 /**
  * Something already sits over the page. `ui/Modal`, which every form in the app opens in, has no
  * dialog role, so its full-viewport `fixed inset-0` overlay is the signal; the tour's tooltip is
- * `aria-modal`. The popovers' click-away layers match too, and that is wanted: close them first.
+ * `aria-modal`. An open nav popover marks its panel `data-nav-popover`, and that is wanted too:
+ * close it first, or the form's first click would be swallowed as a click outside it.
  */
 function isOverlayOpen(): boolean {
-  return document.querySelector("[aria-modal='true'], [role='dialog'], .fixed.inset-0") !== null;
+  return document.querySelector("[aria-modal='true'], [role='dialog'], .fixed.inset-0, [data-nav-popover]") !== null;
 }
 
 const ADMIN_LINKS = [
@@ -61,9 +63,10 @@ const ADMIN_LINKS = [
 /** The admin pages behind one nav button, so an admin's bar holds the same row as everyone else's. */
 function AdminMenu() {
   const [open, setOpen] = useState(false);
+  const root = useDismiss<HTMLDivElement>(open, () => setOpen(false));
   const active = useLocation().pathname.startsWith("/admin");
   return (
-    <div className="relative" onKeyDown={(e) => e.key === "Escape" && setOpen(false)}>
+    <div ref={root} className="relative">
       <button
         type="button"
         aria-label="Admin"
@@ -79,26 +82,23 @@ function AdminMenu() {
         <ChevronDown className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} aria-hidden="true" />
       </button>
       {open && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <ul id="admin-menu" className="absolute left-0 z-50 mt-2 w-48 rounded-xl border border-edge bg-surface p-1.5 shadow-xl">
-            {ADMIN_LINKS.map((l) => (
-              <li key={l.to}>
-                <NavLink
-                  to={l.to}
-                  onClick={() => setOpen(false)}
-                  className={({ isActive }) =>
-                    `block rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                      isActive ? "bg-surface-2 text-ink-hi" : "text-ink-2 hover:bg-surface-2 hover:text-ink-hi"
-                    }`
-                  }
-                >
-                  {l.label}
-                </NavLink>
-              </li>
-            ))}
-          </ul>
-        </>
+        <ul id="admin-menu" data-nav-popover className="absolute left-0 z-50 mt-2 w-48 rounded-xl border border-edge bg-surface p-1.5 shadow-xl">
+          {ADMIN_LINKS.map((l) => (
+            <li key={l.to}>
+              <NavLink
+                to={l.to}
+                onClick={() => setOpen(false)}
+                className={({ isActive }) =>
+                  `block rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                    isActive ? "bg-surface-2 text-ink-hi" : "text-ink-2 hover:bg-surface-2 hover:text-ink-hi"
+                  }`
+                }
+              >
+                {l.label}
+              </NavLink>
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );
@@ -117,13 +117,14 @@ function OverflowMenu({ isAdmin, showUpgrade, controls }: { isAdmin: boolean; sh
     setOpen(false);
     trigger.current?.focus();
   };
+  const root = useDismiss<HTMLDivElement>(open, close);
   const links = [
     ...NAV_ITEMS,
     ...(showUpgrade ? [{ to: "/pricing", label: "Upgrade", end: false }] : []),
     ...(isAdmin ? ADMIN_LINKS.map((l) => ({ ...l, end: false })) : []),
   ];
   return (
-    <div className={`relative ${isAdmin ? "xl:hidden" : "lg:hidden"}`} onKeyDown={(e) => e.key === "Escape" && close()}>
+    <div ref={root} className={`relative ${isAdmin ? "xl:hidden" : "lg:hidden"}`}>
       <button
         ref={trigger}
         type="button"
@@ -137,30 +138,27 @@ function OverflowMenu({ isAdmin, showUpgrade, controls }: { isAdmin: boolean; sh
         <Menu className="h-[18px] w-[18px]" aria-hidden="true" />
       </button>
       {open && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={close} />
-          <div id="nav-overflow-menu" className="absolute right-0 z-50 mt-2 w-56 rounded-xl border border-edge bg-surface p-1.5 shadow-xl">
-            <ul>
-              {links.map((l) => (
-                <li key={l.to}>
-                  <NavLink
-                    to={l.to}
-                    end={l.end}
-                    onClick={() => setOpen(false)}
-                    className={({ isActive }) =>
-                      `block rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                        isActive ? "bg-surface-2 text-ink-hi" : "text-ink-2 hover:bg-surface-2 hover:text-ink-hi"
-                      }`
-                    }
-                  >
-                    {l.label}
-                  </NavLink>
-                </li>
-              ))}
-            </ul>
-            <div className="mt-1.5 flex justify-end gap-1 border-t border-edge pt-1.5 sm:hidden">{controls}</div>
-          </div>
-        </>
+        <div id="nav-overflow-menu" data-nav-popover className="absolute right-0 z-50 mt-2 w-56 rounded-xl border border-edge bg-surface p-1.5 shadow-xl">
+          <ul>
+            {links.map((l) => (
+              <li key={l.to}>
+                <NavLink
+                  to={l.to}
+                  end={l.end}
+                  onClick={() => setOpen(false)}
+                  className={({ isActive }) =>
+                    `block rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                      isActive ? "bg-surface-2 text-ink-hi" : "text-ink-2 hover:bg-surface-2 hover:text-ink-hi"
+                    }`
+                  }
+                >
+                  {l.label}
+                </NavLink>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-1.5 flex justify-end gap-1 border-t border-edge pt-1.5 sm:hidden">{controls}</div>
+        </div>
       )}
     </div>
   );

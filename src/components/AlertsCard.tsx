@@ -1,3 +1,4 @@
+import { EXPENSE_CHANGED } from "../lib/events";
 import { CheckCheck } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
@@ -30,8 +31,8 @@ export default function AlertsCard() {
 
   useEffect(() => {
     fetchData();
-    window.addEventListener("gastosai:expense-changed", fetchData);
-    return () => window.removeEventListener("gastosai:expense-changed", fetchData);
+    window.addEventListener(EXPENSE_CHANGED, fetchData);
+    return () => window.removeEventListener(EXPENSE_CHANGED, fetchData);
   }, [fetchData]);
 
   const handleRead = async (id: number) => {

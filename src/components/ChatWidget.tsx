@@ -1,3 +1,4 @@
+import { EXPENSE_CHANGED } from "../lib/events";
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
@@ -1119,7 +1120,7 @@ export default function ChatWidget() {
       setMessages((prev) =>
         prev.map((m, i) => (i === msgIndex ? { ...m, draftSaved: true } : m))
       );
-      window.dispatchEvent(new CustomEvent("gastosai:expense-changed"));
+      window.dispatchEvent(new CustomEvent(EXPENSE_CHANGED));
     } catch {
       setError("Failed to save expense. Please try again.");
     }
