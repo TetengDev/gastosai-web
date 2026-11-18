@@ -66,6 +66,8 @@ export default function Modal({
       return;
     }
     if (e.key !== "Tab" || !panelRef.current) return;
+    // The innermost dialog owns Tab, so one stacked over another does not get a second wrap.
+    e.stopPropagation();
     const items = focusables(panelRef.current);
     if (items.length === 0) {
       e.preventDefault();
@@ -73,10 +75,12 @@ export default function Modal({
     }
     const first = items[0];
     const last = items[items.length - 1];
-    if (e.shiftKey && document.activeElement === first) {
+    // The panel itself (focused by a click on its padding) counts as before the first control.
+    const atPanel = document.activeElement === panelRef.current;
+    if (e.shiftKey && (atPanel || document.activeElement === first)) {
       e.preventDefault();
       last.focus();
-    } else if (!e.shiftKey && document.activeElement === last) {
+    } else if (!e.shiftKey && (atPanel || document.activeElement === last)) {
       e.preventDefault();
       first.focus();
     }
