@@ -19,6 +19,13 @@ test.describe("Happy · dashboard", { tag: "@happy" }, () => {
 
     await expect(page.getByRole("heading", { name: "Goals", exact: true })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Recent", exact: true })).toBeVisible();
+    // The demo account is seeded with goals and expenses, so both links show. Each names what it
+    // opens, in text and accessible name alike; a bare "See all" is gone (TEN-504).
+    await expect(page.getByRole("link", { name: "See all goals", exact: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: "See all expenses", exact: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: "See all", exact: true })).toHaveCount(0);
+    // Whichever line the data picks, it is never the old no-budget wording (R2).
+    await expect(hero.getByTestId("hero-status")).not.toContainText("No budget yet");
 
     // Insights start collapsed, and opening them brings the charts in.
     const insights = page.getByRole("button", { name: /Insights/ });
