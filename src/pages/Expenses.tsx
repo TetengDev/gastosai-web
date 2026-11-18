@@ -1,3 +1,4 @@
+import { EXPENSE_CHANGED } from "../lib/events";
 import { Download, FileText, HelpCircle, Loader2, Pencil, Plus, Trash2, Upload } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import ExpenseModal from "../components/ExpenseModal";
@@ -55,7 +56,7 @@ export default function Expenses() {
       await Promise.all([...selectedIds].map((id) => deleteExpense(id)));
       setSelectedIds(new Set());
       await refresh();
-      window.dispatchEvent(new CustomEvent("gastosai:expense-changed"));
+      window.dispatchEvent(new CustomEvent(EXPENSE_CHANGED));
     } catch {
       // leave selection; user can retry
     } finally {

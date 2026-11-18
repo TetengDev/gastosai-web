@@ -1,3 +1,4 @@
+import { EXPENSE_CHANGED } from "../lib/events";
 import { createElement, useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { ChevronDown, LogOut, Menu, Moon, Plus, Sun, Zap } from "lucide-react";
@@ -32,7 +33,6 @@ const NAV_ITEMS = [
   { to: "/goals", label: "Goals", end: false, tour: "nav-goals" },
 ] as const;
 
-const EXPENSE_CHANGED = "gastosai:expense-changed";
 /** Spec §2: Piso holds `saved` for 1.2 s after a log, then falls back to the month's mood. */
 const SAVED_MS = 1200;
 

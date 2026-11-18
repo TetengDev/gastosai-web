@@ -1,3 +1,4 @@
+import { EXPENSE_CHANGED } from "../lib/events";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { ChevronDown } from "lucide-react";
@@ -188,7 +189,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchData();
-    const events = ["gastosai:expense-changed", "gastosai:budget-changed", "gastosai:recurring-changed"];
+    const events = [EXPENSE_CHANGED, "gastosai:budget-changed", "gastosai:recurring-changed"];
     for (const e of events) window.addEventListener(e, fetchData);
     return () => {
       for (const e of events) window.removeEventListener(e, fetchData);
