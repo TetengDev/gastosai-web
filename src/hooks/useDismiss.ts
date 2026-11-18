@@ -15,8 +15,13 @@ export function useDismiss<T extends HTMLElement>(open: boolean, close: () => vo
     if (!open) return;
     const onClick = (e: MouseEvent) => {
       if (root.current?.contains(e.target as Node)) return;
-      e.preventDefault();
-      e.stopPropagation();
+      // Hidden by a breakpoint while open (Menu at 768px, then 1024px): close, but let the click
+      // through, since nobody can see what would have swallowed it. Without checkVisibility
+      // (jsdom, Safari before 17.4) the popover counts as visible.
+      if (root.current?.checkVisibility?.() !== false) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
       close();
     };
     const onKeyDown = (e: KeyboardEvent) => {

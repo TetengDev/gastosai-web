@@ -1,11 +1,17 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useDismiss } from "../hooks/useDismiss";
 import { Lightbulb } from "lucide-react";
 import { TIPS, dismissTip, getDismissedTips, resetTips } from "../lib/tips";
 
 export default function TipsPopover() {
   const [open, setOpen] = useState(false);
-  const root = useDismiss<HTMLDivElement>(open, () => setOpen(false));
+  const toggle = useRef<HTMLButtonElement>(null);
+  // Back to the toggle, so Escape from inside the panel does not drop focus to the page.
+  const close = () => {
+    setOpen(false);
+    toggle.current?.focus();
+  };
+  const root = useDismiss<HTMLDivElement>(open, close);
   const [dismissed, setDismissed] = useState<string[]>(() => getDismissedTips());
   const [idx, setIdx] = useState(0);
 
@@ -30,6 +36,7 @@ export default function TipsPopover() {
   return (
     <div ref={root} className="relative">
       <button
+        ref={toggle}
         onClick={() => setOpen((o) => !o)}
         aria-label="Tips"
         title="Tips"

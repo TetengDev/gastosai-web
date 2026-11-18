@@ -1,4 +1,4 @@
-import { fireEvent, render } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useDismiss } from "./useDismiss";
 
@@ -39,6 +39,23 @@ describe("useDismiss", () => {
     fireEvent.click(document.body);
     fireEvent.keyDown(document.body, { key: "Escape" });
     expect(close).not.toHaveBeenCalled();
+  });
+
+  it("closes without swallowing when the popover is hidden, so the click still reaches its target", () => {
+    // A breakpoint can hide an open popover (Menu open at 768px, then the window grows to 1024px).
+    // A swallow nobody can see would just eat the next click.
+    const close = vi.fn();
+    const under = vi.fn();
+    const { container } = render(
+      <>
+        <Popover open onClose={close} />
+        <button onClick={under}>Under</button>
+      </>,
+    );
+    Object.assign(container.firstChild as HTMLElement, { checkVisibility: () => false });
+    fireEvent.click(screen.getByRole("button", { name: "Under" }));
+    expect(close).toHaveBeenCalledTimes(1);
+    expect(under).toHaveBeenCalledTimes(1);
   });
 
   it("listens to nothing while closed", () => {

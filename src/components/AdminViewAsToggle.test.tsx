@@ -29,6 +29,15 @@ describe("AdminViewAsToggle — dismissal (TEN-500)", () => {
     expect(under).not.toHaveBeenCalled();
   });
 
+  it("closes on Escape from inside the panel, returning focus to its toggle", () => {
+    renderViewAs();
+    const inside = panel()!;
+    inside.focus();
+    fireEvent.keyDown(inside, { key: "Escape" });
+    expect(panel()).toBeNull();
+    expect(screen.getByRole("button", { name: "View as (admin)" })).toHaveFocus();
+  });
+
   it("closes on Escape", () => {
     renderViewAs();
     fireEvent.keyDown(document.body, { key: "Escape" });

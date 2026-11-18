@@ -30,6 +30,15 @@ describe("TipsPopover — dismissal (TEN-500)", () => {
     expect(under).not.toHaveBeenCalled();
   });
 
+  it("closes on Escape from inside the panel, returning focus to its toggle", () => {
+    renderTips();
+    const inside = screen.getByRole("button", { name: "Next tip" });
+    inside.focus();
+    fireEvent.keyDown(inside, { key: "Escape" });
+    expect(panel()).toBeNull();
+    expect(screen.getByRole("button", { name: "Tips" })).toHaveFocus();
+  });
+
   it("closes on Escape", () => {
     renderTips();
     fireEvent.keyDown(document.body, { key: "Escape" });
