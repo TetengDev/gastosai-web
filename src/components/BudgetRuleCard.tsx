@@ -41,6 +41,7 @@ export default function BudgetRuleCard({ month, categories, onCategoriesChanged 
     try {
       const [rule, sum] = await Promise.all([getBudgetRule(), getBudgetRuleSummary(month)]);
       if (request !== latest.current) return;
+      setError(null);
       setEnabledState(rule.enabled);
       setRuleType(rule.ruleType);
       setIncome(centavosToAmount(rule.monthlyIncome));
