@@ -659,7 +659,7 @@ describe("Dashboard render", () => {
       expect(rows[0]).toContain(`Overdue · was due ${formatDayMonth("2026-11-11T00:00:00+08:00")}`);
     });
 
-    it("falls back to upcoming rows only when the bill list fails to load (R2)", async () => {
+    it("falls back to upcoming rows only, with no Mark paid, when the bill list fails to load (R2)", async () => {
       upcomingByMonth({
         "2026-11": [meralco("2026-11-10"), bill({ id: 8, name: "Netflix", dueDate: "2026-11-21" })],
       });
@@ -670,6 +670,8 @@ describe("Dashboard render", () => {
       expect(rows).toHaveLength(1);
       expect(rows[0]).toContain("Netflix");
       expect(rows[0]).toContain("Due in 3 days");
+      // Without the paid state there is no knowing what a mark would mean.
+      expect(screen.queryByRole("button", { name: /^Mark paid/ })).toBeNull();
     });
 
     // --- Mark paid ------------------------------------------------------------

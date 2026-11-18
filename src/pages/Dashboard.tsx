@@ -134,13 +134,15 @@ const dueDay = (ymd: string) => formatDayMonth(ymd + "T00:00:00+08:00");
  * Needs attention's bill rows: overdue first, then bills due within the window. Every due date is
  * the server's (`/recurring/upcoming`) and the paid state is the server's (`/recurring`, joined by
  * id, R2); this only compares Manila `yyyy-mm-dd` strings. A bill missing from `recurring` (or the
- * list failing to load) is never overdue and never hidden, which is the behaviour before 3.5.0.
+ * list failing to load) is never overdue, never hidden and offers no Mark paid: without its paid
+ * state there is no knowing what a mark would mean. That is the behaviour before 3.5.0.
  *
  * - Overdue this month: unpaid, with a due date this month before today. One row per bill, at its
  *   most recent missed date, replacing its upcoming rows (R4).
  * - Unpaid last month: `lastPaidMonth` before last month (null never counts, R1), and only for a
  *   bill the server says was due last month (R3). A bill overdue both ways gets the dated line.
- * - A bill paid this month shows no row due this month; next month's rows still show (R5).
+ * - A bill paid for this month or later shows no row due this month; next month's rows still show
+ *   (R5).
  */
 function billRows(
   upcoming: UpcomingBillResponse[],
@@ -190,7 +192,7 @@ function billRows(
       bill,
       line: `${dueIn(inDays)} · ${dueDay(bill.dueDate)}`,
       overdue: false,
-      canMarkPaid: bill.dueDate.startsWith(month),
+      canMarkPaid: bill.dueDate.startsWith(month) && paid.has(bill.id),
     }));
 
   return [...overdue.values(), ...soon];
