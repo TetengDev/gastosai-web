@@ -157,7 +157,8 @@ describe("Goals meters", () => {
 
 // --- One card per goal, Add savings, the Achieved group (TEN-442) ---------------------------
 
-const card = (name: string) => screen.getByText(name).closest("div.group") as HTMLElement;
+// By the card's heading: the Add savings dialog also names the goal.
+const card = (name: string) => screen.getByRole("heading", { name }).closest("div.group") as HTMLElement;
 const seen = (event: string) => localStorage.getItem(celebrationKey(ACCOUNT, event)) === "1";
 const coin = () => document.querySelector('[data-testid="coin"]');
 const pisos = () => document.querySelectorAll("[data-piso-state]");
