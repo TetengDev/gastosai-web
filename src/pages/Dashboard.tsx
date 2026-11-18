@@ -151,10 +151,13 @@ function billRows(
   const month = today.slice(0, 7);
   const lastMonth = previousMonth(month);
   const paid = new Map(recurring.map((r) => [r.id, r]));
+  // Marked paid for this month or later; a `lastPaidMonth` at or after this month means nothing is
+  // overdue. A bill with no record is neither paid nor unpaid.
+  const paidUp = (r: RecurringExpenseResponse) =>
+    r.paidThisMonth || (r.lastPaidMonth !== null && r.lastPaidMonth >= month);
   const unpaid = (id: number) => {
     const r = paid.get(id);
-    // A `lastPaidMonth` at or after this month means nothing is overdue.
-    return !!r && !r.paidThisMonth && !(r.lastPaidMonth !== null && r.lastPaidMonth >= month);
+    return !!r && !paidUp(r);
   };
 
   const overdue = new Map<number, BillRow>();
@@ -178,7 +181,10 @@ function billRows(
   const soon = upcoming
     .map((bill) => ({ bill, inDays: daysBetween(today, bill.dueDate) }))
     .filter(({ bill, inDays }) => inDays >= 0 && inDays <= BILL_WINDOW_DAYS && !overdue.has(bill.id))
-    .filter(({ bill }) => !(bill.dueDate.startsWith(month) && paid.get(bill.id)?.paidThisMonth))
+    .filter(({ bill }) => {
+      const r = paid.get(bill.id);
+      return !(bill.dueDate.startsWith(month) && r && paidUp(r));
+    })
     .sort((a, b) => a.inDays - b.inDays)
     .map(({ bill, inDays }) => ({
       bill,

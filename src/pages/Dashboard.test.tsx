@@ -595,6 +595,14 @@ describe("Dashboard render", () => {
       expect(screen.queryByRole("heading", { name: "Needs attention" })).toBeNull();
     });
 
+    it("lists no upcoming row this month for a bill marked paid for a later month", async () => {
+      upcomingByMonth({ "2026-11": [meralco("2026-11-20")] });
+      mockGetRecurring.mockResolvedValue([recurring({ paidThisMonth: false, lastPaidMonth: "2026-12" })]);
+      await loaded("2026-11-18T04:00:00Z");
+
+      expect(screen.queryByRole("heading", { name: "Needs attention" })).toBeNull();
+    });
+
     it("still lists next month's row for a bill paid this month, with no action (R5, R6)", async () => {
       upcomingByMonth({ "2026-11": [meralco("2026-11-01")] });
       mockGetRecurring.mockResolvedValue([recurring({ paidThisMonth: true, lastPaidMonth: "2026-10" })]);
