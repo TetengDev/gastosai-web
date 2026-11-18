@@ -191,7 +191,7 @@ describe("Goals cards", () => {
 
     expect(within(card("Emergency Fund")).getByRole("button", { name: "Add savings" })).toBeTruthy();
     expect(within(card("Emergency Fund")).getByRole("progressbar", { name: "Emergency Fund" })).toBeTruthy();
-    expect(card("Emergency Fund")).toHaveTextContent("By Dec 31, 2026");
+    expect(card("Emergency Fund")).toHaveTextContent("by Dec 31, 2026");
     expect(within(card("Laptop")).queryByRole("button", { name: "Add savings" })).toBeNull();
   });
 
@@ -207,6 +207,14 @@ describe("Goals cards", () => {
     const inProgress = screen.getByRole("list", { name: "Goals in progress" });
     expect(within(inProgress).getByText("Emergency Fund")).toBeTruthy();
     expect(within(inProgress).queryByText("Laptop")).toBeNull();
+  });
+
+  it("rounds the server's percentage the way mobile does", async () => {
+    mockGetGoals.mockResolvedValue([goal({ progressPercent: 33.3333 })]);
+    renderGoals();
+    await screen.findByText("Emergency Fund");
+    expect(card("Emergency Fund")).toHaveTextContent("33%");
+    expect(card("Emergency Fund")).not.toHaveTextContent("33.3333%");
   });
 
   it("shows no Achieved group when no goal is COMPLETED", async () => {
@@ -277,11 +285,9 @@ describe("Goals Add savings", () => {
     });
   });
 
-  it.each([
-    ["500.005", /at most two decimal places/],
-    ["0", /greater than 0/],
-    ["-5", /greater than 0/],
-  ])("refuses %s and sends nothing", async (typed, message) => {
+  // Mobile's AmountSheet wording, word for word, for every amount it refuses.
+  it.each(["500.005", "0", "-5"])("refuses %s and sends nothing", async (typed) => {
+    const message = "Enter an amount greater than zero.";
     mockGetGoals.mockResolvedValue([goal()]);
     renderGoals();
     fireEvent.change(await openAddSavings(), { target: { value: typed } });
