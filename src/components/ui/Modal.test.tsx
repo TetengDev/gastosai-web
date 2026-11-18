@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { useState } from "react";
+import { StrictMode, useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import ConfirmDialog from "./ConfirmDialog";
 import Modal from "./Modal";
@@ -105,6 +105,45 @@ describe("Modal", () => {
     const opener = openHost();
     expect(document.activeElement).not.toBe(opener);
     fireEvent.keyDown(screen.getByLabelText("Amount"), { key: "Escape" });
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(document.activeElement).toBe(opener);
+  });
+
+  // StrictMode (src/main.tsx) runs a fresh mount's effects twice. A modal mounted already open, as
+  // ExpenseModal is, must not have the first cleanup pull focus back to the opener and leave the
+  // re-run to land it on Close.
+  it("keeps an autoFocus field focused under StrictMode, and still returns focus on close", () => {
+    function AutoHost() {
+      const [open, setOpen] = useState(false);
+      return (
+        <>
+          <button onClick={() => setOpen(true)}>Open</button>
+          {open && (
+            <Modal open title="New Expense" onClose={() => setOpen(false)}>
+              <input aria-label="Amount" autoFocus />
+            </Modal>
+          )}
+        </>
+      );
+    }
+    render(
+      <StrictMode>
+        <AutoHost />
+      </StrictMode>,
+    );
+    const opener = screen.getByRole("button", { name: "Open" });
+
+    opener.focus();
+    fireEvent.click(opener);
+    expect(document.activeElement).toBe(screen.getByLabelText("Amount"));
+    fireEvent.keyDown(screen.getByLabelText("Amount"), { key: "Escape" });
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(document.activeElement).toBe(opener);
+
+    opener.focus();
+    fireEvent.click(opener);
+    expect(document.activeElement).toBe(screen.getByLabelText("Amount"));
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(document.activeElement).toBe(opener);
   });

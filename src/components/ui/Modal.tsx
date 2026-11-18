@@ -50,8 +50,9 @@ export default function Modal({
     const panel = panelRef.current;
     if (panel && !panel.contains(document.activeElement)) (focusables(panel)[0] ?? panel).focus();
     // A gone opener (its row re-rendered elsewhere) is left alone; the page decides where focus goes.
+    // A still-connected panel is StrictMode's simulated unmount, not a close: leave focus inside.
     return () => {
-      if (opener?.isConnected) opener.focus();
+      if (!panel?.isConnected && opener?.isConnected) opener.focus();
     };
   }, [open, opener]);
 
