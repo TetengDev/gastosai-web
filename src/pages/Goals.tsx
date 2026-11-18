@@ -532,7 +532,9 @@ export default function Goals() {
               {formatCurrencyAmount(addingGoal.targetAmount, addingGoal.currency ?? "PHP")}.
             </p>
             <label htmlFor="add-savings-amount" className={labelClass}>
-              Amount in pesos
+              {(addingGoal.currency ?? "PHP") === "PHP"
+                ? "Amount in pesos"
+                : `Amount (${currencySymbol(addingGoal.currency ?? "PHP")})`}
             </label>
             <input
               id="add-savings-amount"
