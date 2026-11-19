@@ -18,11 +18,19 @@ assigned in turn), then repeats a pass until the run ends:
 Every row a user creates is named `Load … E2E <run-id>`, and the pass deletes it again. When
 Artillery finishes, `run.ts` sweeps each account for anything still carrying the run id: a user
 that failed half-way leaves rows, and this is where they go. The sweep uses the same rule as
-`sweepRunData` in `e2e/support`.
+`sweepRunData` in `e2e/support`, tightened to the exact ` E2E <run-id>` suffix. If the backend
+died under load, the sweep reports what it could not clean, and the summary still prints.
 
-The run never calls the AI endpoints (chat, receipt scan, insights). A user that triggers one
-fails. Each page does still read `GET /chat/conversations`: the chat widget loads its history on
-every signed-in page. That read is plain CRUD; no model is involved.
+The run never calls the AI endpoints (chat, receipt scan, insights). Every API request a page
+makes is checked as it leaves the browser. The first one that goes to an `/ai/` route (other
+than the plain reads `/ai/usage` and `/ai/languages`) or to any backend but the vetted API closes
+the page, and that user fails with the reason. The second case is how a dev server started with
+`VITE_API_URL` pointing elsewhere is caught, which the environment check alone cannot see.
+Requests are watched, not routed: Playwright's `page.route` turns the HTTP cache off, and with it
+on, every page load measured about 2.5 times slower.
+
+Each page does still read `GET /chat/conversations`: the chat widget loads its history on every
+signed-in page. That read is plain CRUD; no model is involved.
 
 Artillery runs through `npx -y artillery@2.0.34` (pinned in `plan.ts`), so it is not a
 dependency of this repo. It launches the Chromium that the repo's `@playwright/test` installed,
@@ -91,14 +99,14 @@ short summary. This one is from a default run on 2026-11-19, trimmed:
 
 ```
 Page loads (ms)                                    p50     p95     p99
-  FCP /expenses                                     60      67      72
-  LCP /budget                                       84      97     101
-  TTFB /                                             4       9      11
+  FCP /expenses                                     67      81      81
+  LCP /budget                                      101     111     120
+  TTFB /                                             5      20      20
 Steps (ms)                                         p50     p95     p99
-  add_expense                                      539     561     561
-  sign_in                                          433     460     460
-HTTP errors by status: 400 × 88
-  400 GET /api/v2/alerts × 88
+  add_expense                                      460     518     529
+  sign_in                                          450     488     488
+HTTP errors by status: 400 × 87
+  400 GET /api/v2/alerts × 87
 Failed virtual users: 0 of 10
 Sweep: no rows left behind.
 ```
@@ -109,11 +117,11 @@ Sweep: no rows left behind.
 - **Steps** are wall-clock times for each step of the pass, from its first action to the last
   thing it waits for. Watch how they rise as users climb.
 - **HTTP errors** counts every response of 400 or more that the pages received, API and assets
-  alike, then lists the request behind each one. A `429` means the run hit a backend rate limit
+  alike, then lists the request behind each one, with numeric ids folded to `:id`. A `429` means the run hit a backend rate limit
   (see above), not that the app broke. The `400 GET /api/v2/alerts` above is a backend bug that
   the run surfaced: the `premium@` account's alerts for that month fail even with no load.
 - **Failed virtual users** counts users that threw: a step timed out, an element never appeared,
-  or an AI endpoint was called. `Errors:` lists why. The command exits `1` when any user failed or
+  or a request was blocked (`Blocked during <step>: …`). `Errors:` lists why. The command exits `1` when any user failed or
   the sweep could not clean up.
 
 The full Artillery JSON report is written to `e2e/load/reports/<run-id>.json` (gitignored). Its
@@ -127,5 +135,6 @@ The full Artillery JSON report is written to `e2e/load/reports/<run-id>.json` (g
 | `run.ts` | the runner: guard, `npx artillery run`, sweep, summary |
 | `artillery/scenario.ts` | the Artillery script: phases and the user's pass |
 | `artillery/package.json` | marks the folder CommonJS, because Artillery bundles the scenario to CJS |
-| `plan.ts` | target guard, run shape, accounts, report summary (pure, tested) |
-| `plan.test.ts` | its tests: `npx playwright test e2e/load` |
+| `plan.ts` | target and request guards, run shape, accounts, report summary (pure) |
+| `sweep.ts` | the end-of-run sweep of one account |
+| `plan.test.ts`, `sweep.test.ts` | their tests: `npx playwright test e2e/load` |
