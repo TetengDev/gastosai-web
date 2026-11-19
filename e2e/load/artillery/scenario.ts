@@ -1,7 +1,7 @@
 import { chromium, type Page } from "@playwright/test";
 import { confirmInModal, modalWithTitle } from "../../support/dialog.ts";
 import { uniqueName } from "../../support/run-id.ts";
-import { HTTP_ERROR, accountFor, isAiCall, settingsFrom } from "../plan.ts";
+import { API_REQUEST, HTTP_ERROR, accountFor, blockedRequest, settingsFrom } from "../plan.ts";
 
 /**
  * The Artillery script behind `npm run load:local`. Start it through `run.ts`, which also sweeps
@@ -58,20 +58,29 @@ async function signedInUser(page: Page, _vu: unknown, events: Events, test: { st
   const vu = users++;
   const { email, password } = accountFor(vu);
 
-  // Watched rather than blocked: routing would intercept every request and skew the timings.
-  const aiCalls: string[] = [];
+  // The first forbidden request closes the page, so nothing after it is sent: a misdirected
+  // sign-in never becomes a write. Watched, not routed: any `page.route` turns the HTTP cache off,
+  // which measured FCP at about 2.5x on every page and made the run time its own guard.
+  const blocked: string[] = [];
   page.on("request", (request) => {
-    if (isAiCall(request.url(), settings.api)) aiCalls.push(request.url());
+    const url = request.url();
+    const reason = API_REQUEST.test(url) ? blockedRequest(url, settings.api) : null;
+    if (!reason) return;
+    blocked.push(reason);
+    void page.close();
   });
   // Artillery counts responses by status only; this names the request behind each error.
   page.on("response", (response) => {
     if (response.status() < 400) return;
-    const { pathname } = new URL(response.url());
-    events.emit("counter", `${HTTP_ERROR}${response.status()} ${response.request().method()} ${pathname}`, 1);
+    // Ids folded, so `/expenses/123` and `/expenses/124` are one line of the report, not two.
+    const path = new URL(response.url()).pathname.replace(/\/\d+(?=\/|$)/g, "/:id");
+    events.emit("counter", `${HTTP_ERROR}${response.status()} ${response.request().method()} ${path}`, 1);
   });
   const step: Step = async (name, actions) => {
-    await test.step(name, actions);
-    if (aiCalls.length) throw new Error(`AI endpoint called during ${name}: ${aiCalls[0]}`);
+    const failure = await test.step(name, actions).then(() => null, (error: unknown) => error);
+    // A block closes the page, so the step's own error is just "page closed"; report why.
+    if (blocked.length) throw new Error(`Blocked during ${name}: ${blocked[0]}`);
+    if (failure) throw failure;
   };
 
   let token = "";

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { ACCOUNTS, accountFor, isAiCall, settingsFrom, summarize } from "./plan.ts";
+import { ACCOUNTS, API_REQUEST, accountFor, blockedRequest, settingsFrom, summarize } from "./plan.ts";
 
 /**
  * The load run's guard rails, checked without running it: running it takes minutes and the whole
@@ -78,32 +78,55 @@ test.describe("load run · shape", () => {
   });
 });
 
-test.describe("load run · AI guard", () => {
+test.describe("load run · request guard", () => {
   const api = "http://localhost:8080";
 
-  test("flags every LLM-backed route, versioned or not", () => {
+  test("blocks every /ai/ route that may reach a model, versioned or not, known or new", () => {
     for (const path of [
       "/api/v2/ai/chat",
       "/ai/chat/confirm",
       "/api/v2/ai/query",
       "/api/v2/ai/vision",
       "/api/v2/ai/insights/top-category?month=2026-11",
+      "/api/v3/ai/transcribe",
     ]) {
-      expect(isAiCall(`${api}${path}`, api), path).toBe(true);
+      const url = `${api}${path}`;
+      expect(API_REQUEST.test(url), path).toBe(true);
+      expect(blockedRequest(url, api), path).toMatch(/^AI endpoint/);
     }
   });
 
-  test("lets plain reads and the app's own source files through", () => {
+  test("blocks API calls to any backend but the vetted one", () => {
+    // A dev server started with VITE_API_URL pointing elsewhere: the env guard cannot see it.
     for (const url of [
-      `${api}/api/v2/chat/conversations`,
-      `${api}/api/v2/user/ai-settings`,
-      `${api}/api/v2/ai/usage`,
-      `${api}/api/v2/ai/languages`,
-      `${api}/api/v2/expenses`,
+      "https://staging.example.com/api/v2/auth/login",
+      "http://localhost:8081/api/v2/expenses",
+    ]) {
+      expect(API_REQUEST.test(url), url).toBe(true);
+      expect(blockedRequest(url, api), url).toMatch(/^API call to .* not http:\/\/localhost:8080/);
+    }
+  });
+
+  test("lets plain reads through", () => {
+    for (const path of [
+      "/api/v2/chat/conversations",
+      "/api/v2/user/ai-settings",
+      "/api/v2/ai/usage",
+      "/api/v2/ai/languages",
+      "/api/v2/expenses",
+    ]) {
+      expect(blockedRequest(`${api}${path}`, api), path).toBeNull();
+    }
+  });
+
+  test("never routes the app's own source files", () => {
+    for (const url of [
       "http://localhost:5173/src/api/ai.ts",
       "http://localhost:5173/src/components/chat/chatActions.ts",
+      "http://localhost:5173/@vite/client",
+      "http://localhost:5173/expenses",
     ]) {
-      expect(isAiCall(url, api), url).toBe(false);
+      expect(API_REQUEST.test(url), url).toBe(false);
     }
   });
 });

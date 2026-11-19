@@ -78,15 +78,25 @@ export function settingsFrom(env: Env): Settings {
   };
 }
 
+/** The only `/ai/` routes that are plain reads; every other one may reach a model. */
+const PLAIN_AI_READS = new Set(["usage", "languages"]);
+
+/** Requests the scenario routes through `blockedRequest`: API paths, on any origin. */
+export const API_REQUEST = /^https?:\/\/[^/]+\/(api\/v\d+|ai)\//;
+
 /**
- * Whether `url` is an LLM-backed API call (chat, query, receipt vision, insights), which the load
- * run must never make. `/chat/conversations`, `/ai/usage` and the like are plain reads.
+ * Why the load run must not send `url`, or null if it may. Two cases:
+ *
+ * - an API call to any origin but the vetted one, which is how a dev server started with
+ *   `VITE_API_URL` pointing elsewhere would otherwise write to that backend, past the env guard;
+ * - an `/ai/` route other than the plain reads (chat, query, receipt vision, insights, and
+ *   whatever is added later). `/chat/conversations` and `/user/ai-settings` are not `/ai/` routes.
  */
-export function isAiCall(url: string, api: string): boolean {
+export function blockedRequest(url: string, api: string): string | null {
   const parsed = new URL(url);
-  return (
-    parsed.origin === originOf(api) && /\/ai\/(chat|query|vision|insights)(\/|$)/.test(parsed.pathname)
-  );
+  if (parsed.origin !== originOf(api)) return `API call to ${parsed.origin}, not ${api}`;
+  const ai = /^\/(?:api\/v\d+\/)?ai\/([^/]+)/.exec(parsed.pathname);
+  return ai && !PLAIN_AI_READS.has(ai[1]) ? `AI endpoint ${parsed.pathname}` : null;
 }
 
 /** Counter prefix the scenario emits per error response: `<prefix><status> <METHOD> <path>`. */
