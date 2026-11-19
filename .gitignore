@@ -30,6 +30,10 @@ test-results/
 test-results-demo/
 showcase/
 e2e/artifacts/
+# Load run (e2e/load): Artillery JSON reports, and the CommonJS bundle Artillery compiles the
+# scenario into.
+e2e/load/reports/
+e2e/load/artillery/dist/
 # Signed-in browser state written by e2e/global-setup.ts — holds a real JWT.
 e2e/.auth/
 

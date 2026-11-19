@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "typecheck": "tsc -b",
+    "typecheck": "tsc -b && tsc -p e2e/load",
     "gen:api": "openapi-typescript node_modules/@tetengdev/gastosai-api-contract/openapi.json -o src/api/generated/schema.d.ts",
     "preview": "vite preview",
     "test": "vitest",
@@ -18,7 +18,8 @@
     "e2e:report": "playwright show-report",
     "e2e:demo": "playwright test --config playwright.demo.config.ts",
     "e2e:showcase": "playwright test --config playwright.demo.config.ts e2e/showcase.demo.ts",
-    "showcase": "./scripts/record-showcase.sh"
+    "showcase": "./scripts/record-showcase.sh",
+    "load:local": "node e2e/load/run.ts"
   },
   "dependencies": {
     "@tetengdev/gastosai-api-contract": "3.5.0",
