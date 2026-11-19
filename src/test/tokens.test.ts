@@ -58,7 +58,8 @@ function extractToken(block: string, name: string): string {
 }
 
 const rootBlock = extractBlock(css, ":root");
-const darkBlock = extractBlock(css, ".dark");
+// Dark tokens live under `:root { @variant dark { … } }`, the same condition as every `dark:` utility.
+const darkBlock = extractBlock(css, "@variant dark");
 
 const rootTokens = {
   page: extractToken(rootBlock, "--ga-page"),
