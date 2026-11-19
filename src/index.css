@@ -26,6 +26,12 @@
   }
 }
 
+/* Reserve the scrollbar's width on every page, so moving between a short page and a long one does
+   not jolt the whole layout sideways when a classic scrollbar appears (css-layout §6). */
+html {
+  scrollbar-gutter: stable;
+}
+
 /* Native controls inside a local dark scope match it. */
 .dark {
   color-scheme: dark;

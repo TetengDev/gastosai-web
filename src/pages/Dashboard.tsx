@@ -316,19 +316,26 @@ export default function Dashboard() {
   if (loading)
     return (
       // Mirrors the real layout: the hero, then quieter sections.
-      <div className="mx-auto max-w-3xl animate-pulse space-y-10 lg:max-w-none">
-        <div className="h-60 rounded-2xl bg-surface-2" />
-        <div className="space-y-3">
-          <div className="h-5 w-40 rounded bg-surface-2" />
-          <div className="h-14 rounded-xl bg-surface-2" />
-          <div className="h-14 rounded-xl bg-surface-2" />
+      // Same grid and placements as the loaded layout below, with blocks sized like what replaces
+      // them, so the swap from skeleton to content does not shift the page.
+      <div className="mx-auto flex max-w-3xl animate-pulse flex-col gap-10 lg:grid lg:max-w-none lg:grid-cols-[minmax(0,1fr)_360px] lg:grid-rows-[auto_1fr] lg:gap-x-10">
+        <div className="h-64 rounded-2xl bg-surface-2 lg:col-start-1 lg:row-start-1" />
+        <div className="lg:col-start-2 lg:row-span-2 lg:row-start-1">
+          <div className="h-7 w-24 rounded bg-surface-2" />
+          <div className="mt-3 flex gap-3 lg:flex-col">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="h-28 w-60 shrink-0 rounded-xl bg-surface-2 lg:w-auto" />
+            ))}
+          </div>
         </div>
-        <div className="flex gap-3">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="h-24 w-56 shrink-0 rounded-xl bg-surface-2" />
-          ))}
+        <div className="lg:col-start-1 lg:row-start-2">
+          <div className="h-7 w-24 rounded bg-surface-2" />
+          <div className="mt-3 space-y-3">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-16 rounded-xl bg-surface-2" />
+            ))}
+          </div>
         </div>
-        <div className="h-64 rounded-xl bg-surface-2" />
       </div>
     );
 

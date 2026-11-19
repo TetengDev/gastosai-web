@@ -76,7 +76,9 @@ function AppShell({ darkMode, onToggleDark, onResetDark }: { darkMode: boolean; 
               <>
                 <AnnouncementBar />
                 <Navbar isDark={darkMode} onToggleDark={onToggleDark} />
-                <main className="max-w-[1240px] mx-auto px-6 md:px-10 py-12">
+                {/* At least a viewport tall, so the footer stays below the fold while a page's data
+                    loads instead of jumping down as the content arrives. */}
+                <main className="max-w-[1240px] min-h-dvh mx-auto px-6 md:px-10 py-12">
                   <Routes>
                     <Route path="/" element={<Dashboard />} />
                     <Route path="/expenses" element={<Expenses />} />
