@@ -58,16 +58,17 @@ async function signedInUser(page: Page, _vu: unknown, events: Events, test: { st
   const vu = users++;
   const { email, password } = accountFor(vu);
 
-  // The first forbidden request closes the page, so nothing after it is sent: a misdirected
-  // sign-in never becomes a write. Watched, not routed: any `page.route` turns the HTTP cache off,
-  // which measured FCP at about 2.5x on every page and made the run time its own guard.
+  // The second net, after run.ts has vetted the app's configured API. This one sees the request
+  // as it is sent, so the first forbidden request does leave the browser; closing the page stops
+  // everything after it. Watched, not routed: any `page.route` turns the HTTP cache off, which
+  // measured FCP at about 2.5x on every page and made the run time its own guard.
   const blocked: string[] = [];
   page.on("request", (request) => {
     const url = request.url();
     const reason = API_REQUEST.test(url) ? blockedRequest(url, settings.api) : null;
     if (!reason) return;
     blocked.push(reason);
-    void page.close();
+    page.close().catch(() => {});
   });
   // Artillery counts responses by status only; this names the request behind each error.
   page.on("response", (response) => {

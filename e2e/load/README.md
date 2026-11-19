@@ -21,13 +21,18 @@ that failed half-way leaves rows, and this is where they go. The sweep uses the 
 `sweepRunData` in `e2e/support`, tightened to the exact ` E2E <run-id>` suffix. If the backend
 died under load, the sweep reports what it could not clean, and the summary still prints.
 
-The run never calls the AI endpoints (chat, receipt scan, insights). Every API request a page
-makes is checked as it leaves the browser. The first one that goes to an `/ai/` route (other
-than the plain reads `/ai/usage` and `/ai/languages`) or to any backend but the vetted API closes
-the page, and that user fails with the reason. The second case is how a dev server started with
-`VITE_API_URL` pointing elsewhere is caught, which the environment check alone cannot see.
-Requests are watched, not routed: Playwright's `page.route` turns the HTTP cache off, and with it
-on, every page load measured about 2.5 times slower.
+The run never calls the AI endpoints (chat, receipt scan, insights) and never calls a backend
+other than the vetted one. Two checks enforce this:
+
+- **Before any user signs in,** `run.ts` reads the `VITE_API_URL` that the dev server inlined
+  into `/src/api/client.ts` and refuses if it is not the vetted API. A dev server started against
+  another backend is caught here, before a credential is sent anywhere; the environment check
+  alone cannot see it.
+- **While users run,** every API request a page makes is checked as it is sent. The first one
+  to an `/ai/` route (other than the plain reads `/ai/usage` and `/ai/languages`) or to another
+  backend closes the page, and that user fails with the reason. That request itself has already
+  left; nothing after it does. Requests are watched, not routed: Playwright's `page.route` turns
+  the HTTP cache off, and with it on, every page load measured about 2.5 times slower.
 
 Each page does still read `GET /chat/conversations`: the chat widget loads its history on every
 signed-in page. That read is plain CRUD; no model is involved.
@@ -43,7 +48,8 @@ python3 ../scripts/verify_local.py --up   # Postgres, API :8080, web :5173
 npm run load:local
 ```
 
-It needs Node 22.18 or later, which runs `run.ts` without a build step. The `free@`, `premium@`
+It needs Node 22.18 or later, which runs `run.ts` without a build step. `E2E_EMAIL` and `E2E_PASSWORD` override the demo account; point
+them only at a local, throwaway account. The `free@`, `premium@`
 and `trial@` accounts are seeded when the backend runs with sample data,
 which is the local default (`GASTOS_SEED_SAMPLE_DATA`, default `true`).
 

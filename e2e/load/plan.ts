@@ -78,6 +78,31 @@ export function settingsFrom(env: Env): Settings {
   };
 }
 
+/** The app's only hand-written transport module; its served source names the API it calls. */
+export const CLIENT_MODULE = "/src/api/client.ts";
+
+/**
+ * The `VITE_API_URL` a Vite dev server inlined into a module it served, or null. The dev server
+ * prefixes each module with `import.meta.env = {…};`. Reading it lets the runner vet the API the
+ * app will really call before any user signs in, so no credential is ever sent to the wrong one.
+ */
+export function viteApiUrl(moduleSource: string): string | null {
+  const env = /^import\.meta\.env = (\{.*?\});/m.exec(moduleSource);
+  if (!env) return null;
+  try {
+    const url = (JSON.parse(env[1]) as Record<string, unknown>).VITE_API_URL;
+    return typeof url === "string" ? url : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Why the app's configured API is not the vetted one, or null when it is. */
+export function appApiMismatch(appApi: string | null, api: string): string | null {
+  if (appApi === null) return `could not read the API the app at this target calls`;
+  return originOf(appApi) === originOf(api) ? null : `the app calls ${appApi}, not ${api}`;
+}
+
 /** The only `/ai/` routes that are plain reads; every other one may reach a model. */
 const PLAIN_AI_READS = new Set(["usage", "languages"]);
 

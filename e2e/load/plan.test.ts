@@ -1,5 +1,14 @@
 import { expect, test } from "@playwright/test";
-import { ACCOUNTS, API_REQUEST, accountFor, blockedRequest, settingsFrom, summarize } from "./plan.ts";
+import {
+  ACCOUNTS,
+  API_REQUEST,
+  accountFor,
+  appApiMismatch,
+  blockedRequest,
+  settingsFrom,
+  summarize,
+  viteApiUrl,
+} from "./plan.ts";
 
 /**
  * The load run's guard rails, checked without running it: running it takes minutes and the whole
@@ -75,6 +84,32 @@ test.describe("load run · shape", () => {
       "demo@gastosai.dev",
       "free@gastosai.dev",
     ]);
+  });
+});
+
+test.describe("load run · the app's configured API", () => {
+  // The head of /src/api/client.ts as the Vite dev server serves it (2026-11-19).
+  const served = (url: string) =>
+    `import.meta.env = {"BASE_URL": "/", "DEV": true, "MODE": "development", "VITE_API_URL": "${url}"};` +
+    `import axios from "/node_modules/.vite/deps/axios.js?v=0bc6e3ab";\nconst api = axios.create();`;
+
+  test("reads VITE_API_URL from a module the dev server served", () => {
+    expect(viteApiUrl(served("http://localhost:8080"))).toBe("http://localhost:8080");
+  });
+
+  test("gives null when the source carries no dev-server env", () => {
+    for (const source of ["", "<!doctype html><html></html>", "import.meta.env = {not json};"]) {
+      expect(viteApiUrl(source), source).toBeNull();
+    }
+  });
+
+  test("passes only the vetted API, comparing origins", () => {
+    expect(appApiMismatch("http://localhost:8080", "http://localhost:8080")).toBeNull();
+    expect(appApiMismatch("http://localhost:8080/", "http://localhost:8080")).toBeNull();
+    expect(appApiMismatch("https://staging.example.com", "http://localhost:8080")).toBe(
+      "the app calls https://staging.example.com, not http://localhost:8080"
+    );
+    expect(appApiMismatch(null, "http://localhost:8080")).toMatch(/could not read/);
   });
 });
 
