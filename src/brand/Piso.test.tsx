@@ -1,3 +1,5 @@
+/// <reference types="node" />
+import { readFileSync } from "node:fs";
 import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import Piso from "./Piso";
@@ -101,13 +103,18 @@ describe("Piso", () => {
   it.each(PISO_STATES)("draws the %s mark as the logo: a coin sinking into the tube past two joints", (state) => {
     const { container } = render(<Piso state={state} size={24} />);
     const svg = svgOf(container as HTMLElement);
-    const [coin, tube, joints] = [...svg.children];
+    const [coin, backing, tube, joints] = [...svg.children];
 
     expect(svg.getAttribute("data-piso-state")).toBe(state);
     // The tube is drawn over the coin's lower edge, which is what sinks it.
     expect(coin.nodeName).toBe("circle");
     expect(coin.getAttribute("fill")).toBe(PISO_ROLES.coin);
     expect(coin.getAttribute("stroke")).toBe(pisoLine(state));
+    // An opaque backing under the tube, so overBudget's translucent dark body does not show the coin through it.
+    expect(backing.nodeName).toBe("rect");
+    expect(backing.getAttribute("fill")).toBe("var(--ga-surface)");
+    expect(backing.getAttribute("stroke")).toBeNull();
+    for (const attr of ["x", "y", "width", "height", "rx"]) expect(backing.getAttribute(attr)).toBe(tube.getAttribute(attr));
     expect(tube.nodeName).toBe("rect");
     expect(tube.getAttribute("fill")).toBe(pisoBody(state));
     expect(tube.getAttribute("stroke")).toBe(pisoLine(state));
@@ -128,6 +135,14 @@ describe("Piso", () => {
       "line",
       "warmPanel",
     ]);
+  });
+
+  it("keeps the coin token opaque in both themes", () => {
+    const css = readFileSync("src/index.css", "utf-8");
+    const values = [...css.matchAll(/--ga-coin:\s*([^;]+);/g)].map((m) => m[1].trim());
+
+    expect(values).toHaveLength(2);
+    for (const v of values) expect(v).toMatch(/^#[0-9a-fA-F]{6}$/);
   });
 
   it("builds every role out of an index.css token rather than a literal", () => {
@@ -166,7 +181,10 @@ describe("Piso", () => {
     const { container } = render(<Piso state="saved" />);
     const svg = svgOf(container as HTMLElement);
 
-    expect(svg.querySelector('circle[r="9"]')?.getAttribute("fill")).toBe(PISO_ROLES.coin);
+    const coin = svg.querySelector('circle[r="9"]');
+    expect(coin?.getAttribute("fill")).toBe(PISO_ROLES.coin);
+    // The line, not amberFg: in dark amberFg is the coin's own colour, and the rim would vanish.
+    expect(coin?.getAttribute("stroke")).toBe(PISO_ROLES.line);
     expect(svg.innerHTML).toContain("M47 69q5-6 10 0M71 69q5-6 10 0");
   });
 

@@ -61,6 +61,8 @@ export default function Piso({ state, size = 96, className }: Props) {
     return (
       <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" {...shared}>
         <circle cx="32" cy="15" r="8.5" fill={PISO_ROLES.coin} stroke={line} strokeWidth="4" />
+        {/* Opaque backing: overBudget's dark body is a translucent wash the coin would show through. */}
+        <rect x="19" y="19" width="26" height="41" rx="7" fill="var(--ga-surface)" />
         <rect x="19" y="19" width="26" height="41" rx="7" fill={pisoBody(state)} stroke={line} strokeWidth="4" />
         <path d="M14.5 33h35M14.5 47h35" stroke={line} strokeWidth="4.5" strokeLinecap="round" fill="none" />
       </svg>
@@ -106,7 +108,7 @@ export default function Piso({ state, size = 96, className }: Props) {
 
       {/* A coin on its way into the slot. */}
       {state === "saved" && (
-        <circle cx="64" cy="12" r="9" fill={PISO_ROLES.coin} stroke={PISO_ROLES.amberFg} strokeWidth="3" />
+        <circle cx="64" cy="12" r="9" fill={PISO_ROLES.coin} stroke={line} strokeWidth="3" />
       )}
 
       {/* A hairline crack, not a break: over budget is a warning, not a failure. */}
