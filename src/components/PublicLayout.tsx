@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import Footer from "./Footer";
+import Piso from "../brand/Piso";
+import Wordmark from "../brand/Wordmark";
 
 /** Shell for logged-out public pages (Contact, About, etc.): wordmark bar + content + footer. */
 export default function PublicLayout({ children, wide = false }: { children: ReactNode; wide?: boolean }) {
@@ -8,8 +10,9 @@ export default function PublicLayout({ children, wide = false }: { children: Rea
     <div className="flex min-h-screen flex-col bg-page">
       <header className="border-b border-edge-2">
         <div className="mx-auto flex h-[72px] max-w-[1240px] items-center justify-between px-6 md:px-10">
-          <Link to="/" className="font-display text-[21px] font-bold tracking-tight text-ink-hi">
-            Gastos<span className="text-[#1f8a5b]">AI</span>
+          <Link to="/" className="flex select-none items-center gap-2">
+            <Piso state="resting" size={24} />
+            <Wordmark className="font-display text-[21px] font-bold tracking-tight text-ink-hi" />
           </Link>
           <Link to="/login" className="text-sm font-medium text-ink-2 transition-colors hover:text-link">
             Sign in

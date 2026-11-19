@@ -1,9 +1,9 @@
 /**
  * Piso's contract: the states it can be in, the size at which it stops having a face, and the
- * five colour roles it is painted from.
+ * six colour roles it is painted from.
  *
  * These live beside the component rather than inside it because they are not implementation
- * detail — the same seven states and five roles are the API on both platforms, and keeping them
+ * detail — the same seven states and six roles are the API on both platforms, and keeping them
  * in a module of their own is also what lets `Piso.tsx` stay a file that only exports a
  * component (`react-refresh/only-export-components`).
  */
@@ -24,7 +24,7 @@ export type PisoState = (typeof PISO_STATES)[number];
 export const PISO_MARK_THRESHOLD = 32;
 
 /**
- * The five colour roles, each resolved from an existing token in `src/index.css`.
+ * The six colour roles, each resolved from an existing token in `src/index.css`.
  *
  * Every one is a `var(--ga-*)` reference rather than a literal, which is what makes dark mode
  * work from one file: `.dark` redefines `--ga-green-hi`, `--ga-surface3` and the warn pair, and
@@ -43,6 +43,8 @@ export const PISO_ROLES = {
   warmPanel: "var(--ga-surface3)",
   amberBg: "var(--ga-warn-border)",
   amberFg: "var(--ga-warn-text)",
+  /** The coin, kept apart from amberBg because that one is a 20% wash in dark mode. */
+  coin: "var(--ga-coin)",
 } as const;
 
 /** Only these five are worth a screen reader's attention; `resting` and `empty` are decoration. */

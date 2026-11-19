@@ -3,13 +3,15 @@
  *
  * A vertical bamboo tube with a coin slot. The artwork is settled: it is not a pig, it has no
  * ears, no snout and no peso glyph. The geometry below is the handoff verbatim, inlined as JSX
- * rather than imported as an asset so it needs no SVG loader and so its five colour roles can be
+ * rather than imported as an asset so it needs no SVG loader and so its six colour roles can be
  * driven from the tokens in `src/index.css`.
  *
  * Two rules live inside the component on purpose:
  *
  *  - **The size threshold.** Below 32px the face is four grey pixels, so below 32px it renders
- *    the faceless mark instead. A caller asking for a 16px avatar cannot get a broken face.
+ *    the faceless mark instead. A caller asking for a 16px avatar cannot get a broken face. That
+ *    mark is also the product logo (`docs/brand/gastosai-mark-small.svg` in the workspace): a coin
+ *    sinking into the tube, with joints that stick out like bamboo. It keeps the mood colours.
  *  - **Who announces.** `saved`, `overBudget`, `thinking`, `worried` and `cheer` are states a
  *    screen reader needs; `resting` and `empty` sit beside text that already carries the meaning, so announcing them
  *    is noise. Callers do not get to choose, because the choice is a property of the state.
@@ -53,20 +55,16 @@ export default function Piso({ state, size = 96, className }: Props) {
   };
 
   if (size < PISO_MARK_THRESHOLD) {
+    const line = pisoLine(state);
+    // docs/brand/gastosai-mark-small.svg verbatim, painted from the roles. Coin first: the tube
+    // drawn over its lower edge is what sinks it into the slot.
     return (
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" {...shared}>
-        <rect
-          x="5"
-          y="3"
-          width="14"
-          height="18"
-          rx="4"
-          fill={pisoBody(state)}
-          stroke={pisoLine(state)}
-          strokeWidth="2"
-        />
-        <path d="M5 10h14" stroke={pisoLine(state)} strokeWidth="2" strokeLinecap="round" fill="none" />
-        <rect x="9" y="5.6" width="6" height="2" rx="1" fill={pisoLine(state)} />
+      <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" {...shared}>
+        <circle cx="32" cy="15" r="8.5" fill={PISO_ROLES.coin} stroke={line} strokeWidth="4" />
+        {/* Opaque backing: overBudget's dark body is a translucent wash the coin would show through. */}
+        <rect x="19" y="19" width="26" height="41" rx="7" fill="var(--ga-surface)" />
+        <rect x="19" y="19" width="26" height="41" rx="7" fill={pisoBody(state)} stroke={line} strokeWidth="4" />
+        <path d="M14.5 33h35M14.5 47h35" stroke={line} strokeWidth="4.5" strokeLinecap="round" fill="none" />
       </svg>
     );
   }
@@ -110,7 +108,7 @@ export default function Piso({ state, size = 96, className }: Props) {
 
       {/* A coin on its way into the slot. */}
       {state === "saved" && (
-        <circle cx="64" cy="12" r="9" fill={PISO_ROLES.amberBg} stroke={PISO_ROLES.amberFg} strokeWidth="3" />
+        <circle cx="64" cy="12" r="9" fill={PISO_ROLES.coin} stroke={line} strokeWidth="3" />
       )}
 
       {/* A hairline crack, not a break: over budget is a warning, not a failure. */}
