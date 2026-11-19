@@ -1,7 +1,7 @@
 import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import Piso from "./Piso";
-import { PISO_MARK_THRESHOLD, PISO_ROLES, PISO_STATES } from "./pisoTokens";
+import { PISO_MARK_THRESHOLD, PISO_ROLES, PISO_STATES, pisoBody, pisoLine } from "./pisoTokens";
 
 /**
  * Piso is the only illustration in the product, so the things that can silently go wrong with it
@@ -12,7 +12,7 @@ import { PISO_MARK_THRESHOLD, PISO_ROLES, PISO_STATES } from "./pisoTokens";
 
 const svgOf = (el: HTMLElement) => el.querySelector("svg")!;
 
-/** The eyes are the one element only the full face has — the mark carries no circles at all. */
+/** The eyes are the one element only the full face has; the mark's only circle is its r 8.5 coin. */
 const eyeCount = (svg: SVGElement) => svg.querySelectorAll('circle[r="4.2"]').length;
 
 describe("Piso", () => {
@@ -77,7 +77,7 @@ describe("Piso", () => {
     const { container } = render(<Piso state="resting" size={24} />);
     const svg = svgOf(container as HTMLElement);
 
-    expect(svg.getAttribute("viewBox")).toBe("0 0 24 24");
+    expect(svg.getAttribute("viewBox")).toBe("0 0 64 64");
     expect(eyeCount(svg)).toBe(0);
     expect(svg.getAttribute("width")).toBe("24");
   });
@@ -94,8 +94,25 @@ describe("Piso", () => {
     const { container } = render(<Piso state={state} size={16} />);
     const svg = svgOf(container as HTMLElement);
 
-    expect(svg.getAttribute("viewBox")).toBe("0 0 24 24");
+    expect(svg.getAttribute("viewBox")).toBe("0 0 64 64");
     expect(eyeCount(svg)).toBe(0);
+  });
+
+  it.each(PISO_STATES)("draws the %s mark as the logo: a coin sinking into the tube past two joints", (state) => {
+    const { container } = render(<Piso state={state} size={24} />);
+    const svg = svgOf(container as HTMLElement);
+    const [coin, tube, joints] = [...svg.children];
+
+    expect(svg.getAttribute("data-piso-state")).toBe(state);
+    // The tube is drawn over the coin's lower edge, which is what sinks it.
+    expect(coin.nodeName).toBe("circle");
+    expect(coin.getAttribute("fill")).toBe(PISO_ROLES.amberBg);
+    expect(coin.getAttribute("stroke")).toBe(pisoLine(state));
+    expect(tube.nodeName).toBe("rect");
+    expect(tube.getAttribute("fill")).toBe(pisoBody(state));
+    expect(tube.getAttribute("stroke")).toBe(pisoLine(state));
+    expect(joints.getAttribute("d")?.match(/M/g)).toHaveLength(2);
+    expect(joints.getAttribute("stroke")).toBe(pisoLine(state));
   });
 
   // --- Colour -------------------------------------------------------------
