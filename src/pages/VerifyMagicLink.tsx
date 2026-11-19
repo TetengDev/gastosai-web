@@ -3,6 +3,8 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { verifyMagicLink } from "../api/auth";
 import { useAuth } from "../context/AuthContext";
 import { Button } from "../components/ui";
+import Piso from "../brand/Piso";
+import Wordmark from "../brand/Wordmark";
 
 export default function VerifyMagicLink() {
   const [searchParams] = useSearchParams();
@@ -43,8 +45,9 @@ export default function VerifyMagicLink() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-page px-4">
         <div className="w-full max-w-md text-center">
-          <h1 className="select-none font-display text-4xl font-bold tracking-tight text-ink-hi">
-            Gastos<span className="text-brand">AI</span>
+          <h1 className="flex select-none items-center justify-center gap-2.5 font-display text-4xl font-bold tracking-tight text-ink-hi">
+            <Piso state="resting" size={30} />
+            <Wordmark />
           </h1>
           <p className="mt-6 text-sm text-ink-2">Signing you in&hellip;</p>
           <div className="mx-auto mt-4 h-6 w-6 animate-spin rounded-full border-2 border-brand border-t-transparent" />
@@ -57,8 +60,9 @@ export default function VerifyMagicLink() {
     <div className="flex min-h-screen items-center justify-center bg-page px-4">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <h1 className="select-none font-display text-4xl font-bold tracking-tight text-ink-hi">
-            Gastos<span className="text-brand">AI</span>
+          <h1 className="flex select-none items-center justify-center gap-2.5 font-display text-4xl font-bold tracking-tight text-ink-hi">
+            <Piso state="resting" size={30} />
+            <Wordmark />
           </h1>
         </div>
         <div className="rounded-2xl border border-edge bg-surface p-8 shadow-sm text-center space-y-4">

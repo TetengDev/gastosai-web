@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { Button } from "../components/ui";
+import Piso from "../brand/Piso";
+import Wordmark from "../brand/Wordmark";
 import AuthModeTabs from "../components/AuthModeTabs";
 import GoogleSignInButton from "../components/GoogleSignInButton";
 import Footer from "../components/Footer";
@@ -61,8 +63,9 @@ export default function RegisterPage() {
       <div className="flex flex-1 items-center justify-center px-4 py-10">
         <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <h1 className="select-none font-display text-4xl font-bold tracking-tight text-ink-hi">
-            Gastos<span className="text-brand">AI</span>
+          <h1 className="flex select-none items-center justify-center gap-2.5 font-display text-4xl font-bold tracking-tight text-ink-hi">
+            <Piso state="resting" size={30} />
+            <Wordmark />
           </h1>
           <p className="mt-2 text-sm text-ink-2">New here — create your account</p>
         </div>
