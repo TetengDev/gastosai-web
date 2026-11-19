@@ -66,9 +66,9 @@ export default function GoalProgressCard({ onCompleted }: Props) {
       </div>
 
       {loading ? (
-        <div className="mt-3 flex gap-3">
+        <div className="mt-3 flex gap-3 lg:flex-col">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="h-24 w-56 shrink-0 animate-pulse rounded-xl bg-surface-2" />
+            <div key={i} className="h-24 w-56 shrink-0 animate-pulse rounded-xl bg-surface-2 lg:w-auto" />
           ))}
         </div>
       ) : error ? (
@@ -81,13 +81,15 @@ export default function GoalProgressCard({ onCompleted }: Props) {
           </Link>
         </p>
       ) : (
-        <ul className="-mx-1 mt-3 flex snap-x list-none gap-3 overflow-x-auto px-1 pb-2">
+        // A swipeable strip on narrow screens; from lg the Dashboard puts this in a side column,
+        // where the cards stack and fill it instead.
+        <ul className="-mx-1 mt-3 flex snap-x list-none gap-3 overflow-x-auto px-1 pb-2 lg:mx-0 lg:flex-col lg:overflow-visible lg:px-0 lg:pb-0">
           {shown.map((goal) => {
             const currency = goal.currency ?? "PHP";
             return (
               <li
                 key={goal.id}
-                className="flex w-60 shrink-0 snap-start flex-col gap-2 rounded-xl border border-edge bg-surface p-4"
+                className="flex w-60 shrink-0 snap-start flex-col gap-2 rounded-xl border border-edge bg-surface p-4 lg:w-auto"
               >
                 <div className="flex min-h-10 items-center justify-between gap-2">
                   <span className="truncate text-sm font-medium text-ink">{goal.name}</span>

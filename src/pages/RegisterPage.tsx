@@ -71,9 +71,12 @@ export default function RegisterPage() {
           <AuthModeTabs active="register" />
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-ink">Name</label>
+              <label htmlFor="name" className="mb-1.5 block text-sm font-medium text-ink">Name</label>
               <input
+                id="name"
+                name="name"
                 type="text"
+                autoComplete="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
@@ -82,9 +85,13 @@ export default function RegisterPage() {
               />
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-ink">Email</label>
+              <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-ink">Email</label>
               <input
+                id="email"
+                name="email"
                 type="email"
+                autoComplete="username"
+                spellCheck={false}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -93,9 +100,12 @@ export default function RegisterPage() {
               />
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-ink">Password</label>
+              <label htmlFor="new-password" className="mb-1.5 block text-sm font-medium text-ink">Password</label>
               <input
+                id="new-password"
+                name="new-password"
                 type="password"
+                autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -139,6 +149,9 @@ export default function RegisterPage() {
               <p className="text-sm font-medium text-ink">Email me a sign-in link</p>
               <input
                 type="email"
+                name="magic-email"
+                autoComplete="email"
+                spellCheck={false}
                 value={magicEmail}
                 onChange={(e) => setMagicEmail(e.target.value)}
                 required

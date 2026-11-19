@@ -66,7 +66,7 @@ const BILL_WINDOW_DAYS = 7;
 const MAX_SLICES = 8;
 
 function buildChartData(categoryData: CategoryReport[]) {
-  const sorted = [...categoryData].sort((a, b) => Number(b.total) - Number(a.total));
+  const sorted = categoryData.toSorted((a, b) => Number(b.total) - Number(a.total));
   if (sorted.length <= MAX_SLICES) {
     return sorted.map((c) => ({ name: c.category, value: Number(c.total) }));
   }
@@ -163,7 +163,7 @@ function billRows(
   };
 
   const overdue = new Map<number, BillRow>();
-  for (const bill of [...upcoming].sort((a, b) => a.dueDate.localeCompare(b.dueDate))) {
+  for (const bill of upcoming.toSorted((a, b) => a.dueDate.localeCompare(b.dueDate))) {
     if (bill.dueDate.startsWith(month) && bill.dueDate < today && unpaid(bill.id)) {
       overdue.set(bill.id, {
         bill,
@@ -316,19 +316,26 @@ export default function Dashboard() {
   if (loading)
     return (
       // Mirrors the real layout: the hero, then quieter sections.
-      <div className="mx-auto max-w-3xl animate-pulse space-y-10">
-        <div className="h-60 rounded-2xl bg-surface-2" />
-        <div className="space-y-3">
-          <div className="h-5 w-40 rounded bg-surface-2" />
-          <div className="h-14 rounded-xl bg-surface-2" />
-          <div className="h-14 rounded-xl bg-surface-2" />
+      // Same grid and placements as the loaded layout below, with blocks sized like what replaces
+      // them, so the swap from skeleton to content does not shift the page.
+      <div className="mx-auto flex max-w-3xl animate-pulse flex-col gap-10 lg:grid lg:max-w-none lg:grid-cols-[minmax(0,1fr)_360px] lg:grid-rows-[auto_1fr] lg:gap-x-10">
+        <div className="h-64 rounded-2xl bg-surface-2 lg:col-start-1 lg:row-start-1" />
+        <div className="lg:col-start-2 lg:row-span-2 lg:row-start-1">
+          <div className="h-7 w-24 rounded bg-surface-2" />
+          <div className="mt-3 flex gap-3 lg:flex-col">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="h-28 w-60 shrink-0 rounded-xl bg-surface-2 lg:w-auto" />
+            ))}
+          </div>
         </div>
-        <div className="flex gap-3">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="h-24 w-56 shrink-0 rounded-xl bg-surface-2" />
-          ))}
+        <div className="lg:col-start-1 lg:row-start-2">
+          <div className="h-7 w-24 rounded bg-surface-2" />
+          <div className="mt-3 space-y-3">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-16 rounded-xl bg-surface-2" />
+            ))}
+          </div>
         </div>
-        <div className="h-64 rounded-xl bg-surface-2" />
       </div>
     );
 
@@ -672,12 +679,17 @@ export default function Dashboard() {
   );
 
   return (
-    <div className="mx-auto max-w-3xl space-y-10">
-      {hero}
-      {attentionSection}
-      <GoalProgressCard onCompleted={queueCelebrations} />
-      {recentSection}
-      {insightsSection}
+    // One column up to lg; from lg the hero and Recent share the main column and the shorter
+    // "what needs me" cards sit beside them, so a wide window isn't two empty gutters. DOM order is
+    // the mobile and reading order: hero, attention, goals, recent, insights.
+    <div className="mx-auto flex max-w-3xl flex-col gap-10 lg:grid lg:max-w-none lg:grid-cols-[minmax(0,1fr)_360px] lg:grid-rows-[auto_1fr] lg:gap-x-10">
+      <div className="lg:col-start-1 lg:row-start-1">{hero}</div>
+      <div className="flex flex-col gap-10 lg:col-start-2 lg:row-span-2 lg:row-start-1">
+        {attentionSection}
+        <GoalProgressCard onCompleted={queueCelebrations} />
+      </div>
+      <div className="lg:col-start-1 lg:row-start-2">{recentSection}</div>
+      <div className="lg:col-span-2">{insightsSection}</div>
     </div>
   );
 }

@@ -4,6 +4,15 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%231f8a5b'/><text x='16' y='23' font-family='Arial' font-weight='900' font-size='20' fill='white' text-anchor='middle'>G</text></svg>" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- `light dark` follows the OS. The script applies a stored override before first paint, so a
+         pinned scheme does not flash the other one; src/lib/colorScheme.ts owns what gets stored. -->
+    <meta name="color-scheme" content="light dark" />
+    <script>
+      try {
+        var s = localStorage.getItem("color-scheme");
+        if (s === "light" || s === "dark") document.querySelector('meta[name="color-scheme"]').content = s;
+      } catch (e) {}
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

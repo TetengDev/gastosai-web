@@ -28,7 +28,9 @@ export default function BudgetRuleCard({ month, categories, onCategoriesChanged 
   const [wants, setWants] = useState(30);
   const [savings, setSavings] = useState(20);
   const [summary, setSummary] = useState<BudgetRuleSummary | null>(null);
-  const [enabled, setEnabledState] = useState(false);
+  // null until the rule has loaded: showing the "Try it" invite by default flashed it at users who
+  // already turned the rule on, before swapping it for the much taller planner.
+  const [enabled, setEnabledState] = useState<boolean | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -104,6 +106,9 @@ export default function BudgetRuleCard({ month, categories, onCategoriesChanged 
 
   const customSum = needs + wants + savings;
   const inputClass = "rounded-xl border border-edge-input bg-input px-3 py-2 text-sm text-ink";
+
+  // Nothing to say until we know; a failed load still shows the invite, as before.
+  if (enabled === null && !error) return null;
 
   // Opt-in: until the user turns the feature on, just invite them to try it.
   if (!enabled) {
