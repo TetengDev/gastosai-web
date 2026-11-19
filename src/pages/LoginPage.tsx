@@ -48,9 +48,13 @@ export default function LoginPage() {
           <AuthModeTabs active="login" />
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-ink">Email</label>
+              <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-ink">Email</label>
               <input
+                id="email"
+                name="email"
                 type="email"
+                autoComplete="username"
+                spellCheck={false}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -59,9 +63,12 @@ export default function LoginPage() {
               />
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-ink">Password</label>
+              <label htmlFor="current-password" className="mb-1.5 block text-sm font-medium text-ink">Password</label>
               <input
+                id="current-password"
+                name="current-password"
                 type="password"
+                autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
