@@ -271,7 +271,8 @@ select:focus {
   display: flex;
   flex-direction: column;
   height: 1.2em;
-  overflow: clip;
+  /* Clip only the roll's axis: a full clip shaved the A's diagonal at its side bearing. */
+  overflow-y: clip;
 }
 @media (prefers-reduced-motion: no-preference) {
   .ga-roll-letter > span {
