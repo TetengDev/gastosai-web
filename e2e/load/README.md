@@ -25,8 +25,8 @@ fails. Each page does still read `GET /chat/conversations`: the chat widget load
 every signed-in page. That read is plain CRUD; no model is involved.
 
 Artillery runs through `npx -y artillery@2.0.34` (pinned in `plan.ts`), so it is not a
-dependency of this repo. It drives the Chromium that the repo's `@playwright/test` already
-installed. Telemetry is off.
+dependency of this repo. It launches the Chromium that the repo's `@playwright/test` installed,
+not one of its own. Telemetry is off.
 
 ## Running it
 
@@ -35,7 +35,8 @@ python3 ../scripts/verify_local.py --up   # Postgres, API :8080, web :5173
 npm run load:local
 ```
 
-The `free@`, `premium@` and `trial@` accounts are seeded when the backend runs with sample data,
+It needs Node 22.18 or later, which runs `run.ts` without a build step. The `free@`, `premium@`
+and `trial@` accounts are seeded when the backend runs with sample data,
 which is the local default (`GASTOS_SEED_SAMPLE_DATA`, default `true`).
 
 ## Changing the ramp
@@ -65,6 +66,11 @@ Two backend limits set the ceiling, and both bite before your laptop does:
   16 users, an account starts returning `429` on writes. To go further, raise
   `WRITE_RATE_LIMIT_PER_MINUTE` on the backend.
 
+So the default is a gentle baseline, not a stress test. On a laptop a pass is about 2.5 s of
+work followed by think time, so ten users seldom hit the server at the same instant. Real
+pressure means raising both backend limits, then `LOAD_USERS`, and shortening `PASS_MS` in
+`artillery/scenario.ts`.
+
 ## Why it is local only
 
 The run refuses any target other than `http://localhost:5173` and its API on
@@ -81,7 +87,7 @@ change the target, and `LOAD_ALLOW_REMOTE=1` lifts the refusal. Lift it only on 
 ## Reading the report
 
 Artillery prints its own report every 10 s and again at the end. After that, `run.ts` prints a
-short summary:
+short summary. This one is from a default run on 2026-11-19, trimmed:
 
 ```
 Page loads (ms)                                    p50     p95     p99
@@ -104,7 +110,8 @@ Sweep: no rows left behind.
   thing it waits for. Watch how they rise as users climb.
 - **HTTP errors** counts every response of 400 or more that the pages received, API and assets
   alike, then lists the request behind each one. A `429` means the run hit a backend rate limit
-  (see above), not that the app broke.
+  (see above), not that the app broke. The `400 GET /api/v2/alerts` above is a backend bug that
+  the run surfaced: the `premium@` account's alerts for that month fail even with no load.
 - **Failed virtual users** counts users that threw: a step timed out, an element never appeared,
   or an AI endpoint was called. `Errors:` lists why. The command exits `1` when any user failed or
   the sweep could not clean up.
