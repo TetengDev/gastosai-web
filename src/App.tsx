@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import AnnouncementBar from "./components/AnnouncementBar";
 import ChatWidget from "./components/ChatWidget";
@@ -33,6 +33,16 @@ import Terms from "./pages/Terms";
 import Pricing from "./pages/Pricing";
 import CheckoutReturn from "./pages/CheckoutReturn";
 import { BILLING_ENABLED } from "./config/billing";
+import {
+  COLOR_SCHEME_KEY,
+  clearLegacyTheme,
+  clearOverride,
+  readOverride,
+  resolveScheme,
+  toggleColorScheme,
+  type ColorScheme,
+} from "./lib/colorScheme";
+import { getLocalStorage } from "./lib/storage";
 
 function AppShell({ darkMode, onToggleDark, onResetDark }: { darkMode: boolean; onToggleDark: () => void; onResetDark: () => void }) {
   const { user } = useAuth();
@@ -100,25 +110,55 @@ function AppShell({ darkMode, onToggleDark, onResetDark }: { darkMode: boolean; 
   );
 }
 
-export default function App() {
-  const [darkMode, setDarkMode] = useState(() => {
-    const stored = localStorage.getItem("theme");
-    if (stored) return stored === "dark";
-    return window.matchMedia("(prefers-color-scheme: dark)").matches;
-  });
+const DARK_QUERY = "(prefers-color-scheme: dark)";
+
+/**
+ * The scheme on screen, for the Navbar toggle. CSS already follows the <meta name="color-scheme">,
+ * which `index.html` set before first paint; this keeps that meta, the OS and other tabs in step.
+ */
+function useColorScheme() {
+  const [override, setOverride] = useState<ColorScheme | null>(() => readOverride(getLocalStorage()));
+  const [systemDark, setSystemDark] = useState(() => window.matchMedia(DARK_QUERY).matches);
 
   useEffect(() => {
-    document.documentElement.classList.toggle("dark", darkMode);
-    localStorage.setItem("theme", darkMode ? "dark" : "light");
-  }, [darkMode]);
+    clearLegacyTheme(getLocalStorage());
+    // The OS can switch at any time (often on a schedule); the icon has to follow it live.
+    const media = window.matchMedia(DARK_QUERY);
+    media.onchange = (e) => setSystemDark(e.matches);
+    // A toggle in another tab writes storage; pick it up without a reload.
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === COLOR_SCHEME_KEY || e.key === null) setOverride(readOverride(getLocalStorage()));
+    };
+    window.addEventListener("storage", onStorage);
+    return () => {
+      media.onchange = null;
+      window.removeEventListener("storage", onStorage);
+    };
+  }, []);
+
+  useEffect(() => {
+    document.querySelector<HTMLMetaElement>('meta[name="color-scheme"]')?.setAttribute("content", override ?? "light dark");
+  }, [override]);
+
+  const toggle = () => setOverride(toggleColorScheme(override, systemDark, getLocalStorage()));
+  const reset = useCallback(() => {
+    clearOverride(getLocalStorage());
+    setOverride(null);
+  }, []);
+
+  return { isDark: resolveScheme(override, systemDark) === "dark", toggle, reset };
+}
+
+export default function App() {
+  const { isDark, toggle, reset } = useColorScheme();
 
   return (
     <BrowserRouter>
       <AuthProvider>
         <AppShell
-          darkMode={darkMode}
-          onToggleDark={() => setDarkMode((d) => !d)}
-          onResetDark={() => setDarkMode(window.matchMedia("(prefers-color-scheme: dark)").matches)}
+          darkMode={isDark}
+          onToggleDark={toggle}
+          onResetDark={reset}
         />
       </AuthProvider>
     </BrowserRouter>

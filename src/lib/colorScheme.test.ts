@@ -4,6 +4,7 @@ import type { KeyValueStorage } from "./storage";
 import {
   COLOR_SCHEME_KEY,
   clearLegacyTheme,
+  clearOverride,
   readOverride,
   resolveScheme,
   toggleColorScheme,
@@ -108,5 +109,19 @@ describe("clearLegacyTheme", () => {
 
   it("tolerates missing storage", () => {
     expect(() => clearLegacyTheme(null)).not.toThrow();
+  });
+});
+
+describe("clearOverride", () => {
+  it("removes a pin so the page follows the OS again, as on sign-out", () => {
+    const storage = createMemoryStorage();
+    storage.setItem(COLOR_SCHEME_KEY, "dark");
+    clearOverride(storage);
+    expect(readOverride(storage)).toBeNull();
+  });
+
+  it("tolerates storage that throws", () => {
+    const throwing = { getItem: () => null, setItem: () => {}, removeItem: () => { throw new Error("blocked"); } };
+    expect(() => clearOverride(throwing)).not.toThrow();
   });
 });

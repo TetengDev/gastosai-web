@@ -1,6 +1,25 @@
 @import "tailwindcss";
 
-@custom-variant dark (&:where(.dark, .dark *));
+/* Dark is the scheme on screen, not a JS class: the <meta name="color-scheme"> pins dark, or the
+   OS prefers dark and the meta does not pin light. With JS off the meta stays `light dark` and the
+   media branch alone follows the OS. The two branches are duplicated rather than routed through a
+   container style query because this branching is critical (selector-atrule-combinations). */
+@custom-variant dark {
+  &:where(
+      :root:has(> head > meta[name="color-scheme"][content="dark"]),
+      :root:has(> head > meta[name="color-scheme"][content="dark"]) *
+    ) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(
+        :root:not(:has(> head > meta[name="color-scheme"][content="light"])),
+        :root:not(:has(> head > meta[name="color-scheme"][content="light"])) *
+      ) {
+      @slot;
+    }
+  }
+}
 
 /* Design tokens — ported from the Claude Design handoff (GastosAI.dc.html). */
 :root {
@@ -38,37 +57,53 @@
   --ga-warn-text: #8a6a00;
 }
 
-.dark {
-  --ga-page: #0f0f13;
-  --ga-nav: rgba(15, 15, 19, 0.92);
-  --ga-surface: #17171c;
-  --ga-surface2: #1e1e24;
-  --ga-surface3: #0d1f1a;
-  --ga-surface4: #1a1a1f;
-  --ga-track: rgba(255, 255, 255, 0.07);
-  --ga-border: rgba(255, 255, 255, 0.09);
-  --ga-border2: rgba(255, 255, 255, 0.07);
-  --ga-border3: rgba(255, 255, 255, 0.05);
-  --ga-border-input: rgba(255, 255, 255, 0.15);
-  --ga-text-hi: #f0f0f0;
-  --ga-text: #e0e0e8;
-  --ga-text2: #9494a5;
-  --ga-text3: #7e7e8b;
-  --ga-input-bg: #1e1e24;
-  --ga-cta-bg: #f0f0f0;
-  --ga-cta-text: #17171c;
-  --ga-green-hi: #7fd6b8;
-  --ga-green-soft: #003c33;
-  --ga-danger: #ff8a8a;
-  --ga-chart-1: #ff9b8a;
-  --ga-chart-2: #ffb4a6;
-  --ga-warn-bg: rgba(240, 220, 160, 0.07);
-  --ga-warn-border: rgba(240, 220, 160, 0.2);
-  --ga-warn-text: #d4b060;
+/* Native UI — scrollbars, date pickers, selects, autofill — follows the same scheme. The base stays
+   `light dark` and the meta is mapped back onto it, since author CSS overrides the meta (dark-mode-toggle). */
+:root {
+  color-scheme: light dark;
+
+  &:has(> head > meta[name="color-scheme"][content="dark"]) {
+    color-scheme: dark;
+  }
+  &:has(> head > meta[name="color-scheme"][content="light"]) {
+    color-scheme: light;
+  }
+}
+
+/* Dark tokens, under the `dark` variant above so they and every `dark:` utility share one condition. */
+:root {
+  @variant dark {
+    --ga-page: #0f0f13;
+    --ga-nav: rgba(15, 15, 19, 0.92);
+    --ga-surface: #17171c;
+    --ga-surface2: #1e1e24;
+    --ga-surface3: #0d1f1a;
+    --ga-surface4: #1a1a1f;
+    --ga-track: rgba(255, 255, 255, 0.07);
+    --ga-border: rgba(255, 255, 255, 0.09);
+    --ga-border2: rgba(255, 255, 255, 0.07);
+    --ga-border3: rgba(255, 255, 255, 0.05);
+    --ga-border-input: rgba(255, 255, 255, 0.15);
+    --ga-text-hi: #f0f0f0;
+    --ga-text: #e0e0e8;
+    --ga-text2: #9494a5;
+    --ga-text3: #7e7e8b;
+    --ga-input-bg: #1e1e24;
+    --ga-cta-bg: #f0f0f0;
+    --ga-cta-text: #17171c;
+    --ga-green-hi: #7fd6b8;
+    --ga-green-soft: #003c33;
+    --ga-danger: #ff8a8a;
+    --ga-chart-1: #ff9b8a;
+    --ga-chart-2: #ffb4a6;
+    --ga-warn-bg: rgba(240, 220, 160, 0.07);
+    --ga-warn-border: rgba(240, 220, 160, 0.2);
+    --ga-warn-text: #d4b060;
+  }
 }
 
 /* Expose tokens as Tailwind utilities. `inline` keeps the var() reference so
-   utilities flip automatically when `.dark` toggles on <html>. */
+   utilities flip automatically when the scheme on screen changes. */
 @theme inline {
   --font-display: "Space Grotesk", system-ui, sans-serif;
   --font-sans: "Hanken Grotesk", system-ui, sans-serif;

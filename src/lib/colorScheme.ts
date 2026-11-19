@@ -52,6 +52,15 @@ export function toggleColorScheme(
   return next;
 }
 
+/** Back to following the OS — what sign-out does, so the next person at the browser is not pinned. */
+export function clearOverride(storage: KeyValueStorage | null): void {
+  try {
+    storage?.removeItem(COLOR_SCHEME_KEY);
+  } catch {
+    // Unusable storage holds no pin to clear.
+  }
+}
+
 /** Drop the old key without migrating it; a user who chose deliberately toggles once more. */
 export function clearLegacyTheme(storage: KeyValueStorage | null): void {
   try {
