@@ -66,7 +66,7 @@ const BILL_WINDOW_DAYS = 7;
 const MAX_SLICES = 8;
 
 function buildChartData(categoryData: CategoryReport[]) {
-  const sorted = [...categoryData].sort((a, b) => Number(b.total) - Number(a.total));
+  const sorted = categoryData.toSorted((a, b) => Number(b.total) - Number(a.total));
   if (sorted.length <= MAX_SLICES) {
     return sorted.map((c) => ({ name: c.category, value: Number(c.total) }));
   }
@@ -163,7 +163,7 @@ function billRows(
   };
 
   const overdue = new Map<number, BillRow>();
-  for (const bill of [...upcoming].sort((a, b) => a.dueDate.localeCompare(b.dueDate))) {
+  for (const bill of upcoming.toSorted((a, b) => a.dueDate.localeCompare(b.dueDate))) {
     if (bill.dueDate.startsWith(month) && bill.dueDate < today && unpaid(bill.id)) {
       overdue.set(bill.id, {
         bill,
