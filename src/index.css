@@ -19,6 +19,16 @@
       @slot;
     }
   }
+  /* A local scope, never set on <html>: a permanently dark surface (the Dashboard hero tile)
+     opts its subtree into the dark tokens and `dark:` utilities in both themes. */
+  &:where(.dark, .dark *) {
+    @slot;
+  }
+}
+
+/* Native controls inside a local dark scope match it. */
+.dark {
+  color-scheme: dark;
 }
 
 /* Design tokens — ported from the Claude Design handoff (GastosAI.dc.html). */
@@ -71,7 +81,8 @@
 }
 
 /* Dark tokens, under the `dark` variant above so they and every `dark:` utility share one condition. */
-:root {
+:root,
+.dark {
   @variant dark {
     --ga-page: #0f0f13;
     --ga-nav: rgba(15, 15, 19, 0.92);
