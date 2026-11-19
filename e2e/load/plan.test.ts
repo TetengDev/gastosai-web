@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { ACCOUNTS, accountFor, settingsFrom, summarize } from "./plan.ts";
+import { ACCOUNTS, accountFor, isAiCall, settingsFrom, summarize } from "./plan.ts";
 
 /**
  * The load run's guard rails, checked without running it: running it takes minutes and the whole
@@ -75,6 +75,36 @@ test.describe("load run · shape", () => {
       "demo@gastosai.dev",
       "free@gastosai.dev",
     ]);
+  });
+});
+
+test.describe("load run · AI guard", () => {
+  const api = "http://localhost:8080";
+
+  test("flags every LLM-backed route, versioned or not", () => {
+    for (const path of [
+      "/api/v2/ai/chat",
+      "/ai/chat/confirm",
+      "/api/v2/ai/query",
+      "/api/v2/ai/vision",
+      "/api/v2/ai/insights/top-category?month=2026-11",
+    ]) {
+      expect(isAiCall(`${api}${path}`, api), path).toBe(true);
+    }
+  });
+
+  test("lets plain reads and the app's own source files through", () => {
+    for (const url of [
+      `${api}/api/v2/chat/conversations`,
+      `${api}/api/v2/user/ai-settings`,
+      `${api}/api/v2/ai/usage`,
+      `${api}/api/v2/ai/languages`,
+      `${api}/api/v2/expenses`,
+      "http://localhost:5173/src/api/ai.ts",
+      "http://localhost:5173/src/components/chat/chatActions.ts",
+    ]) {
+      expect(isAiCall(url, api), url).toBe(false);
+    }
   });
 });
 

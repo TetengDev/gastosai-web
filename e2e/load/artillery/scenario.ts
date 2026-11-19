@@ -1,7 +1,7 @@
 import { chromium, type Page } from "@playwright/test";
 import { confirmInModal, modalWithTitle } from "../../support/dialog.ts";
 import { uniqueName } from "../../support/run-id.ts";
-import { HTTP_ERROR, accountFor, settingsFrom } from "../plan.ts";
+import { HTTP_ERROR, accountFor, isAiCall, settingsFrom } from "../plan.ts";
 
 /**
  * The Artillery script behind `npm run load:local`. Start it through `run.ts`, which also sweeps
@@ -29,9 +29,6 @@ const endAt = Date.now() + (settings.rampSeconds + settings.holdSeconds) * 1000;
  * account starts hitting 429. Make this a setting when someone needs more users.
  */
 const PASS_MS = 30_000;
-
-/** LLM-backed routes. Nothing here should reach them; a call to one fails the user. */
-const AI_CALL = /\/ai\/(chat|query|vision|insights)/;
 
 export const config = {
   target: settings.target,
@@ -61,10 +58,10 @@ async function signedInUser(page: Page, _vu: unknown, events: Events, test: { st
   const vu = users++;
   const { email, password } = accountFor(vu);
 
+  // Watched rather than blocked: routing would intercept every request and skew the timings.
   const aiCalls: string[] = [];
   page.on("request", (request) => {
-    const url = request.url();
-    if (url.startsWith(settings.api) && AI_CALL.test(url)) aiCalls.push(url);
+    if (isAiCall(request.url(), settings.api)) aiCalls.push(request.url());
   });
   // Artillery counts responses by status only; this names the request behind each error.
   page.on("response", (response) => {

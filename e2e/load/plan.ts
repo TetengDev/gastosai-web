@@ -78,6 +78,17 @@ export function settingsFrom(env: Env): Settings {
   };
 }
 
+/**
+ * Whether `url` is an LLM-backed API call (chat, query, receipt vision, insights), which the load
+ * run must never make. `/chat/conversations`, `/ai/usage` and the like are plain reads.
+ */
+export function isAiCall(url: string, api: string): boolean {
+  const parsed = new URL(url);
+  return (
+    parsed.origin === originOf(api) && /\/ai\/(chat|query|vision|insights)(\/|$)/.test(parsed.pathname)
+  );
+}
+
 /** Counter prefix the scenario emits per error response: `<prefix><status> <METHOD> <path>`. */
 export const HTTP_ERROR = "load.http_error.";
 
