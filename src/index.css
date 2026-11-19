@@ -253,3 +253,28 @@ select:focus {
     var(--ga-surface) 4px 8px
   );
 }
+
+/*
+ * The wordmark's text roll, after Skiper UI's "Text roll" (#58): written here in CSS, not copied,
+ * since theirs needs framer-motion. Each letter sits twice in a one-line clip; hovering or
+ * focusing the link slides both copies up a line, staggered by `--i`. Transform only, so the bar
+ * never reflows, and none of it under reduced motion.
+ */
+.ga-roll {
+  display: inline-flex;
+  line-height: 1.2;
+}
+.ga-roll-letter {
+  display: flex;
+  flex-direction: column;
+  height: 1.2em;
+  overflow: clip;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ga-roll-letter > span {
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1) calc(var(--i) * 30ms);
+  }
+  a:is(:hover, :focus-visible) .ga-roll-letter > span {
+    transform: translateY(-100%);
+  }
+}

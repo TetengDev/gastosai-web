@@ -8,6 +8,7 @@ import { getBudgetSummary } from "../api/budgets";
 import { createExpense, getExpensesPage } from "../api/expenses";
 import type { ExpenseRequest } from "../api/expenses";
 import Piso from "../brand/Piso";
+import Wordmark from "../brand/Wordmark";
 import { getAvatarGradient, getInitials, manilaMonth } from "../lib/formatters";
 import { avatarIconFor } from "../lib/avatarIcons";
 import { pisoMoodFor, toBand, type BudgetBand } from "../lib/pisoMood";
@@ -271,9 +272,7 @@ export default function Navbar({ isDark, onToggleDark }: Props) {
           <Piso state={mood} size={24} />
         </span>
         <Link to="/" className="flex select-none items-center">
-          <span className="font-display text-[21px] font-bold tracking-tight text-ink-hi">
-            Gastos<span className="text-brand">AI</span>
-          </span>
+          <Wordmark className="font-display text-[21px] font-bold tracking-tight text-ink-hi" />
         </Link>
       </div>
 
