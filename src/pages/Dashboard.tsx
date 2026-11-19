@@ -316,7 +316,7 @@ export default function Dashboard() {
   if (loading)
     return (
       // Mirrors the real layout: the hero, then quieter sections.
-      <div className="mx-auto max-w-3xl animate-pulse space-y-10">
+      <div className="mx-auto max-w-3xl animate-pulse space-y-10 lg:max-w-none">
         <div className="h-60 rounded-2xl bg-surface-2" />
         <div className="space-y-3">
           <div className="h-5 w-40 rounded bg-surface-2" />
@@ -672,12 +672,17 @@ export default function Dashboard() {
   );
 
   return (
-    <div className="mx-auto max-w-3xl space-y-10">
-      {hero}
-      {attentionSection}
-      <GoalProgressCard onCompleted={queueCelebrations} />
-      {recentSection}
-      {insightsSection}
+    // One column up to lg; from lg the hero and Recent share the main column and the shorter
+    // "what needs me" cards sit beside them, so a wide window isn't two empty gutters. DOM order is
+    // the mobile and reading order: hero, attention, goals, recent, insights.
+    <div className="mx-auto flex max-w-3xl flex-col gap-10 lg:grid lg:max-w-none lg:grid-cols-[minmax(0,1fr)_360px] lg:grid-rows-[auto_1fr] lg:gap-x-10">
+      <div className="lg:col-start-1 lg:row-start-1">{hero}</div>
+      <div className="flex flex-col gap-10 lg:col-start-2 lg:row-span-2 lg:row-start-1">
+        {attentionSection}
+        <GoalProgressCard onCompleted={queueCelebrations} />
+      </div>
+      <div className="lg:col-start-1 lg:row-start-2">{recentSection}</div>
+      <div className="lg:col-span-2">{insightsSection}</div>
     </div>
   );
 }
