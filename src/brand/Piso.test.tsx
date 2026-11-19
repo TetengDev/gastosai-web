@@ -106,7 +106,7 @@ describe("Piso", () => {
     expect(svg.getAttribute("data-piso-state")).toBe(state);
     // The tube is drawn over the coin's lower edge, which is what sinks it.
     expect(coin.nodeName).toBe("circle");
-    expect(coin.getAttribute("fill")).toBe(PISO_ROLES.amberBg);
+    expect(coin.getAttribute("fill")).toBe(PISO_ROLES.coin);
     expect(coin.getAttribute("stroke")).toBe(pisoLine(state));
     expect(tube.nodeName).toBe("rect");
     expect(tube.getAttribute("fill")).toBe(pisoBody(state));
@@ -117,11 +117,14 @@ describe("Piso", () => {
 
   // --- Colour -------------------------------------------------------------
 
-  it("exposes five colour roles and nothing else", () => {
+  // Six, not five: the coin got its own role because amberBg is a 20% wash in dark mode, which
+  // left the logo's coin an empty ring there. The mobile twin needs the same sixth role.
+  it("exposes six colour roles and nothing else", () => {
     expect(Object.keys(PISO_ROLES).sort()).toEqual([
       "amberBg",
       "amberFg",
       "bodyMint",
+      "coin",
       "line",
       "warmPanel",
     ]);
@@ -134,7 +137,7 @@ describe("Piso", () => {
     }
   });
 
-  it.each(PISO_STATES)("paints the %s state only from the five roles", (state) => {
+  it.each(PISO_STATES)("paints the %s state only from the six roles", (state) => {
     const { container } = render(<Piso state={state} size={96} />);
     const svg = svgOf(container as HTMLElement);
     const allowed = new Set<string>([...Object.values(PISO_ROLES), "none", "currentColor"]);
@@ -163,7 +166,7 @@ describe("Piso", () => {
     const { container } = render(<Piso state="saved" />);
     const svg = svgOf(container as HTMLElement);
 
-    expect(svg.querySelector('circle[r="9"]')).toBeTruthy();
+    expect(svg.querySelector('circle[r="9"]')?.getAttribute("fill")).toBe(PISO_ROLES.coin);
     expect(svg.innerHTML).toContain("M47 69q5-6 10 0M71 69q5-6 10 0");
   });
 

@@ -71,6 +71,8 @@ html {
   --ga-warn-bg: #fff8ea;
   --ga-warn-border: #f0dca0;
   --ga-warn-text: #8a6a00;
+  /* Piso's coin: solid in both themes, where --ga-warn-border fades to a 20% wash in dark. */
+  --ga-coin: #f0dca0;
 }
 
 /* Native UI — scrollbars, date pickers, selects, autofill — follows the same scheme. The base stays
@@ -116,6 +118,7 @@ html {
     --ga-warn-bg: rgba(240, 220, 160, 0.07);
     --ga-warn-border: rgba(240, 220, 160, 0.2);
     --ga-warn-text: #d4b060;
+    --ga-coin: #d4b060;
   }
 }
 
