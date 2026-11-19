@@ -411,8 +411,6 @@ export default function Budget() {
         </div>
       </div>
 
-      <BudgetRuleCard month={month} categories={categories} onCategoriesChanged={() => { void load(); }} />
-
       {error && (
         <p role="alert" className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-danger">
           {error}
@@ -514,6 +512,10 @@ export default function Budget() {
           </div>
         )}
       </div>
+
+      {/* Below the list on purpose: the budgets are the page, the rule planner is opt-in, and it
+          loads on its own, so here its arrival cannot push the list down. */}
+      <BudgetRuleCard month={month} categories={categories} onCategoriesChanged={() => { void load(); }} />
 
       <Modal open={modalOpen} onClose={closeModal} title={editing ? "Edit Budget" : "Add Budget"} maxWidthClass="max-w-sm">
         <form onSubmit={(e) => { void handleSave(e); }} className="space-y-4">
